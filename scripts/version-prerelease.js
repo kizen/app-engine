@@ -5,6 +5,7 @@ const sha = (process.env.SHORT_SHA ?? execSync('git rev-parse --short HEAD').toS
 if (!sha) throw new Error('Could not determine SHA');
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-pkg.version = `${pkg.version}-${sha}`;
+const baseVersion = pkg.version.replace(/-[^-]+$/, '');
+pkg.version = `${baseVersion}-${sha}`;
 writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 console.log('Stamped:', pkg.version);
