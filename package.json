@@ -1,0 +1,75 @@
+{
+  "name": "@kizen/plugin-engine",
+  "version": "0.1.0",
+  "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./react": {
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      }
+    },
+    "./communication": {
+      "import": {
+        "types": "./dist/communication.d.ts",
+        "default": "./dist/communication.js"
+      }
+    },
+    "./util": {
+      "import": {
+        "types": "./dist/util.d.ts",
+        "default": "./dist/util.js"
+      }
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5",
+    "date-fns": ">=4",
+    "date-fns-tz": ">=3",
+    "dompurify": ">=3",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "json-stable-stringify": "^1.3.0",
+    "prettier": "^3.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.0.0"
+  }
+}
