@@ -1,5 +1,5 @@
 {
-  "name": "@kizen/plugin-engine",
+  "name": "@growwithkizen/plugin-engine",
   "version": "0.1.0",
   "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
@@ -47,6 +47,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "version:prerelease": "node scripts/version-prerelease.js",
     "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build"
   },
   "peerDependencies": {
