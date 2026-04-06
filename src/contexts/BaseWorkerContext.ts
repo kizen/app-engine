@@ -50,8 +50,7 @@ const buildErrorResponse = async (result: Response): Promise<ErrorResponse> => {
 
   try {
     errorJSON = await result.json();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (_e) {
+  } catch {
     // If the response is not JSON, we just return the text
   }
 
@@ -178,8 +177,7 @@ export class BaseWorkerContext {
 
     try {
       this.args = JSON.parse(args ?? '{}') as Args;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_e) {
+    } catch {
       this.args = {} as Args;
     }
   }
@@ -905,8 +903,7 @@ export class BaseWorkerContext {
       const manager = new ThirdPartyScript(this.instance, result.url);
 
       return manager;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_ex) {
+    } catch {
       this.onError(new Error(`Third party script ${scriptUrl} could not be installed.`));
     }
   }
