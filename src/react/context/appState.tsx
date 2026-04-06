@@ -30,7 +30,7 @@ export interface AppStateWrapperProps {
   user: PartialUser;
   teamMember: PartialTeamMember;
   business: PartialBusiness;
-  clientObject: PartialClientObject;
+  clientObject?: PartialClientObject | undefined;
   appPath: string;
 }
 
@@ -46,7 +46,7 @@ interface AppStateContextValue {
   user: PartialUser;
   teamMember: PartialTeamMember;
   business: PartialBusiness;
-  clientObject: PartialClientObject;
+  clientObject?: PartialClientObject | undefined;
   appPath: string;
   onInitialBootstrap: () => void;
   setRouteScriptRunState: React.Dispatch<React.SetStateAction<RouteScriptRunState>>;

@@ -46,6 +46,7 @@ export interface PartialEntity {
 
 export interface PartialClientObject {
   id: string;
+  objectName: string;
 }
 
 export interface SelectOption {

@@ -19,7 +19,7 @@ export interface WorkerSetup {
   business: PartialBusiness;
   entityId?: string;
   objectId?: string;
-  clientObject: PartialClientObject;
+  clientObject?: PartialClientObject | undefined;
   appPath: string;
   isDebug: boolean;
 }

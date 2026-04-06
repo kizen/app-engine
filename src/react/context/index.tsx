@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FC, type ReactNode } from 'react';
+import { type FC, type ReactNode } from 'react';
 import { AppStateWrapper, type AppStateWrapperProps } from './appState.js';
 import { RunnerStateWrapper } from './runnerState.js';
 import { HistoryWrapper, type HistoryWrapperProps } from './history.js';
@@ -9,13 +9,12 @@ import { TerminatorsWrapper } from './terminators.js';
 import { ToastWrapper, type ToastWrapperProps } from './toast.js';
 import { NetworkWrapper, type NetworkWrapperProps } from './network.js';
 import { useLocationChange } from '../hooks/useLocationChange.js';
+import { FloatingFrameWrapper } from './floatingFrame.js';
 
-type TouchFloatingFrame = (id: string, cb?: (value: string[]) => void) => void;
+export type TouchFloatingFrame = (id: string, cb?: (value: string[]) => void) => void;
 
 interface AdditionalContextProps {
   showLoadingIndicator: boolean;
-  touchFloatingFrame: TouchFloatingFrame;
-  floatingFrameOffset: Record<string, number>;
   hiddenByModal: boolean;
   hasFinishedBootstrapping: boolean;
   waitingOnRouteScript: boolean;
@@ -53,48 +52,6 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
 
   useLocationChange();
 
-  const [floatingFrameOrder, setFloatingFrameOrder] = useState<string[]>([]);
-  const [hiddenByModal, setHiddenByModal] = useState(false);
-
-  const touchFloatingFrame = useCallback<TouchFloatingFrame>((id, cb) => {
-    setFloatingFrameOrder((prev) => {
-      const res = prev.filter((i) => i !== id);
-      const done = [id, ...res];
-
-      cb?.(done);
-
-      return done;
-    });
-  }, []);
-
-  const floatingFrameOffset = useMemo(() => {
-    return [...floatingFrameOrder].reverse().reduce((acc, id, index) => {
-      return {
-        ...acc,
-        [id]: index,
-      };
-    }, {});
-  }, [floatingFrameOrder]);
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const modal = document.querySelector('div[role="dialog"]');
-      if (modal) {
-        setHiddenByModal(true);
-      } else {
-        setHiddenByModal(false);
-      }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
   return (
     <AppStateWrapper
       bootstrapPlugins={bootstrapPlugins}
@@ -118,17 +75,21 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
                           <SessionDataWrapper>
                             <TerminatorsWrapper>
                               <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
-                                <NetworkWrapper performRequest={performRequest}>
-                                  {children({
-                                    ...modals,
-                                    showLoadingIndicator,
-                                    touchFloatingFrame,
-                                    floatingFrameOffset,
-                                    hiddenByModal: hideFramesOnModal ? hiddenByModal : false,
-                                    hasFinishedBootstrapping,
-                                    waitingOnRouteScript,
-                                  })}
-                                </NetworkWrapper>
+                                <FloatingFrameWrapper>
+                                  {(hiddenByModal) => {
+                                    return (
+                                      <NetworkWrapper performRequest={performRequest}>
+                                        {children({
+                                          ...modals,
+                                          showLoadingIndicator,
+                                          hasFinishedBootstrapping,
+                                          waitingOnRouteScript,
+                                          hiddenByModal: hideFramesOnModal ? hiddenByModal : false,
+                                        })}
+                                      </NetworkWrapper>
+                                    );
+                                  }}
+                                </FloatingFrameWrapper>
                               </ToastWrapper>
                             </TerminatorsWrapper>
                           </SessionDataWrapper>

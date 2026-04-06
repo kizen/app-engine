@@ -81,7 +81,7 @@ export const getAllNestedInputsFromConfig = (
     ...actionObjects.map((action) => {
       return {
         ...getFieldFromAction(action),
-        match_hint: action.hint_object_name,
+        match_hint: action.hint_object_name ?? '',
       };
     }),
   ];

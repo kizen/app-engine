@@ -9,7 +9,7 @@ import type { DataAdornmentConfig } from '../types/artifacts/dataAdornment.js';
 import type { RoutablePageConfig } from '../types/artifacts/routablePage.js';
 import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
-import type { AssistantField } from '../types/modals.js';
+import type { SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
 
 type AllowedConfig =
@@ -52,7 +52,7 @@ export const mergeConfig = (
   cleanConfig: Record<string, UnknownJSON>,
   disabledFieldKeys: string[],
   rawConfig: Record<string, UnknownJSON>,
-  setupAssistantFields?: AssistantField[],
+  setupAssistantFields?: SetupAssistantField[],
 ): Record<string, UnknownJSON> => {
   const keys = Object.keys(cleanConfig);
   const mergedConfig: Record<string, UnknownJSON> = {};

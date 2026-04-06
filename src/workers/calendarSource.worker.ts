@@ -1,4 +1,4 @@
-import { ACTIONS, RESPONSES } from '../communication/constants.js';
+import { ACTIONS } from '../communication/constants.js';
 import { BaseWorkerContext } from '../contexts/BaseWorkerContext.js';
 import type { WorkerEvent } from '../types/workers.js';
 import { getFnWithReturn } from '../util/run.js';
@@ -65,7 +65,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
     });
 
     await fn.bind(runner)();
-  } else if (action === RESPONSES.CREATE_RECORD_RESPONSE) {
+  } else {
     handleCommonResponse(action, e, promises);
   }
 };

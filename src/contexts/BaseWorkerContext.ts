@@ -89,7 +89,7 @@ export class BaseWorkerContext {
   protected user?: PartialUser;
   protected teamMember?: PartialTeamMember;
   protected business?: PartialBusiness;
-  protected clientObject?: PartialClientObject;
+  protected clientObject?: PartialClientObject | undefined;
   protected appPath?: string;
   protected dataCache: DataCache<unknown> = new Map();
   protected queryOptions = {};

@@ -97,9 +97,16 @@ export type CurriedDynamicPromptFn = (
 
 export type UnknownFunction = (...args: unknown[]) => unknown;
 
+export type SetupAssistantField = ModalBlock | AssistantField;
+
+export type MatchSetupAssistantField = AssistantField & {
+  match_hint?: string;
+};
+
 export interface SetupAssistantConfig {
-  fields?: (ModalBlock | AssistantField)[] | undefined;
-  actions?: AssistantConfigAction[];
+  fields?: SetupAssistantField[] | undefined;
+  actions?: AssistantConfigAction[] | undefined;
+  services?: ConfigService[] | undefined;
 }
 
 export interface AssistantConfigAction {
@@ -139,6 +146,9 @@ export interface AssistantField {
   autoSelect?: boolean;
   required?: boolean;
   tooltip?: string;
+  dependencies?: string[];
+  validation_pattern?: string;
+  match_hint?: string;
 }
 
 export type BooleanCleanValue = boolean;
@@ -234,3 +244,9 @@ export type CreateRelatedRecordModalQueue = {
 }[];
 
 export type ModalCancelEventSource = 'button' | 'close';
+
+export interface ConfigService {
+  api_name: string;
+  prerequisite: boolean;
+  required: boolean;
+}

@@ -35,7 +35,7 @@ export const RouteScriptRunner = (props: RouteScriptRunnerProps): null => {
   const previousPathname = useRef('');
 
   const { clientObject, setRouteScriptRunState } = useAppState();
-  const clientObjectId = clientObject.id;
+  const clientObjectId = clientObject?.id;
 
   const [executeScript] = useRecordDetailCustomScript({
     onError: (e) => {
@@ -68,7 +68,7 @@ export const RouteScriptRunner = (props: RouteScriptRunnerProps): null => {
     checkPath: string,
     checkObjectId: string,
   ): { canRunScript: true; entityId: string; customObjectId: string } | { canRunScript: false } => {
-    const { exp, isClient } = getRouteMatcher(checkObjectId, clientObjectId);
+    const { exp, isClient } = getRouteMatcher(checkObjectId, clientObjectId ?? '');
 
     const match = exp.exec(checkPath);
 
@@ -76,7 +76,7 @@ export const RouteScriptRunner = (props: RouteScriptRunnerProps): null => {
       return {
         canRunScript: true,
         entityId: match[1],
-        customObjectId: isClient ? clientObjectId : checkObjectId,
+        customObjectId: isClient ? (clientObjectId ?? '') : checkObjectId,
       };
     }
 

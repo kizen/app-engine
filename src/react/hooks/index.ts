@@ -6,3 +6,6 @@ export { useRecordDetailCustomScript } from './useRecordDetailCustomScript.js';
 export { usePluginCustomHTML } from './usePluginCustomHTML.js';
 export { useCalendarSourceReset } from './useCalendarSourceReset.js';
 export { useManualInteraction } from './useManualInteraction.js';
+export { usePluginCallback } from './usePluginCallback.js';
+export { usePluginPage } from './usePluginPage.js';
+export { useFloatingFrame } from './useFloatingFrame.js';

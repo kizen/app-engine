@@ -1,3 +1,4 @@
+import type { UnknownJSON } from '../common.js';
 import type { CommonPluginDefinition } from '../run.js';
 
 export interface RoutablePageConfig extends CommonPluginDefinition {
@@ -13,4 +14,5 @@ export interface RoutablePageConfig extends CommonPluginDefinition {
   is_toolbar_item?: boolean;
   toolbar_icon?: string;
   toolbar_color?: string;
+  args?: Record<string, UnknownJSON>;
 }

@@ -122,7 +122,7 @@ export interface WorkerContextArgs {
   user: PartialUser;
   teamMember: PartialTeamMember;
   business: PartialBusiness;
-  clientObject: PartialClientObject;
+  clientObject?: PartialClientObject | undefined;
   appPath: string;
   onStateChange?: (options: StateChangePayload) => void;
   scriptUIRef?: RefObject<HTMLDivElement | null>;
