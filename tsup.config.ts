@@ -19,6 +19,7 @@ export default defineConfig({
     'workers/recordDetail.worker': 'src/workers/recordDetail.worker.ts',
     react: 'src/react/index.ts',
     util: 'src/util/index.ts',
+    vite: 'src/vite.ts',
   },
   format: ['esm'],
   target: 'es2022',
