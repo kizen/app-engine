@@ -1,18 +1,10 @@
 import { ACTIONS, RESPONSES } from '../communication/constants.js';
 import { BaseWorkerContext } from '../contexts/BaseWorkerContext.js';
-import type {
-  CreateRecordResponsePayload,
-  InstallThirdPartyScriptResponsePayload,
-  PostFormDataResponsePayload,
-  PromptResponsePayload,
-  QueryResponsePayload,
-  RefreshEntityResponsePayload,
-  UploadFileResponsePayload,
-  WorkerEvent,
-} from '../types/workers.js';
+import type { WorkerEvent } from '../types/workers.js';
 import { getFnWithReturn } from '../util/run.js';
 import {
   dynamicPromptHandler,
+  handleCommonResponse,
   kizenRequestHandler,
   postFormDataHandler,
   promptHandler,
@@ -73,46 +65,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
     });
 
     await fn.bind(runner)();
-  } else if (action === RESPONSES.QUERY_RESPONSE) {
-    const { id, data, error } = JSON.parse(e.data) as QueryResponsePayload;
-    if (error) {
-      promises.reject(id, error);
-    } else {
-      promises.resolve(id, data);
-    }
-  } else if (action === RESPONSES.POSTFORMDATA_RESPONSE) {
-    const { id, success } = JSON.parse(e.data) as PostFormDataResponsePayload;
-    if (success) {
-      promises.resolve(id);
-    } else {
-      promises.reject(id);
-    }
-  } else if (action === RESPONSES.UPLOADFILE_RESPONSE) {
-    const { id, data } = JSON.parse(e.data) as UploadFileResponsePayload;
-    if (data) {
-      promises.resolve(id, data);
-    } else {
-      promises.reject(id);
-    }
-  } else if (action === RESPONSES.INSTALL_THIRD_PARTY_SCRIPT_RESPONSE) {
-    const { id, data } = JSON.parse(e.data) as InstallThirdPartyScriptResponsePayload;
-    if (data.success) {
-      promises.resolve(id, data);
-    } else {
-      promises.reject(id);
-    }
-  } else if (action === RESPONSES.PROMPT_RESPONSE) {
-    const { id, data } = JSON.parse(e.data) as PromptResponsePayload;
-    promises.resolve(id, data);
-  } else if (action === RESPONSES.REFRESH_ENTITY_RESPONSE) {
-    const { id, data } = JSON.parse(e.data) as RefreshEntityResponsePayload;
-    if (data.success) {
-      promises.resolve(id, true);
-    } else {
-      promises.reject(id);
-    }
   } else if (action === RESPONSES.CREATE_RECORD_RESPONSE) {
-    const { id, data } = JSON.parse(e.data) as CreateRecordResponsePayload;
-    promises.resolve(id, data);
+    handleCommonResponse(action, e, promises);
   }
 };

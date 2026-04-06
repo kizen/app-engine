@@ -2,7 +2,7 @@
   "name": "@kizen/plugin-engine",
   "version": "0.1.0",
   "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -36,7 +36,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE.md"
   ],
   "scripts": {
     "build": "tsup",

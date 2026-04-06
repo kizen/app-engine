@@ -4,7 +4,7 @@
  * include React, which would break local development and bloat the worker in production.
  */
 
-import { ACTIONS } from '../communication/constants.js';
+import { ACTIONS, RESPONSES } from '../communication/constants.js';
 import type {
   AssistantConfigAction,
   AssistantField,
@@ -33,6 +33,17 @@ import type {
   CurriedRefreshEntityFn,
   CurriedUploadFileFn,
 } from '../types/contexts.js';
+import type {
+  CreateRecordResponsePayload,
+  CreateRelatedRecordResponsePayload,
+  InstallThirdPartyScriptResponsePayload,
+  PostFormDataResponsePayload,
+  PromptResponsePayload,
+  QueryResponsePayload,
+  RefreshEntityResponsePayload,
+  UploadFileResponsePayload,
+} from '../types/workers.js';
+import type { WorkerPromise } from './WorkerPromise.js';
 
 export const getFieldFromAction = (action: AssistantConfigAction): AssistantField => {
   return {
@@ -345,3 +356,86 @@ export const openCreateRelatedRecordHandler: CurriedOpenCreateRelatedRecordFn =
       );
     });
   };
+
+export const handleCommonResponse = (
+  action: string,
+  e: MessageEvent<string>,
+  promises: WorkerPromise,
+): void => {
+  switch (action) {
+    case RESPONSES.QUERY_RESPONSE: {
+      const { id, data, error } = JSON.parse(e.data) as QueryResponsePayload;
+      if (error) {
+        promises.reject(id, error);
+      } else {
+        promises.resolve(id, data);
+      }
+
+      break;
+    }
+    case RESPONSES.POSTFORMDATA_RESPONSE: {
+      const { id, success } = JSON.parse(e.data) as PostFormDataResponsePayload;
+      if (success) {
+        promises.resolve(id);
+      } else {
+        promises.reject(id);
+      }
+
+      break;
+    }
+
+    case RESPONSES.UPLOADFILE_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as UploadFileResponsePayload;
+      if (data) {
+        promises.resolve(id, data);
+      } else {
+        promises.reject(id);
+      }
+
+      break;
+    }
+
+    case RESPONSES.INSTALL_THIRD_PARTY_SCRIPT_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as InstallThirdPartyScriptResponsePayload;
+      if (data.success) {
+        promises.resolve(id, data);
+      } else {
+        promises.reject(id);
+      }
+
+      break;
+    }
+
+    case RESPONSES.PROMPT_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as PromptResponsePayload;
+      promises.resolve(id, data);
+
+      break;
+    }
+
+    case RESPONSES.CREATE_RECORD_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as CreateRecordResponsePayload;
+      promises.resolve(id, data);
+
+      break;
+    }
+
+    case RESPONSES.CREATE_RELATED_RECORD_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as CreateRelatedRecordResponsePayload;
+      promises.resolve(id, data);
+
+      break;
+    }
+
+    case RESPONSES.REFRESH_ENTITY_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as RefreshEntityResponsePayload;
+      if (data.success) {
+        promises.resolve(id, true);
+      } else {
+        promises.reject(id);
+      }
+
+      break;
+    }
+  }
+};
