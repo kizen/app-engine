@@ -38,4 +38,4 @@ jobs:
           SHORT_SHA: ${{ github.sha }}
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks --tag next --access public --provenance
+        run: pnpm publish --no-git-checks --tag next --access public
