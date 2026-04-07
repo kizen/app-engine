@@ -1,6 +1,6 @@
 {
   "name": "@growwithkizen/plugin-engine",
-  "version": "0.1.0-abffe4c",
+  "version": "0.1.1",
   "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
   "type": "module",
@@ -54,6 +54,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "version:prerelease": "node scripts/version-prerelease.js",
+    "version:check": "node scripts/version-release.js",
     "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next"
   },
