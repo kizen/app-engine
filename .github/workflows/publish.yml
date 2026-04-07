@@ -8,34 +8,11 @@ on:
 jobs:
   publish:
     name: Build & Publish (Prerelease)
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # Required for OIDC
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Stamp prerelease version
-        run: pnpm run version:prerelease
-        env:
-          SHORT_SHA: ${{ github.sha }}
-
-      - name: Publish to npm
-        run: pnpm publish --no-git-checks --tag next --access public
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      npm_tag: next
+      short_sha: ${{ github.sha }}
+    secrets: inherit
