@@ -24,5 +24,5 @@ const sorted = Object.fromEntries(Object.entries(merged).sort());
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, JSON.stringify(sorted, null, 2) + '\n');
 console.log(
-  `plugin-engine: merged ${Object.keys(ownLocale).length} translation key(s) into ${outputPath}`,
+  `@kizenapps/engine: merged ${Object.keys(ownLocale).length} translation key(s) into ${outputPath}`,
 );
