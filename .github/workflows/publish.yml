@@ -1,4 +1,4 @@
-name: Publish Prerelease to npm
+name: Publish Prerelease to NPM
 
 on:
   push:
@@ -15,4 +15,3 @@ jobs:
     with:
       npm_tag: next
       short_sha: ${{ github.sha }}
-    secrets: inherit
