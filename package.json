@@ -61,7 +61,8 @@
     "version:prerelease": "node scripts/version-prerelease.js",
     "version:check": "node scripts/version-release.js",
     "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build",
-    "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next"
+    "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next",
+    "merge-translations": "node dist/merge-translations.js"
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5",
