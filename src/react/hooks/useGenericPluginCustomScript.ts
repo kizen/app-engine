@@ -14,6 +14,7 @@ import { generateExecutionKey } from '../../util/run.js';
 import { useRunnerState } from '../context/runnerState.js';
 import type { CommonExecutionPlugin } from '../../types/run.js';
 import { useNetwork } from '../context/network.js';
+import { useTranslation } from '../context/translation.js';
 
 interface UseGenericPluginCustomScriptProps {
   onError: WorkerContextArgs['onError'];
@@ -50,6 +51,8 @@ export const useGenericPluginCustomScript = ({
 
   const { performRequest, createFileId, performFileUpload, getPendingCacheCount, invalidateCache } =
     useNetwork();
+
+  const { t } = useTranslation();
 
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
@@ -89,7 +92,7 @@ export const useGenericPluginCustomScript = ({
             userConfigsByApiName[plugin?.plugin_api_name ?? executionPlugin?.plugin_api_name ?? ''],
         });
       } catch {
-        handleError({ message: 'Arguments passed to the script are invalid' });
+        handleError({ message: t('Arguments passed to the script are invalid') });
       }
 
       return runScript({
@@ -157,6 +160,7 @@ export const useGenericPluginCustomScript = ({
       performFileUpload,
       getPendingCacheCount,
       invalidateCache,
+      t,
     ],
   );
 

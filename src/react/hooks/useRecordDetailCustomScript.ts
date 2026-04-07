@@ -14,6 +14,7 @@ import { generateExecutionKey } from '../../util/run.js';
 import { runScript } from '../../index.js';
 import type { ExecuteGenericScript } from '../../types/artifacts/generic.js';
 import { useNetwork } from '../context/network.js';
+import { useTranslation } from '../context/translation.js';
 
 interface UseRecordDetailCustomScriptProps {
   entityId: string;
@@ -55,6 +56,8 @@ export const useRecordDetailCustomScript = ({
   const { performRequest, createFileId, performFileUpload, getPendingCacheCount, invalidateCache } =
     useNetwork();
 
+  const { t } = useTranslation();
+
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
 
@@ -89,7 +92,7 @@ export const useRecordDetailCustomScript = ({
           __kizen_user_config: userConfigsByApiName[executionPlugin?.plugin_api_name ?? ''],
         });
       } catch {
-        handleError({ message: 'Arguments passed to the script are invalid' }, executionPlugin);
+        handleError({ message: t('Arguments passed to the script are invalid') }, executionPlugin);
       }
       const runnerStateKey = generateExecutionKey(executionPlugin);
 
@@ -166,6 +169,7 @@ export const useRecordDetailCustomScript = ({
       performFileUpload,
       getPendingCacheCount,
       invalidateCache,
+      t,
     ],
   );
 

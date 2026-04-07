@@ -14,6 +14,7 @@ import {
   usePluginCustomHTML,
 } from '../index.js';
 import { useToast } from '../context/toast.js';
+import { useTranslation } from '../context/translation.js';
 import { runFrameScriptEventName } from '../../communication/index.js';
 import { useFloatingFrameContext } from '../context/floatingFrame.js';
 
@@ -149,6 +150,9 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
   const hasRunScript = useRef(false);
 
   const { showToast } = useToast();
+
+  const { t } = useTranslation();
+
   const { installedPluginAPINamesToIds, clientObject } = useAppState();
 
   const { touchFloatingFrame, floatingFrameOffset } = useFloatingFrameContext();
@@ -422,7 +426,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
   ] = useFloatingFrameCustomScript({
     onError: (e) => {
       showToast({
-        message: `'Plugin error': ${(e as MaybeMessageError)?.message ?? ''}`,
+        message: `${t('Plugin error:')} ${(e as MaybeMessageError)?.message ?? ''}`,
         variant: 'failure',
       });
     },

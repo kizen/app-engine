@@ -15,6 +15,7 @@ import { runScript } from '../../run.js';
 import { useToast } from '../context/toast.js';
 import { flushSync } from 'react-dom';
 import { useNetwork } from '../context/network.js';
+import { useTranslation } from '../context/translation.js';
 
 interface UseFloatingFrameCustomScriptProps {
   onError: WorkerContextArgs['onError'];
@@ -61,6 +62,8 @@ export const useFloatingFrameCustomScript = ({
   const { performRequest, createFileId, performFileUpload, getPendingCacheCount, invalidateCache } =
     useNetwork();
 
+  const { t } = useTranslation();
+
   const [pending, setPending] = useState(false);
 
   // use a local runner state instead of global runnerState since all state changes will happen within the context of the iframe
@@ -106,7 +109,7 @@ export const useFloatingFrameCustomScript = ({
           __kizen_user_config: userConfigsByApiName[plugin.plugin_api_name],
         });
       } catch {
-        handleError({ message: 'Arguments passed to the script are invalid' });
+        handleError({ message: t('Arguments passed to the script are invalid') });
       }
 
       return runScript({
@@ -179,6 +182,7 @@ export const useFloatingFrameCustomScript = ({
       performFileUpload,
       getPendingCacheCount,
       invalidateCache,
+      t,
     ],
   );
 

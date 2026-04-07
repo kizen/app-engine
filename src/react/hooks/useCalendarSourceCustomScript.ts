@@ -17,6 +17,7 @@ import { useModals } from '../context/modals.js';
 import { useMonitoring } from '../context/monitoring.js';
 import { useHistory } from '../context/history.js';
 import { useNetwork } from '../context/network.js';
+import { useTranslation } from '../context/translation.js';
 
 interface UseCalendarSourceCustomScriptProps {
   onError: WorkerContextArgs['onError'];
@@ -65,6 +66,8 @@ export const useCalendarSourceCustomScript = ({
   showToast,
   clearToasts,
 }: UseCalendarSourceCustomScriptProps): [ExecuteCalendarSourceScript, { pending: boolean }] => {
+  const { t } = useTranslation();
+
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
 
@@ -124,7 +127,7 @@ export const useCalendarSourceCustomScript = ({
         });
       } catch {
         handleError(plugin)({
-          message: 'Arguments passed to the script are invalid',
+          message: t('Arguments passed to the script are invalid'),
         });
       }
 
@@ -211,6 +214,7 @@ export const useCalendarSourceCustomScript = ({
       performFileUpload,
       getPendingCacheCount,
       invalidateCache,
+      t,
     ],
   );
 

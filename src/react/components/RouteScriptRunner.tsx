@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useToast } from '../context/toast.js';
+import { useTranslation } from '../context/translation.js';
 import { useAppState } from '../context/appState.js';
 import { useRecordDetailCustomScript } from '../hooks/useRecordDetailCustomScript.js';
 import type { MaybeMessageError } from '../../types/common.js';
@@ -30,6 +31,7 @@ const getPluginStateKey = (item: CommonPluginDefinition): string => {
 
 export const RouteScriptRunner = (props: RouteScriptRunnerProps): null => {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const { pathname, routeScripts } = props;
 
   const previousPathname = useRef('');
@@ -40,7 +42,7 @@ export const RouteScriptRunner = (props: RouteScriptRunnerProps): null => {
   const [executeScript] = useRecordDetailCustomScript({
     onError: (e) => {
       showToast({
-        message: `Action could not run: ${(e as MaybeMessageError)?.message ?? ''}`,
+        message: `${t('Action could not run:')} ${(e as MaybeMessageError)?.message ?? ''}`,
         variant: 'failure',
       });
     },

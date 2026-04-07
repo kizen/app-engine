@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MaybeMessageError, RoutablePageConfig, UnknownJSON } from '../../types/index.js';
 import { useToast } from '../context/toast.js';
+import { useTranslation } from '../context/translation.js';
 import { useGenericPluginCustomScript } from './useGenericPluginCustomScript.js';
 import { useManualInteraction, usePluginCustomHTML } from '../index.js';
 
@@ -25,13 +26,14 @@ export const usePluginPage = (
   const pluginArgs = currentPage?.args;
 
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const scriptUIRef = useRef<HTMLDivElement>(null);
 
   const [execute, { pending }] = useGenericPluginCustomScript({
     onError: (e) => {
       showToast({
-        message: `'Plugin error: ${(e as MaybeMessageError)?.message ?? ''}`,
+        message: `${t('Plugin error:')} ${(e as MaybeMessageError)?.message ?? ''}`,
         variant: 'failure',
       });
     },

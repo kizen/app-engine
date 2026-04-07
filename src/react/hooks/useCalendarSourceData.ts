@@ -11,6 +11,7 @@ import type {
 import type { AppPlugins, MaybeMessageError, UnknownJSON } from '../../types/common.js';
 import { useCalendarSourceCustomScript } from './useCalendarSourceCustomScript.js';
 import { useMemo } from 'react';
+import { useTranslation } from '../context/translation.js';
 import { QUERY_KEYS } from '../../communication/constants.js';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfDay, endOfDay } from 'date-fns';
@@ -124,11 +125,12 @@ export const useCalendarOptions = (
   isLoading: boolean;
 } => {
   const { showToast, clearToasts } = useToast();
+  const { t } = useTranslation();
 
   const [executeScript] = useCalendarSourceCustomScript({
     onError: (error) => {
       showToast({
-        message: `Error fetching calendar options. ${(error as MaybeMessageError)?.message ?? ''}`,
+        message: `${t('Error fetching calendar options.')} ${(error as MaybeMessageError)?.message ?? ''}`,
         variant: 'failure',
       });
     },
@@ -246,11 +248,12 @@ export const useCalendarEvents = (
   const rangeEndFilter = getTzDateString(endOfDay(createDate(params.rangeEnd)), userTimezone);
 
   const { showToast, clearToasts } = useToast();
+  const { t } = useTranslation();
 
   const [executeScript] = useCalendarSourceCustomScript({
     onError: (error) => {
       showToast({
-        message: `Error fetching calendar events. ${(error as MaybeMessageError)?.message ?? ''}`,
+        message: `${t('Error fetching calendar events.')} ${(error as MaybeMessageError)?.message ?? ''}`,
         variant: 'failure',
       });
     },

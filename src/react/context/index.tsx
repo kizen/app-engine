@@ -10,6 +10,7 @@ import { ToastWrapper, type ToastWrapperProps } from './toast.js';
 import { NetworkWrapper, type NetworkWrapperProps } from './network.js';
 import { useLocationChange } from '../hooks/useLocationChange.js';
 import { FloatingFrameWrapper } from './floatingFrame.js';
+import { TranslationWrapper } from './translation.js';
 
 export type TouchFloatingFrame = (id: string, cb?: (value: string[]) => void) => void;
 
@@ -29,6 +30,7 @@ export interface PluginEngineProviderProps
   modal: Omit<ModalWrapperContextArgs, 'children'>;
   children: (props: ExposedModals & AdditionalContextProps) => ReactNode;
   hideFramesOnModal?: boolean;
+  t?: (s: string) => string;
 }
 
 export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
@@ -50,6 +52,7 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
     hideFramesOnModal = true,
     createFileId,
     performFileUpload,
+    t,
   } = props;
 
   useLocationChange();
@@ -66,47 +69,51 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
     >
       {({ hasFinishedBootstrapping, waitingOnRouteScript }) => {
         return (
-          <RunnerStateWrapper>
-            {(showLoadingIndicator) => {
-              return (
-                <HistoryWrapper onNavigate={onNavigate}>
-                  <ModalsWrapper {...modal}>
-                    {(modals) => {
-                      return (
-                        <MonitoringWrapper monitoringExceptionHelper={monitoringExceptionHelper}>
-                          <SessionDataWrapper>
-                            <TerminatorsWrapper>
-                              <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
-                                <FloatingFrameWrapper>
-                                  {(hiddenByModal) => {
-                                    return (
-                                      <NetworkWrapper
-                                        performRequest={performRequest}
-                                        createFileId={createFileId}
-                                        performFileUpload={performFileUpload}
-                                      >
-                                        {children({
-                                          ...modals,
-                                          showLoadingIndicator,
-                                          hasFinishedBootstrapping,
-                                          waitingOnRouteScript,
-                                          hiddenByModal: hideFramesOnModal ? hiddenByModal : false,
-                                        })}
-                                      </NetworkWrapper>
-                                    );
-                                  }}
-                                </FloatingFrameWrapper>
-                              </ToastWrapper>
-                            </TerminatorsWrapper>
-                          </SessionDataWrapper>
-                        </MonitoringWrapper>
-                      );
-                    }}
-                  </ModalsWrapper>
-                </HistoryWrapper>
-              );
-            }}
-          </RunnerStateWrapper>
+          <TranslationWrapper t={t}>
+            <RunnerStateWrapper>
+              {(showLoadingIndicator) => {
+                return (
+                  <HistoryWrapper onNavigate={onNavigate}>
+                    <ModalsWrapper {...modal}>
+                      {(modals) => {
+                        return (
+                          <MonitoringWrapper monitoringExceptionHelper={monitoringExceptionHelper}>
+                            <SessionDataWrapper>
+                              <TerminatorsWrapper>
+                                <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
+                                  <FloatingFrameWrapper>
+                                    {(hiddenByModal) => {
+                                      return (
+                                        <NetworkWrapper
+                                          performRequest={performRequest}
+                                          createFileId={createFileId}
+                                          performFileUpload={performFileUpload}
+                                        >
+                                          {children({
+                                            ...modals,
+                                            showLoadingIndicator,
+                                            hasFinishedBootstrapping,
+                                            waitingOnRouteScript,
+                                            hiddenByModal: hideFramesOnModal
+                                              ? hiddenByModal
+                                              : false,
+                                          })}
+                                        </NetworkWrapper>
+                                      );
+                                    }}
+                                  </FloatingFrameWrapper>
+                                </ToastWrapper>
+                              </TerminatorsWrapper>
+                            </SessionDataWrapper>
+                          </MonitoringWrapper>
+                        );
+                      }}
+                    </ModalsWrapper>
+                  </HistoryWrapper>
+                );
+              }}
+            </RunnerStateWrapper>
+          </TranslationWrapper>
         );
       }}
     </AppStateWrapper>

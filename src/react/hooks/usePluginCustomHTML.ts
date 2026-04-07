@@ -6,6 +6,7 @@ import type {
   UnknownJSON,
 } from '../../types/index.js';
 import { useToast } from '../context/toast.js';
+import { useTranslation } from '../context/translation.js';
 import DOMPurify from 'dompurify';
 import { useGenericPluginCustomScript } from './useGenericPluginCustomScript.js';
 
@@ -21,6 +22,7 @@ export const usePluginCustomHTML = (
   args?: UnknownJSON,
 ): PluginCustomHTML => {
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const outputUIRef = useRef<HTMLDivElement>(null);
   const interactableScriptRef = useRef<HTMLDivElement>(null);
@@ -40,7 +42,7 @@ export const usePluginCustomHTML = (
   const [executeInline, { pending: inlinePending }] = useGenericPluginCustomScript({
     onError: (e) => {
       showToast({
-        message: `Script could not be executed: ${(e as MaybeMessageError)?.message ?? 'Unknown Error'}`,
+        message: `${t('Script could not be executed:')} ${(e as MaybeMessageError)?.message ?? 'Unknown Error'}`,
         variant: 'failure',
       });
     },
