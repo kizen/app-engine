@@ -39,7 +39,8 @@
     "./translation": "./dist/translation.json"
   },
   "bin": {
-    "merge-plugin-translations": "./dist/merge-translations.js"
+    "engine": "./dist/scripts/index.js",
+    "merge-translations": "./dist/scripts/merge-translations.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -51,7 +52,7 @@
   ],
   "scripts": {
     "extract-translations": "i18next --config i18next-parser.config.cjs",
-    "build": "pnpm run extract-translations && tsup && cp locales/en/translation.json dist/translation.json && cp src/scripts/merge-translations.js dist/merge-translations.js",
+    "build": "pnpm run extract-translations && tsup && cp locales/en/translation.json dist/translation.json && cp -r src/scripts/ dist/scripts/",
     "build:watch": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
