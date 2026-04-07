@@ -14,7 +14,7 @@ import { dirname, resolve } from 'path';
 const outputPath = resolve(process.cwd(), process.argv[2] ?? 'public/locales/en/translation.json');
 
 const require = createRequire(import.meta.url);
-const ownLocale = require('./translation.json');
+const ownLocale = require('../translation.json');
 
 const appLocale = existsSync(outputPath) ? JSON.parse(readFileSync(outputPath, 'utf-8')) : {};
 
