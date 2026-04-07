@@ -1,6 +1,9 @@
 name: NPM Publish
 
 on:
+  push:
+    branches:
+      - main
   workflow_call:
     inputs:
       npm_tag:
@@ -41,10 +44,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Stamp prerelease version
-        if: ${{ inputs.short_sha != '' }}
+        if: ${{ inputs.release_version == '' }}
         run: pnpm run version:prerelease
         env:
-          SHORT_SHA: ${{ inputs.short_sha }}
+          SHORT_SHA: ${{ inputs.short_sha || github.sha }}
 
       - name: Check version matches tag
         if: ${{ inputs.release_version != '' }}
@@ -53,4 +56,4 @@ jobs:
           RELEASE_VERSION: ${{ inputs.release_version }}
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks --tag ${{ inputs.npm_tag }} --access public
+        run: pnpm publish --no-git-checks --tag ${{ inputs.npm_tag || 'next' }} --access public
