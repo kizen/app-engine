@@ -1,6 +1,6 @@
 {
   "name": "@kizenapps/engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
   "type": "module",
@@ -38,10 +38,7 @@
     },
     "./translation": "./dist/translation.json"
   },
-  "bin": {
-    "engine": "./dist/scripts/index.js",
-    "merge-translations": "./dist/scripts/merge-translations.js"
-  },
+  "bin": "./dist/scripts/index.js",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
