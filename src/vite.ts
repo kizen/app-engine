@@ -5,11 +5,11 @@ export interface PluginEngineVitePlugin {
 
 export function pluginEngine(): PluginEngineVitePlugin {
   return {
-    name: '@growwithkizen/plugin-engine',
+    name: '@kizenapps/plugin-engine',
     config() {
       return {
         optimizeDeps: {
-          exclude: ['@growwithkizen/plugin-engine'],
+          exclude: ['@kizenapps/plugin-engine'],
         },
       };
     },

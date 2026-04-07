@@ -1,6 +1,6 @@
 {
-  "name": "@growwithkizen/plugin-engine",
-  "version": "0.1.2",
+  "name": "@kizenapps/engine",
+  "version": "0.0.1",
   "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
   "type": "module",
@@ -38,6 +38,9 @@
     },
     "./translation": "./dist/translation.json"
   },
+  "bin": {
+    "merge-plugin-translations": "./dist/merge-translations.js"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -48,7 +51,7 @@
   ],
   "scripts": {
     "extract-translations": "i18next --config i18next-parser.config.cjs",
-    "build": "pnpm run extract-translations && tsup && cp locales/en/translation.json dist/translation.json",
+    "build": "pnpm run extract-translations && tsup && cp locales/en/translation.json dist/translation.json && cp src/scripts/merge-translations.js dist/merge-translations.js",
     "build:watch": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",

@@ -5,7 +5,7 @@ The core plugin engine for the Kizen developer platform for running plugin apps 
 ### Installation
 
 ```
-yarn add @growwithkizen/plugin-engine
+yarn add @kizenapps/plugin-engine
 ```
 
 ### Usage
@@ -15,7 +15,7 @@ Your app needs to be wrapped in the `PluginEngineProvider`. This provider gives 
 #### Context Provider
 
 ```tsx
-import { PluginEngineProvider } from '@growwithkizen/plugin-engine/react';
+import { PluginEngineProvider } from '@kizenapps/plugin-engine/react';
 import { useHistory } from 'react-router-dom';
 import PluginContext from 'contexts/Plugins';
 
@@ -139,7 +139,7 @@ const AppProvider = ({ user, teamMember, business, clientObject }) => {
 #### Running Scripts
 
 ```tsx
-import { useGenericPluginCustomScript } from '@growwithkizen/plugin-engine/react';
+import { useGenericPluginCustomScript } from '@kizenapps/plugin-engine/react';
 import { useToast } from 'components/ToastProvider';
 
 const ScriptButton = ({ pluginScript }: { pluginScript: string }) => {
