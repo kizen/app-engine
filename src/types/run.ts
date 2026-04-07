@@ -74,6 +74,8 @@ export interface RunScriptOptions {
   onNetworkRequest?: OnNetworkRequestFn;
   createFileId?: CreateFileIdFn | undefined;
   performFileUpload?: PerformKizenFileUploadFn | undefined;
+  getPendingCacheCount?: GetPendingCacheCountFn | undefined;
+  invalidateCache?: InvalidateCacheFn | undefined;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';

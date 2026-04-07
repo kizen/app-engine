@@ -87,7 +87,8 @@ export const useCalendarSourceCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest, createFileId, performFileUpload } = useNetwork();
+  const { performRequest, createFileId, performFileUpload, getPendingCacheCount, invalidateCache } =
+    useNetwork();
 
   const handleError = useCallback(
     (plugin?: CalendarSourceConfig) => (error?: unknown) => {
@@ -172,6 +173,8 @@ export const useCalendarSourceCustomScript = ({
         onNetworkRequest: performRequest,
         createFileId,
         performFileUpload,
+        getPendingCacheCount,
+        invalidateCache,
       });
 
       try {
@@ -206,6 +209,8 @@ export const useCalendarSourceCustomScript = ({
       createFileId,
       appPath,
       performFileUpload,
+      getPendingCacheCount,
+      invalidateCache,
     ],
   );
 

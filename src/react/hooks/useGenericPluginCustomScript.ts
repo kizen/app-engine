@@ -48,7 +48,8 @@ export const useGenericPluginCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest, createFileId, performFileUpload } = useNetwork();
+  const { performRequest, createFileId, performFileUpload, getPendingCacheCount, invalidateCache } =
+    useNetwork();
 
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
@@ -127,6 +128,8 @@ export const useGenericPluginCustomScript = ({
         onNetworkRequest: performRequest,
         createFileId,
         performFileUpload,
+        getPendingCacheCount,
+        invalidateCache,
       });
     },
     [
@@ -152,6 +155,8 @@ export const useGenericPluginCustomScript = ({
       appPath,
       createFileId,
       performFileUpload,
+      getPendingCacheCount,
+      invalidateCache,
     ],
   );
 

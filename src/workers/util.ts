@@ -385,11 +385,11 @@ export const handleCommonResponse = (
     }
 
     case RESPONSES.UPLOADFILE_RESPONSE: {
-      const { id, data } = JSON.parse(e.data) as UploadFileResponsePayload;
+      const { id, data, error } = JSON.parse(e.data) as UploadFileResponsePayload;
       if (data) {
         promises.resolve(id, data);
       } else {
-        promises.reject(id);
+        promises.reject(id, error);
       }
 
       break;

@@ -61,6 +61,7 @@ export interface PostFormDataResponsePayload {
 export interface UploadFileResponsePayload {
   id: string;
   data: unknown;
+  error?: string;
 }
 
 export interface InstallThirdPartyScriptResponsePayload {

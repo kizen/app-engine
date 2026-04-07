@@ -1,6 +1,8 @@
 import { createContext, useContext, type FC } from 'react';
 import type {
   CreateFileIdFn,
+  GetPendingCacheCountFn,
+  InvalidateCacheFn,
   OnNetworkRequestFn,
   PerformKizenFileUploadFn,
 } from '../../types/run.js';
@@ -12,12 +14,16 @@ export interface NetworkWrapperProps {
   performRequest: OnNetworkRequestFn;
   createFileId?: CreateFileIdFn | undefined;
   performFileUpload?: PerformKizenFileUploadFn | undefined;
+  getPendingCacheCount?: GetPendingCacheCountFn | undefined;
+  invalidateCache?: InvalidateCacheFn | undefined;
 }
 
 interface NetworkContextValue {
   performRequest: OnNetworkRequestFn;
   createFileId?: CreateFileIdFn | undefined;
   performFileUpload?: PerformKizenFileUploadFn | undefined;
+  getPendingCacheCount?: GetPendingCacheCountFn | undefined;
+  invalidateCache?: InvalidateCacheFn | undefined;
 }
 
 export const NetworkWrapper: FC<NetworkWrapperProps> = ({
@@ -25,9 +31,19 @@ export const NetworkWrapper: FC<NetworkWrapperProps> = ({
   performRequest,
   createFileId,
   performFileUpload,
+  getPendingCacheCount,
+  invalidateCache,
 }) => {
   return (
-    <NetworkContext.Provider value={{ performRequest, createFileId, performFileUpload }}>
+    <NetworkContext.Provider
+      value={{
+        performRequest,
+        createFileId,
+        performFileUpload,
+        getPendingCacheCount,
+        invalidateCache,
+      }}
+    >
       {children}
     </NetworkContext.Provider>
   );

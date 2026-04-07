@@ -105,8 +105,8 @@ export class WorkerManager {
   private pluginApiName?: string;
   private onNetworkError?: OnNetworkErrorFn | undefined;
   private onNetworkRequest?: OnNetworkRequestFn | undefined;
-  private invalidateCache?: InvalidateCacheFn | undefined;
-  private getPendingCacheCount?: GetPendingCacheCountFn | undefined;
+  private invalidateCache?: InvalidateCacheFn | undefined; // todo
+  private getPendingCacheCount?: GetPendingCacheCountFn | undefined; // todo
   private createFileId?: CreateFileIdFn | undefined;
   private performFileUpload?: PerformKizenFileUploadFn | undefined;
   private pushHistory?: ((path: string) => void) | undefined;
@@ -668,6 +668,12 @@ export class WorkerManager {
     id: string,
     payload: UploadFilePayload,
   ): Promise<void> => {
+    if (!this.performFileUpload) {
+      this.postMessage(RESPONSES.UPLOADFILE_RESPONSE, { error: 'File upload not supported', id });
+
+      return;
+    }
+
     const { file: encodedFile, isPublic = false, fileName } = payload;
 
     const decodedFile = await fetch(encodedFile);
@@ -679,7 +685,7 @@ export class WorkerManager {
 
     file.$id = this.createFileId?.() ?? generateUUIDV4();
 
-    const result = await this.performFileUpload?.({
+    const result = await this.performFileUpload({
       file,
       id: file.$id,
       publicFile: isPublic,
