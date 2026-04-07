@@ -48,7 +48,7 @@ export const useGenericPluginCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest } = useNetwork();
+  const { performRequest, createFileId, performFileUpload } = useNetwork();
 
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
@@ -125,6 +125,8 @@ export const useGenericPluginCustomScript = ({
         },
         appPath,
         onNetworkRequest: performRequest,
+        createFileId,
+        performFileUpload,
       });
     },
     [
@@ -148,6 +150,8 @@ export const useGenericPluginCustomScript = ({
       showCreateRecordModal,
       performRequest,
       appPath,
+      createFileId,
+      performFileUpload,
     ],
   );
 

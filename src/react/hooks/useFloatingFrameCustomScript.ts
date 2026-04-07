@@ -58,7 +58,7 @@ export const useFloatingFrameCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest, createFileId } = useNetwork();
+  const { performRequest, createFileId, performFileUpload } = useNetwork();
 
   const [pending, setPending] = useState(false);
 
@@ -146,6 +146,7 @@ export const useFloatingFrameCustomScript = ({
         appPath,
         onNetworkRequest: performRequest,
         createFileId,
+        performFileUpload,
       });
     },
     [
@@ -172,6 +173,7 @@ export const useFloatingFrameCustomScript = ({
       performRequest,
       appPath,
       createFileId,
+      performFileUpload,
     ],
   );
 

@@ -73,6 +73,7 @@ export interface RunScriptOptions {
   pushHistory?: (url: string) => void;
   onNetworkRequest?: OnNetworkRequestFn;
   createFileId?: CreateFileIdFn | undefined;
+  performFileUpload?: PerformKizenFileUploadFn | undefined;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';

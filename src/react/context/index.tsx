@@ -49,6 +49,7 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
     appPath,
     hideFramesOnModal = true,
     createFileId,
+    performFileUpload,
   } = props;
 
   useLocationChange();
@@ -82,6 +83,7 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
                                       <NetworkWrapper
                                         performRequest={performRequest}
                                         createFileId={createFileId}
+                                        performFileUpload={performFileUpload}
                                       >
                                         {children({
                                           ...modals,

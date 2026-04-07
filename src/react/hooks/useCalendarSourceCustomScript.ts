@@ -87,7 +87,7 @@ export const useCalendarSourceCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest } = useNetwork();
+  const { performRequest, createFileId, performFileUpload } = useNetwork();
 
   const handleError = useCallback(
     (plugin?: CalendarSourceConfig) => (error?: unknown) => {
@@ -170,6 +170,8 @@ export const useCalendarSourceCustomScript = ({
         },
         appPath,
         onNetworkRequest: performRequest,
+        createFileId,
+        performFileUpload,
       });
 
       try {
@@ -201,7 +203,9 @@ export const useCalendarSourceCustomScript = ({
       userConfigsByApiName,
       onError,
       performRequest,
+      createFileId,
       appPath,
+      performFileUpload,
     ],
   );
 

@@ -52,7 +52,7 @@ export const useRecordDetailCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest } = useNetwork();
+  const { performRequest, createFileId, performFileUpload } = useNetwork();
 
   const [pending, setPending] = useState(false);
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
@@ -131,6 +131,8 @@ export const useRecordDetailCustomScript = ({
         onShowCreateRelatedRecordModal: showCreateRelatedRecordModal,
         appPath,
         onNetworkRequest: performRequest,
+        createFileId,
+        performFileUpload,
       });
     },
     [
@@ -157,6 +159,8 @@ export const useRecordDetailCustomScript = ({
       userConfigsByApiName,
       performRequest,
       appPath,
+      createFileId,
+      performFileUpload,
     ],
   );
 

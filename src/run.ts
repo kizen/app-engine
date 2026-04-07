@@ -33,6 +33,7 @@ export const runScript = async ({
   appPath,
   pushHistory,
   createFileId,
+  performFileUpload,
 }: RunScriptOptions): Promise<unknown> => {
   const isDebug = isFlagEnabled('script-runner-logging');
 
@@ -120,6 +121,7 @@ export const runScript = async ({
       onNetworkRequest,
       appPath,
       createFileId,
+      performFileUpload,
     });
 
     setLoadingState(true);
