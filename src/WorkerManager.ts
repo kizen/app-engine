@@ -61,7 +61,7 @@ import {
   thirdPartySetupScripts,
   type ALLOWED_INTEGRATIONS,
 } from './communication/ThirdPartyScript.js';
-import { getPartialLocation } from './util/run.js';
+import { generateUUIDV4, getPartialLocation } from './util/run.js';
 import type { WorkerSetup } from './types/workers.js';
 import DOMPurify from 'dompurify';
 
@@ -668,13 +668,6 @@ export class WorkerManager {
     id: string,
     payload: UploadFilePayload,
   ): Promise<void> => {
-    if (!this.createFileId) {
-      this.onError?.({
-        message: 'File ID creation function is not defined.',
-      });
-      return;
-    }
-
     const { file: encodedFile, isPublic = false, fileName } = payload;
 
     const decodedFile = await fetch(encodedFile);
@@ -684,7 +677,7 @@ export class WorkerManager {
       type: fileBlob.type,
     }) as KizenFile;
 
-    file.$id = this.createFileId();
+    file.$id = this.createFileId?.() ?? generateUUIDV4();
 
     const result = await this.performFileUpload?.({
       file,
