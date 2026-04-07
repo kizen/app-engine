@@ -48,6 +48,7 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
     performRequest,
     appPath,
     hideFramesOnModal = true,
+    createFileId,
   } = props;
 
   useLocationChange();
@@ -78,7 +79,10 @@ export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
                                 <FloatingFrameWrapper>
                                   {(hiddenByModal) => {
                                     return (
-                                      <NetworkWrapper performRequest={performRequest}>
+                                      <NetworkWrapper
+                                        performRequest={performRequest}
+                                        createFileId={createFileId}
+                                      >
                                         {children({
                                           ...modals,
                                           showLoadingIndicator,

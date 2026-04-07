@@ -58,7 +58,7 @@ export const useFloatingFrameCustomScript = ({
 
   const history = useHistory();
 
-  const { performRequest } = useNetwork();
+  const { performRequest, createFileId } = useNetwork();
 
   const [pending, setPending] = useState(false);
 
@@ -145,6 +145,7 @@ export const useFloatingFrameCustomScript = ({
         onShowCreateRelatedRecordModal: showCreateRelatedRecordModal,
         appPath,
         onNetworkRequest: performRequest,
+        createFileId,
       });
     },
     [
@@ -170,6 +171,7 @@ export const useFloatingFrameCustomScript = ({
       showCreateRelatedRecordModal,
       performRequest,
       appPath,
+      createFileId,
     ],
   );
 

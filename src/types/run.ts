@@ -40,7 +40,9 @@ type TerminatorFn = () => void;
 
 export type TerminatorContent = Record<string, TerminatorFn[] | undefined>;
 
-export interface Terminators { current: TerminatorContent }
+export interface Terminators {
+  current: TerminatorContent;
+}
 
 export interface RunScriptOptions {
   setLoadingState: (loading: boolean) => void;
@@ -70,6 +72,7 @@ export interface RunScriptOptions {
   appPath: WorkerContextArgs['appPath'];
   pushHistory?: (url: string) => void;
   onNetworkRequest?: OnNetworkRequestFn;
+  createFileId?: CreateFileIdFn | undefined;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';
