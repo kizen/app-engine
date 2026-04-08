@@ -8,7 +8,7 @@ The core app engine for the Kizen developer platform for running plugin apps in 
 yarn add @kizenapps/engine
 ```
 
-### Usage With Vite
+#### Usage With Vite
 
 The app engine is designed to work with consumers that use Vite, and ships with a vite plugin to do so. This plugin is important for web workers being bundled correctly by the consuming application.
 
@@ -22,6 +22,18 @@ export default defineConfig({
 
   // The rest of your config
 });
+```
+
+#### Localization
+
+The app engine includes some text that can be localized if needed. These messages are mostly limited to error handling currently. Localization is done using `i18next`. At build time `translation.json` is created with the strings that need to be translated. If the consuming app is also using `i18next`, and the `package.json` has a script to extract translations, you can append the engine's `merge-translations` command:
+
+```json
+{
+  "scripts": {
+    "extract-translations": "i18next && npx @kizenapps/engine merge-translations"
+  }
+}
 ```
 
 ### Engine Usage
