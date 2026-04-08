@@ -1,7 +1,7 @@
 {
   "name": "@kizenapps/engine",
-  "version": "0.2.2",
-  "description": "Run JavaScript plugins inside Web Workers with host ↔ worker messaging",
+  "version": "0.3.0",
+  "description": "Run JavaScript plugin apps inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
   "type": "module",
   "sideEffects": false,

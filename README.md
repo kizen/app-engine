@@ -1,6 +1,6 @@
-## Kizen Plugin Engine
+## Kizen App Engine
 
-The core plugin engine for the Kizen developer platform for running plugin apps in web workers.
+The core app engine for the Kizen developer platform for running plugin apps in web workers.
 
 ### Installation
 
@@ -8,14 +8,30 @@ The core plugin engine for the Kizen developer platform for running plugin apps 
 yarn add @kizenapps/engine
 ```
 
-### Usage
+### Usage With Vite
 
-Your app needs to be wrapped in the `PluginEngineProvider`. This provider gives the internal components access to the worker runner, network requests, and other consumer-specific features, and adapts your application's common UI components like modals and toasts to a common API that plugins can use.
+The app engine is designed to work with consumers that use Vite, and ships with a vite plugin to do so. This plugin is important for web workers being bundled correctly by the consuming application.
+
+In your `vite.config.ts`:
+
+```ts
+import { appEnginePlugin } from '@kizenapps/engine/vite';
+
+export default defineConfig({
+  plugins: [appEnginePlugin()],
+
+  // The rest of your config
+});
+```
+
+### Engine Usage
+
+Your app needs to be wrapped in the `AppEngineProvider`. This provider gives the internal components access to the worker runner, network requests, and other consumer-specific features, and adapts your application's common UI components like modals and toasts to a common API that plugins can use.
 
 #### Context Provider
 
 ```tsx
-import { PluginEngineProvider } from '@kizenapps/engine/react';
+import { AppEngineProvider } from '@kizenapps/engine/react';
 import { useHistory } from 'react-router-dom';
 import PluginContext from 'contexts/Plugins';
 
@@ -41,7 +57,7 @@ const AppProvider = ({ user, teamMember, business, clientObject }) => {
   const { show: showPrompt, showing } = integrationModalTriggerProps;
 
   return (
-    <PluginEngineProvider
+    <AppEngineProvider
       user={user}
       teamMember={teamMember}
       business={business}

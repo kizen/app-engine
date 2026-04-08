@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MaybeMessageError, RoutablePageConfig, UnknownJSON } from '../../types/index.js';
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
-import { useGenericPluginCustomScript } from './useGenericPluginCustomScript.js';
-import { useManualInteraction, usePluginCustomHTML } from '../index.js';
+import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
+import { useManualInteraction, useAppCustomHTML } from '../index.js';
 
 interface UsePluginEngineReturn {
   scriptUIRef: React.RefObject<HTMLDivElement>;
@@ -15,7 +15,7 @@ interface UsePluginEngineReturn {
   pending: boolean;
 }
 
-export const usePluginPage = (
+export const useAppPage = (
   currentPage?: RoutablePageConfig,
   search?: string,
   isLoading?: boolean,
@@ -30,7 +30,7 @@ export const usePluginPage = (
 
   const scriptUIRef = useRef<HTMLDivElement>(null);
 
-  const [execute, { pending }] = useGenericPluginCustomScript({
+  const [execute, { pending }] = useGenericAppCustomScript({
     onError: (e) => {
       showToast({
         message: `${t('Plugin error:')} ${(e as MaybeMessageError)?.message ?? ''}`,
@@ -51,7 +51,7 @@ export const usePluginPage = (
     };
   }, [search, pluginArgs]);
 
-  const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = usePluginCustomHTML(
+  const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentPage,
     args,
   );

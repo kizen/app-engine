@@ -1,9 +1,9 @@
-export interface PluginEngineVitePlugin {
+export interface AppEngineVitePlugin {
   name: string;
   config: () => { optimizeDeps: { exclude: string[] } };
 }
 
-export function pluginEngine(): PluginEngineVitePlugin {
+export function appEnginePlugin(): AppEngineVitePlugin {
   return {
     name: '@kizenapps/engine',
     config() {

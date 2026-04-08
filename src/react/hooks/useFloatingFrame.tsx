@@ -8,11 +8,7 @@ import type {
   WindowPosition,
 } from '../../types/index.js';
 import { useAppState } from '../context/appState.js';
-import {
-  useFloatingFrameCustomScript,
-  useManualInteraction,
-  usePluginCustomHTML,
-} from '../index.js';
+import { useFloatingFrameCustomScript, useManualInteraction, useAppCustomHTML } from '../index.js';
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { runFrameScriptEventName } from '../../communication/index.js';
@@ -667,7 +663,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
     };
   }, [execute, args, messageHandlerScript]);
 
-  const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = usePluginCustomHTML(
+  const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentWindow,
     {},
   );

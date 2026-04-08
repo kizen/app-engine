@@ -8,7 +8,7 @@ import type {
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import DOMPurify from 'dompurify';
-import { useGenericPluginCustomScript } from './useGenericPluginCustomScript.js';
+import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
 
 interface PluginCustomHTML {
   scopedCss: string;
@@ -17,7 +17,7 @@ interface PluginCustomHTML {
   interactableScriptRef: RefObject<HTMLDivElement>;
 }
 
-export const usePluginCustomHTML = (
+export const useAppCustomHTML = (
   currentPage?: FloatingFrameConfig | RoutablePageConfig,
   args?: UnknownJSON,
 ): PluginCustomHTML => {
@@ -39,7 +39,7 @@ export const usePluginCustomHTML = (
     return currentPage?.event_scripts ?? {};
   }, [currentPage]);
 
-  const [executeInline, { pending: inlinePending }] = useGenericPluginCustomScript({
+  const [executeInline, { pending: inlinePending }] = useGenericAppCustomScript({
     onError: (e) => {
       showToast({
         message: `${t('Script could not be executed:')} ${(e as MaybeMessageError)?.message ?? 'Unknown Error'}`,

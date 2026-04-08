@@ -1,11 +1,11 @@
 export { useCalendarOptions, useCalendarEvents } from './useCalendarSourceData.js';
 export { useCalendarSourceCustomScript } from './useCalendarSourceCustomScript.js';
 export { useFloatingFrameCustomScript } from './useFloatingFrameCustomScript.js';
-export { useGenericPluginCustomScript } from './useGenericPluginCustomScript.js';
+export { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
 export { useRecordDetailCustomScript } from './useRecordDetailCustomScript.js';
-export { usePluginCustomHTML } from './usePluginCustomHTML.js';
+export { useAppCustomHTML } from './useAppCustomHTML.js';
 export { useCalendarSourceReset } from './useCalendarSourceReset.js';
 export { useManualInteraction } from './useManualInteraction.js';
-export { usePluginCallback } from './usePluginCallback.js';
-export { usePluginPage } from './usePluginPage.js';
+export { useAppCallback } from './useAppCallback.js';
+export { useAppPage } from './useAppPage.js';
 export { useFloatingFrame } from './useFloatingFrame.js';

@@ -20,7 +20,7 @@ interface AdditionalContextProps {
   hasFinishedBootstrapping: boolean;
   waitingOnRouteScript: boolean;
 }
-export interface PluginEngineProviderProps
+export interface AppEngineProviderProps
   extends
     Omit<AppStateWrapperProps, 'children'>,
     Omit<HistoryWrapperProps, 'children'>,
@@ -33,7 +33,7 @@ export interface PluginEngineProviderProps
   t?: (s: string) => string;
 }
 
-export const PluginEngineProvider: FC<PluginEngineProviderProps> = (props) => {
+export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
   const {
     children,
     bootstrapPlugins = [],

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export const usePluginCallback = (search: string): void => {
+export const useAppCallback = (search: string): void => {
   useEffect(() => {
     const queryString = new URLSearchParams(search);
 

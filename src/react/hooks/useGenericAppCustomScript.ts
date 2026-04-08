@@ -22,7 +22,7 @@ interface UseGenericPluginCustomScriptProps {
   plugin?: GenericPluginConfig | undefined;
 }
 
-export const useGenericPluginCustomScript = ({
+export const useGenericAppCustomScript = ({
   onError,
   scriptUIRef,
   plugin,

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAppState } from '../context/appState.js';
 
-export const PluginBootstrapSuccess = (): null => {
+export const AppBootstrapSuccess = (): null => {
   const { onInitialBootstrap } = useAppState();
 
   // Run some logic after the app has been fully bootstrapped for the first time (including
