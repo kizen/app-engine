@@ -193,3 +193,7 @@ const ScriptButton = ({ pluginScript }: { pluginScript: string }) => {
   return <button onClick={() => executeInline(pluginScript)} disabled={inlinePending} />;
 };
 ```
+
+#### Worker Runner
+
+Some worker calls are coordinated using `@tanstack/react-query`. If your consumer app also uses react-query, the app engine will use your existing query provider. If you aren't already using react-query, the engine provider will be wrapped in its own query context and no additional action is needed.

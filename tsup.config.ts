@@ -32,7 +32,7 @@ export default defineConfig({
   bundle: true,
   minify: false,
   outDir: 'dist',
-  external: ['react', 'react-dom', 'date-fns', 'date-fns-tz'],
+  external: ['react', 'react-dom', 'date-fns', 'date-fns-tz', '@tanstack/react-query'],
   esbuildOptions(options) {
     options.conditions = ['import', 'browser'];
     options.define = { ...options.define, __PKG_VERSION__: JSON.stringify(version) };

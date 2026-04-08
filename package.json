@@ -62,9 +62,14 @@
     "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next",
     "merge-translations": "node dist/merge-translations.js"
   },
+  "dependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0"
+  },
   "peerDependencies": {
     "@tanstack/react-query": ">=5",
-    "date-fns": ">=4",
+    "date-fns": ">=3",
     "date-fns-tz": ">=3",
     "dompurify": ">=3",
     "react": ">=18",
@@ -74,8 +79,6 @@
     "@types/node": "^25.5.2",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "date-fns": "^4.1.0",
-    "date-fns-tz": "^3.2.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "i18next-parser": "^9.4.0",

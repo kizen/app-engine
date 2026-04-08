@@ -1,4 +1,5 @@
-import { type FC, type ReactNode } from 'react';
+import { useContext, type FC, type ReactNode } from 'react';
+import { QueryClient, QueryClientContext, QueryClientProvider } from '@tanstack/react-query';
 import { AppStateWrapper, type AppStateWrapperProps } from './appState.js';
 import { RunnerStateWrapper } from './runnerState.js';
 import { HistoryWrapper, type HistoryWrapperProps } from './history.js';
@@ -33,6 +34,18 @@ export interface AppEngineProviderProps
   t?: (s: string) => string;
 }
 
+const defaultQueryClient = new QueryClient();
+
+const MaybeQueryClientProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const existing = useContext(QueryClientContext);
+
+  if (existing) {
+    return <>{children}</>;
+  }
+
+  return <QueryClientProvider client={defaultQueryClient}>{children}</QueryClientProvider>;
+};
+
 export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
   const {
     children,
@@ -58,64 +71,68 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
   useLocationChange();
 
   return (
-    <AppStateWrapper
-      bootstrapPlugins={bootstrapPlugins}
-      userConfigs={userConfigs}
-      user={user}
-      teamMember={teamMember}
-      business={business}
-      clientObject={clientObject}
-      appPath={appPath}
-    >
-      {({ hasFinishedBootstrapping, waitingOnRouteScript }) => {
-        return (
-          <TranslationWrapper t={t}>
-            <RunnerStateWrapper>
-              {(showLoadingIndicator) => {
-                return (
-                  <HistoryWrapper onNavigate={onNavigate}>
-                    <ModalsWrapper {...modal}>
-                      {(modals) => {
-                        return (
-                          <MonitoringWrapper monitoringExceptionHelper={monitoringExceptionHelper}>
-                            <SessionDataWrapper>
-                              <TerminatorsWrapper>
-                                <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
-                                  <FloatingFrameWrapper>
-                                    {(hiddenByModal) => {
-                                      return (
-                                        <NetworkWrapper
-                                          performRequest={performRequest}
-                                          createFileId={createFileId}
-                                          performFileUpload={performFileUpload}
-                                        >
-                                          {children({
-                                            ...modals,
-                                            showLoadingIndicator,
-                                            hasFinishedBootstrapping,
-                                            waitingOnRouteScript,
-                                            hiddenByModal: hideFramesOnModal
-                                              ? hiddenByModal
-                                              : false,
-                                          })}
-                                        </NetworkWrapper>
-                                      );
-                                    }}
-                                  </FloatingFrameWrapper>
-                                </ToastWrapper>
-                              </TerminatorsWrapper>
-                            </SessionDataWrapper>
-                          </MonitoringWrapper>
-                        );
-                      }}
-                    </ModalsWrapper>
-                  </HistoryWrapper>
-                );
-              }}
-            </RunnerStateWrapper>
-          </TranslationWrapper>
-        );
-      }}
-    </AppStateWrapper>
+    <MaybeQueryClientProvider>
+      <AppStateWrapper
+        bootstrapPlugins={bootstrapPlugins}
+        userConfigs={userConfigs}
+        user={user}
+        teamMember={teamMember}
+        business={business}
+        clientObject={clientObject}
+        appPath={appPath}
+      >
+        {({ hasFinishedBootstrapping, waitingOnRouteScript }) => {
+          return (
+            <TranslationWrapper t={t}>
+              <RunnerStateWrapper>
+                {(showLoadingIndicator) => {
+                  return (
+                    <HistoryWrapper onNavigate={onNavigate}>
+                      <ModalsWrapper {...modal}>
+                        {(modals) => {
+                          return (
+                            <MonitoringWrapper
+                              monitoringExceptionHelper={monitoringExceptionHelper}
+                            >
+                              <SessionDataWrapper>
+                                <TerminatorsWrapper>
+                                  <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
+                                    <FloatingFrameWrapper>
+                                      {(hiddenByModal) => {
+                                        return (
+                                          <NetworkWrapper
+                                            performRequest={performRequest}
+                                            createFileId={createFileId}
+                                            performFileUpload={performFileUpload}
+                                          >
+                                            {children({
+                                              ...modals,
+                                              showLoadingIndicator,
+                                              hasFinishedBootstrapping,
+                                              waitingOnRouteScript,
+                                              hiddenByModal: hideFramesOnModal
+                                                ? hiddenByModal
+                                                : false,
+                                            })}
+                                          </NetworkWrapper>
+                                        );
+                                      }}
+                                    </FloatingFrameWrapper>
+                                  </ToastWrapper>
+                                </TerminatorsWrapper>
+                              </SessionDataWrapper>
+                            </MonitoringWrapper>
+                          );
+                        }}
+                      </ModalsWrapper>
+                    </HistoryWrapper>
+                  );
+                }}
+              </RunnerStateWrapper>
+            </TranslationWrapper>
+          );
+        }}
+      </AppStateWrapper>
+    </MaybeQueryClientProvider>
   );
 };
