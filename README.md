@@ -36,6 +36,8 @@ The app engine includes some text that can be localized if needed. These message
 }
 ```
 
+In order for translated strings to appear, you'll need to pass the app's translation function to the `AppEngineProvider`. You can disable localization by leaving off this prop, and all text will appear in the default english language.
+
 ### Engine Usage
 
 Your app needs to be wrapped in the `AppEngineProvider`. This provider gives the internal components access to the worker runner, network requests, and other consumer-specific features, and adapts your application's common UI components like modals and toasts to a common API that plugins can use.
@@ -46,6 +48,7 @@ Your app needs to be wrapped in the `AppEngineProvider`. This provider gives the
 import { AppEngineProvider } from '@kizenapps/engine/react';
 import { useHistory } from 'react-router-dom';
 import PluginContext from 'contexts/Plugins';
+import { useTranslation } from 'react-i18next';
 
 const AppProvider = ({ user, teamMember, business, clientObject }) => {
   const history = useHistory();
@@ -67,6 +70,9 @@ const AppProvider = ({ user, teamMember, business, clientObject }) => {
 
   const { onConfirm, show, onHide } = integrationModalProps;
   const { show: showPrompt, showing } = integrationModalTriggerProps;
+
+    const { t } = useTranslation();
+
 
   return (
     <AppEngineProvider
@@ -91,6 +97,7 @@ const AppProvider = ({ user, teamMember, business, clientObject }) => {
       performFileUpload={FileService.upload}
       getPendingCacheCount={getPendingCacheCount}
       invalidateCache={invalidateCache}
+      t={t}
     >
       {({
         handleCreateRecordComplete,
