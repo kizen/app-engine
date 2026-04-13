@@ -85,7 +85,7 @@ export type OnNetworkRequestFn = (
   url: string,
   payload?: UnknownJSON,
   options?: UnknownJSON,
-) => Promise<{ data: UnknownJSON }>;
+) => Promise<{ data: UnknownJSON } | undefined>;
 
 export interface BaseEvent {
   action: (typeof ACTIONS)[keyof typeof ACTIONS];
