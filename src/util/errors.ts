@@ -1,0 +1,25 @@
+import type { UnknownJSON } from '../types/common.js';
+
+export class KizenRequestError extends Error {
+  public proxyStatus: number;
+  public upstreamStatus?: number | undefined;
+  public upstreamResponse?: UnknownJSON | undefined;
+
+  constructor(
+    proxyStatus: number,
+    upstreamStatus?: number,
+    upstreamResponse?: UnknownJSON,
+    overrideMessage?: string,
+  ) {
+    super(
+      overrideMessage ??
+        (upstreamStatus
+          ? `Request failed with upstream status code ${String(upstreamStatus)}`
+          : `Request failed with proxy status code ${String(proxyStatus)}`),
+    );
+    this.name = 'KizenRequestError';
+    this.proxyStatus = proxyStatus;
+    this.upstreamStatus = upstreamStatus;
+    this.upstreamResponse = upstreamResponse;
+  }
+}

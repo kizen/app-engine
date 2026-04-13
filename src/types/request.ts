@@ -1,4 +1,4 @@
-import type { KizenRequestError } from '../util/network.js';
+import type { KizenRequestError } from '../util/errors.js';
 import type { WorkerPromise } from '../workers/WorkerPromise.js';
 import type { UnknownJSON } from './common.js';
 import type { Instance } from './contexts.js';

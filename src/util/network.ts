@@ -1,5 +1,6 @@
 import type { KizenNetworkResponse, KizenProxySuccessResponse } from '../types/request.js';
 import type { UnknownJSON } from '../types/common.js';
+import { KizenRequestError } from './errors.js';
 
 export const getModifiedResponse = (
   response: KizenNetworkResponse<KizenProxySuccessResponse>,
@@ -20,25 +21,6 @@ export const getModifiedResponse = (
     upstreamResponse: response.data.body,
   };
 };
-
-export class KizenRequestError extends Error {
-  public proxyStatus: number;
-  public upstreamStatus?: number | undefined;
-  public upstreamResponse?: UnknownJSON | undefined;
-
-  constructor(
-    proxyStatus: number,
-    upstreamStatus?: number,
-    upstreamResponse?: UnknownJSON,
-    overrideMessage?: string,
-  ) {
-    super(overrideMessage ?? `Request failed with status code ${String(upstreamStatus)}`);
-    this.name = 'KizenRequestError';
-    this.proxyStatus = proxyStatus;
-    this.upstreamStatus = upstreamStatus;
-    this.upstreamResponse = upstreamResponse;
-  }
-}
 
 export const createKizenRequestError = (
   proxyStatus: number,
@@ -68,6 +50,8 @@ export const handleKizenNetworkResponse = (
   const isErrorCode = upstreamStatus >= 400;
 
   if (isErrorCode) {
+    // If we manually throw an error, it means the proxy request succeeded but the upstream request failed.
+    // In this case, always indicate a 200 status for the proxy.
     throw createKizenRequestError(200, upstreamStatus, upstreamResponse as UnknownJSON);
   }
 
