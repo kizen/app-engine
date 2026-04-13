@@ -44,3 +44,8 @@ export interface DeleteReturnValue {
 export type RequestWithErrorsResponse = [UnknownJSON | null, UnknownJSON | null];
 
 export type OnNetworkErrorFn = (error: unknown) => void;
+
+export interface KizenProxySuccessResponse {
+  body?: unknown;
+  status_code?: number;
+}
