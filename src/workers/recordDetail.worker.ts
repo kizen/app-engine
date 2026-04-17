@@ -41,6 +41,8 @@ self.onmessage = async (e: MessageEvent<string>) => {
       business: setup.business,
       entityId: setup.entityId ?? '',
       objectId: setup.objectId ?? '',
+      actionObjectId: setup.actionObjectId ?? '',
+      actionEntityId: setup.actionEntityId ?? '',
       clientObject: setup.clientObject,
       appPath: setup.appPath,
       isDebug: setup.isDebug,
