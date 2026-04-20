@@ -1,3 +1,4 @@
+import type { KizenRequestError } from '../util/errors.js';
 import type { WorkerPromise } from '../workers/WorkerPromise.js';
 import type { UnknownJSON } from './common.js';
 import type { Instance } from './contexts.js';
@@ -41,6 +42,16 @@ export interface DeleteReturnValue {
   data: UnknownJSON;
 }
 
-export type RequestWithErrorsResponse = [UnknownJSON | null, UnknownJSON | null];
+export type RequestWithErrorsResponse = [UnknownJSON | null, KizenRequestError | null];
 
 export type OnNetworkErrorFn = (error: unknown) => void;
+
+export interface KizenProxySuccessResponse {
+  body?: unknown;
+  status_code?: number;
+}
+
+export interface KizenNetworkResponse<T = unknown> {
+  data: T;
+  status: number;
+}
