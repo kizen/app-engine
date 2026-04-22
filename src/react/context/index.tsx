@@ -66,6 +66,8 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
     createFileId,
     performFileUpload,
     t,
+    invalidateCache,
+    getPendingCacheCount,
   } = props;
 
   useLocationChange();
@@ -104,6 +106,8 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
                                             performRequest={performRequest}
                                             createFileId={createFileId}
                                             performFileUpload={performFileUpload}
+                                            invalidateCache={invalidateCache}
+                                            getPendingCacheCount={getPendingCacheCount}
                                           >
                                             {children({
                                               ...modals,
