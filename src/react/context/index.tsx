@@ -15,6 +15,9 @@ import { TranslationWrapper } from './translation.js';
 
 export type TouchFloatingFrame = (id: string, cb?: (value: string[]) => void) => void;
 
+const BOOTSTRAP_PLUGINS_FALLBACK: AppStateWrapperProps['bootstrapPlugins'] = [];
+const USER_CONFIGS_FALLBACK: AppStateWrapperProps['userConfigs'] = [];
+
 interface AdditionalContextProps {
   showLoadingIndicator: boolean;
   hiddenByModal: boolean;
@@ -49,8 +52,8 @@ const MaybeQueryClientProvider: FC<{ children: ReactNode }> = ({ children }) => 
 export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
   const {
     children,
-    bootstrapPlugins = [],
-    userConfigs = [],
+    bootstrapPlugins,
+    userConfigs,
     user,
     teamMember,
     business,
@@ -75,8 +78,8 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
   return (
     <MaybeQueryClientProvider>
       <AppStateWrapper
-        bootstrapPlugins={bootstrapPlugins}
-        userConfigs={userConfigs}
+        bootstrapPlugins={bootstrapPlugins ?? BOOTSTRAP_PLUGINS_FALLBACK}
+        userConfigs={userConfigs ?? USER_CONFIGS_FALLBACK}
         user={user}
         teamMember={teamMember}
         business={business}
