@@ -13,13 +13,17 @@ export class KizenRequestError extends Error {
   ) {
     super(
       overrideMessage ??
+        (upstreamResponse?.error as { message?: string } | undefined)?.message ??
         (upstreamStatus
           ? `Request failed with upstream status code ${String(upstreamStatus)}`
           : `Request failed with proxy status code ${String(proxyStatus)}`),
     );
+
     this.name = 'KizenRequestError';
     this.proxyStatus = proxyStatus;
     this.upstreamStatus = upstreamStatus;
     this.upstreamResponse = upstreamResponse;
+
+    Object.setPrototypeOf(this, KizenRequestError.prototype);
   }
 }

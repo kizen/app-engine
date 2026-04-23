@@ -62,6 +62,7 @@ import {
   type ALLOWED_INTEGRATIONS,
 } from './communication/ThirdPartyScript.js';
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
+import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import DOMPurify from 'dompurify';
 
@@ -504,7 +505,19 @@ export class WorkerManager {
       this.postMessage(RESPONSES.QUERY_RESPONSE, { data, id });
     } catch (ex) {
       this.onNetworkError?.(ex);
-      this.postMessage(RESPONSES.QUERY_RESPONSE, { error: ex as UnknownJSON, id });
+
+      const error =
+        ex instanceof KizenRequestError
+          ? {
+              __kizenError: true as const,
+              proxyStatus: ex.proxyStatus,
+              upstreamStatus: ex.upstreamStatus,
+              upstreamResponse: ex.upstreamResponse,
+              message: ex.message,
+            }
+          : { message: ex instanceof Error ? ex.message : String(ex) };
+
+      this.postMessage(RESPONSES.QUERY_RESPONSE, { error: error as UnknownJSON, id });
     }
   };
 
