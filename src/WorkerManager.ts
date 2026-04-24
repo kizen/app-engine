@@ -515,9 +515,29 @@ export class WorkerManager {
               upstreamResponse: ex.upstreamResponse,
               message: ex.message,
             }
-          : { message: ex instanceof Error ? ex.message : String(ex) };
+          : (() => {
+              if (ex instanceof Error) {
+                return { message: ex.message, name: ex.name };
+              }
 
-      this.postMessage(RESPONSES.QUERY_RESPONSE, { error: error as UnknownJSON, id });
+              try {
+                const serialized = JSON.parse(JSON.stringify(ex)) as UnknownJSON | null;
+
+                if (
+                  typeof serialized === 'object' &&
+                  serialized !== null &&
+                  !Array.isArray(serialized)
+                ) {
+                  return serialized;
+                }
+              } catch {
+                // if we can't serialize the error, just return its string representation
+              }
+
+              return { message: String(ex) };
+            })();
+
+      this.postMessage(RESPONSES.QUERY_RESPONSE, { error, id });
     }
   };
 
