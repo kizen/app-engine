@@ -15,7 +15,7 @@ export class KizenRequestError extends Error {
       overrideMessage ??
         (upstreamResponse?.error as { message?: string } | undefined)?.message ??
         (upstreamStatus
-          ? `Request failed with upstream status code ${String(upstreamStatus)}`
+          ? `Request failed with status code ${String(upstreamStatus)}`
           : `Request failed with proxy status code ${String(proxyStatus)}`),
     );
 
