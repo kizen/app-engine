@@ -44,6 +44,16 @@ import type {
   UploadFileResponsePayload,
 } from '../types/workers.js';
 import type { WorkerPromise } from './WorkerPromise.js';
+import { KizenRequestError } from '../util/errors.js';
+import type { UnknownJSON } from '../types/common.js';
+
+interface KizenErrorPayload {
+  __kizenError: true;
+  proxyStatus: number;
+  upstreamStatus?: number;
+  upstreamResponse?: UnknownJSON;
+  message: string;
+}
 
 export const getFieldFromAction = (action: AssistantConfigAction): AssistantField => {
   return {
@@ -366,7 +376,17 @@ export const handleCommonResponse = (
     case RESPONSES.QUERY_RESPONSE: {
       const { id, data, error } = JSON.parse(e.data) as QueryResponsePayload;
       if (error) {
-        promises.reject(id, error);
+        const reconstructed =
+          typeof error === 'object' && '__kizenError' in error
+            ? new KizenRequestError(
+                (error as KizenErrorPayload).proxyStatus,
+                (error as KizenErrorPayload).upstreamStatus,
+                (error as KizenErrorPayload).upstreamResponse,
+                (error as KizenErrorPayload).message,
+              )
+            : error;
+
+        promises.reject(id, reconstructed);
       } else {
         promises.resolve(id, data);
       }
