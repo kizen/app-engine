@@ -225,6 +225,9 @@ export const cleanConfig = (
       }
       case 'description':
       case 'container':
+      case 'qr':
+      case 'image':
+      case 'link':
         return;
     }
 
