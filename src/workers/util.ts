@@ -64,13 +64,7 @@ export const getFieldFromAction = (action: AssistantConfigAction): AssistantFiel
   };
 };
 
-export const NON_INPUT_FIELD_TYPES = [
-  'description',
-  'container',
-  'qr',
-  'image',
-  'link',
-] as AssistantField['type'][];
+export const NON_INPUT_FIELD_TYPES = ['description', 'container', 'qr', 'image', 'link'];
 
 export const getAllNestedInputsFromConfig = (
   config: SetupAssistantConfig,
@@ -236,8 +230,6 @@ export const cleanConfig = (
       case 'qr':
       case 'image':
       case 'link':
-      case 'dropdown':
-      case 'spacer':
         return;
     }
 

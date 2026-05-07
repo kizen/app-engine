@@ -133,9 +133,7 @@ export interface AssistantField {
     | 'boolean'
     | 'qr'
     | 'image'
-    | 'link'
-    | 'spacer'
-    | 'dropdown';
+    | 'link';
   columns?: number;
   fields?: AssistantField[];
   content?: string;
