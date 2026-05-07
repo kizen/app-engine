@@ -115,6 +115,11 @@ export interface AssistantConfigAction {
   hint_object_name?: string;
 }
 
+export interface AssistantLink {
+  href: string;
+  text: string;
+}
+
 export interface AssistantField {
   key: string;
   type:
@@ -125,7 +130,10 @@ export interface AssistantField {
     | 'text'
     | 'number'
     | 'select'
-    | 'boolean';
+    | 'boolean'
+    | 'qr'
+    | 'image'
+    | 'link';
   columns?: number;
   fields?: AssistantField[];
   content?: string;
@@ -149,6 +157,13 @@ export interface AssistantField {
   dependencies?: string[];
   validation_pattern?: string;
   match_hint?: string;
+  src?: string;
+  link?: AssistantLink;
+  title?: string;
+  width?: number;
+  height?: number;
+  href?: string;
+  text?: string;
 }
 
 export type BooleanCleanValue = boolean;
