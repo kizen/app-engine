@@ -64,12 +64,20 @@ export const getFieldFromAction = (action: AssistantConfigAction): AssistantFiel
   };
 };
 
+export const NON_INPUT_FIELD_TYPES = [
+  'description',
+  'container',
+  'qr',
+  'image',
+  'link',
+] as AssistantField['type'][];
+
 export const getAllNestedInputsFromConfig = (
   config: SetupAssistantConfig,
   parentWhen?: string,
 ): AssistantField[] => {
   const regular = (config.fields ?? [])
-    .filter((entry) => entry.type !== 'container' && entry.type !== 'description')
+    .filter((entry) => !NON_INPUT_FIELD_TYPES.includes(entry.type))
     .map((r) => {
       return {
         ...r,
@@ -228,6 +236,8 @@ export const cleanConfig = (
       case 'qr':
       case 'image':
       case 'link':
+      case 'dropdown':
+      case 'spacer':
         return;
     }
 
