@@ -165,6 +165,7 @@ export interface AssistantField {
   href?: string;
   text?: string;
   size?: number;
+  value?: string;
 }
 
 export type BooleanCleanValue = boolean;
