@@ -11,7 +11,7 @@ import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
 import type { AssistantField, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
-import { getPartialLocation } from './index.js';
+import { getPartialLocation } from './run.js';
 
 type AllowedConfig =
   | FloatingFrameConfig
@@ -178,7 +178,7 @@ export const getQrCodeValue = (
 
   const urlParams = getParams(include, getParam);
 
-  const result = `${qualifiedUrl}?${urlParams.toString()}`;
+  const result = `${qualifiedUrl}${qualifiedUrl.includes('?') ? '&' : '?'}${urlParams.toString()}`;
 
   return result;
 };
@@ -195,7 +195,7 @@ export const getLinkValue = (
 
   const urlParams = getParams(include, getParam);
 
-  const result = `${baseValue}?${urlParams.toString()}`;
+  const result = `${baseValue}${baseValue.includes('?') ? '&' : '?'}${urlParams.toString()}`;
 
   return result;
 };
