@@ -153,10 +153,11 @@ export type GetParamFunction = (key: Exclude<IncludeOptions, undefined>[number])
 const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSearchParams => {
   const urlParams = new URLSearchParams();
 
-  urlParams.append('base_url', getPartialLocation().origin);
-
   if (include) {
     include.forEach((field) => {
+      if (field === 'base_url') {
+        urlParams.append(field, getPartialLocation().origin);
+      }
       if (getParam) {
         urlParams.append(field, getParam(field));
       }

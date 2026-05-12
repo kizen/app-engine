@@ -166,7 +166,7 @@ export interface AssistantField {
   text?: string;
   size?: number;
   value?: string;
-  include?: ['email', 'name', 'business_id', 'user_id'];
+  include?: ['email', 'name', 'business_id', 'user_id', 'base_url'];
 }
 
 export type BooleanCleanValue = boolean;
