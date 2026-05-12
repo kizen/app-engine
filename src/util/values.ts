@@ -173,6 +173,7 @@ export const getQrCodeValue = (
 ): string => {
   const baseValue = value ?? '';
 
+  // Force qualified on QR codes since these will generally be scanned by another device
   const qualifiedUrl = forceQualifiedUrl(baseValue);
 
   const urlParams = getParams(include, getParam);
@@ -188,6 +189,9 @@ export const getLinkValue = (
   getParam?: GetParamFunction,
 ): string => {
   const baseValue = value ?? '';
+
+  // Don't force a qualified URL on links since these will generally be clicked on the same device,
+  // so we should support relative
 
   const urlParams = getParams(include, getParam);
 
