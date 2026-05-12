@@ -157,8 +157,7 @@ const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSe
     include.forEach((field) => {
       if (field === 'base_url') {
         urlParams.append(field, getPartialLocation().origin);
-      }
-      if (getParam) {
+      } else if (getParam) {
         urlParams.append(field, getParam(field));
       }
     });
