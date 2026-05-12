@@ -9,7 +9,7 @@ import type { DataAdornmentConfig } from '../types/artifacts/dataAdornment.js';
 import type { RoutablePageConfig } from '../types/artifacts/routablePage.js';
 import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
-import type { AssistantField, SetupAssistantField } from '../types/modals.js';
+import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
 import { getPartialLocation } from './run.js';
 
@@ -147,17 +147,16 @@ export const forceQualifiedUrl = (url: string): string => {
   return qualifiedUrl;
 };
 
-export type IncludeOptions = AssistantField['include'];
-export type GetParamFunction = (key: Exclude<IncludeOptions, undefined>[number]) => string;
+export type GetParamFunction = (key: IncludeOption) => string;
 
-const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSearchParams => {
+const getParams = (include?: IncludeOption[], getParam?: GetParamFunction): URLSearchParams => {
   const urlParams = new URLSearchParams();
-
-  urlParams.append('base_url', getPartialLocation().origin);
 
   if (include) {
     include.forEach((field) => {
-      if (getParam) {
+      if (field === 'base_url') {
+        urlParams.append(field, getPartialLocation().origin);
+      } else if (getParam) {
         urlParams.append(field, getParam(field));
       }
     });
@@ -167,15 +166,22 @@ const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSe
 };
 
 const appendParams = (url: string, urlParams: URLSearchParams): string => {
+  const params = urlParams.toString();
+
+  if (!params) {
+    return url;
+  }
+
   const hashIndex = url.indexOf('#');
   const pathAndQuery = hashIndex === -1 ? url : url.slice(0, hashIndex);
   const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
-  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${urlParams.toString()}${fragment}`;
+
+  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${params}${fragment}`;
 };
 
 export const getQrCodeValue = (
   value?: string,
-  include?: IncludeOptions,
+  include?: IncludeOption[],
   getParam?: GetParamFunction,
 ): string => {
   const baseValue = value ?? '';
@@ -192,7 +198,7 @@ export const getQrCodeValue = (
 
 export const getLinkValue = (
   value?: string,
-  include?: IncludeOptions,
+  include?: IncludeOption[],
   getParam?: GetParamFunction,
 ): string => {
   const baseValue = value ?? '';

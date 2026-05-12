@@ -120,6 +120,8 @@ export interface AssistantLink {
   text: string;
 }
 
+export type IncludeOption = 'email' | 'name' | 'business_id' | 'user_id' | 'base_url';
+
 export interface AssistantField {
   key: string;
   type:
@@ -166,7 +168,7 @@ export interface AssistantField {
   text?: string;
   size?: number;
   value?: string;
-  include?: ['email', 'name', 'business_id', 'user_id'];
+  include?: IncludeOption[];
 }
 
 export type BooleanCleanValue = boolean;
