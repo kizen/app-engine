@@ -167,10 +167,17 @@ const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSe
 };
 
 const appendParams = (url: string, urlParams: URLSearchParams): string => {
+  const params = urlParams.toString();
+
+  if (!params) {
+    return url;
+  }
+
   const hashIndex = url.indexOf('#');
   const pathAndQuery = hashIndex === -1 ? url : url.slice(0, hashIndex);
   const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
-  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${urlParams.toString()}${fragment}`;
+
+  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${params}${fragment}`;
 };
 
 export const getQrCodeValue = (
