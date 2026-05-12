@@ -166,6 +166,13 @@ const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSe
   return urlParams;
 };
 
+const appendParams = (url: string, urlParams: URLSearchParams): string => {
+  const hashIndex = url.indexOf('#');
+  const pathAndQuery = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
+  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${urlParams.toString()}${fragment}`;
+};
+
 export const getQrCodeValue = (
   value?: string,
   include?: IncludeOptions,
@@ -176,11 +183,7 @@ export const getQrCodeValue = (
   // Force qualified on QR codes since these will generally be scanned by another device
   const qualifiedUrl = forceQualifiedUrl(baseValue);
 
-  const urlParams = getParams(include, getParam);
-
-  const result = `${qualifiedUrl}${qualifiedUrl.includes('?') ? '&' : '?'}${urlParams.toString()}`;
-
-  return result;
+  return appendParams(qualifiedUrl, getParams(include, getParam));
 };
 
 export const getLinkValue = (
@@ -193,9 +196,5 @@ export const getLinkValue = (
   // Don't force a qualified URL on links since these will generally be clicked on the same device,
   // so we should support relative
 
-  const urlParams = getParams(include, getParam);
-
-  const result = `${baseValue}${baseValue.includes('?') ? '&' : '?'}${urlParams.toString()}`;
-
-  return result;
+  return appendParams(baseValue, getParams(include, getParam));
 };
