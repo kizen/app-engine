@@ -9,7 +9,7 @@ import type { DataAdornmentConfig } from '../types/artifacts/dataAdornment.js';
 import type { RoutablePageConfig } from '../types/artifacts/routablePage.js';
 import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
-import type { AssistantField, SetupAssistantField } from '../types/modals.js';
+import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
 import { getPartialLocation } from './run.js';
 
@@ -147,10 +147,9 @@ export const forceQualifiedUrl = (url: string): string => {
   return qualifiedUrl;
 };
 
-export type IncludeOptions = AssistantField['include'];
-export type GetParamFunction = (key: Exclude<IncludeOptions, undefined>[number]) => string;
+export type GetParamFunction = (key: IncludeOption) => string;
 
-const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSearchParams => {
+const getParams = (include?: IncludeOption[], getParam?: GetParamFunction): URLSearchParams => {
   const urlParams = new URLSearchParams();
 
   if (include) {
@@ -182,7 +181,7 @@ const appendParams = (url: string, urlParams: URLSearchParams): string => {
 
 export const getQrCodeValue = (
   value?: string,
-  include?: IncludeOptions,
+  include?: IncludeOption[],
   getParam?: GetParamFunction,
 ): string => {
   const baseValue = value ?? '';
@@ -199,7 +198,7 @@ export const getQrCodeValue = (
 
 export const getLinkValue = (
   value?: string,
-  include?: IncludeOptions,
+  include?: IncludeOption[],
   getParam?: GetParamFunction,
 ): string => {
   const baseValue = value ?? '';
