@@ -9,8 +9,9 @@ import type { DataAdornmentConfig } from '../types/artifacts/dataAdornment.js';
 import type { RoutablePageConfig } from '../types/artifacts/routablePage.js';
 import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
-import type { SetupAssistantField } from '../types/modals.js';
+import type { AssistantField, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
+import { getPartialLocation } from './run.js';
 
 type AllowedConfig =
   | FloatingFrameConfig
@@ -130,4 +131,78 @@ export const reduceEnabledResults = (
       [curr.api_name]: curr.enabled,
     };
   }, {});
+};
+
+export const forceQualifiedUrl = (url: string): string => {
+  let qualifiedUrl = url;
+
+  if (/^(http|https):\/\//.test(url)) {
+    qualifiedUrl = url;
+  } else if (url.startsWith('/')) {
+    qualifiedUrl = `${getPartialLocation().origin}${qualifiedUrl}`;
+  } else {
+    qualifiedUrl = `${getPartialLocation().origin}/${qualifiedUrl}`;
+  }
+
+  return qualifiedUrl;
+};
+
+export type IncludeOptions = AssistantField['include'];
+export type GetParamFunction = (key: Exclude<IncludeOptions, undefined>[number]) => string;
+
+const getParams = (include?: IncludeOptions, getParam?: GetParamFunction): URLSearchParams => {
+  const urlParams = new URLSearchParams();
+
+  urlParams.append('base_url', getPartialLocation().origin);
+
+  if (include) {
+    include.forEach((field) => {
+      if (getParam) {
+        urlParams.append(field, getParam(field));
+      }
+    });
+  }
+
+  return urlParams;
+};
+
+const appendParams = (url: string, urlParams: URLSearchParams): string => {
+  const hashIndex = url.indexOf('#');
+  const pathAndQuery = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
+  return `${pathAndQuery}${pathAndQuery.includes('?') ? '&' : '?'}${urlParams.toString()}${fragment}`;
+};
+
+export const getQrCodeValue = (
+  value?: string,
+  include?: IncludeOptions,
+  getParam?: GetParamFunction,
+): string => {
+  const baseValue = value ?? '';
+
+  // Force qualified on QR codes since these will generally be scanned by another device
+  const qualifiedUrl = forceQualifiedUrl(baseValue);
+
+  const params = getParams(include, getParam);
+
+  const result = appendParams(qualifiedUrl, params);
+
+  return result;
+};
+
+export const getLinkValue = (
+  value?: string,
+  include?: IncludeOptions,
+  getParam?: GetParamFunction,
+): string => {
+  const baseValue = value ?? '';
+
+  // Don't force a qualified URL on links since these will generally be clicked on the same device,
+  // so we should support relative
+
+  const params = getParams(include, getParam);
+
+  const result = appendParams(baseValue, params);
+
+  return result;
 };
