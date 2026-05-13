@@ -64,7 +64,7 @@ import {
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
-import DOMPurify from 'dompurify';
+import { getPluginSafeHTML } from './util/values.js';
 
 const isRelative = (url: string): boolean => {
   return url.startsWith('/');
@@ -543,7 +543,7 @@ export class WorkerManager {
 
   private handleUIOutput = (markup: string): void => {
     if (this.scriptUIRef?.current) {
-      const sanitizedMarkup = DOMPurify.sanitize(markup);
+      const sanitizedMarkup = getPluginSafeHTML(markup).html;
 
       this.scriptUIRef.current.innerHTML = sanitizedMarkup;
     }

@@ -7,8 +7,8 @@ import type {
 } from '../../types/index.js';
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
-import DOMPurify from 'dompurify';
 import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
+import { usePluginSafeHTML } from './usePluginSafeHTML.js';
 
 interface PluginCustomHTML {
   scopedCss: string;
@@ -29,11 +29,7 @@ export const useAppCustomHTML = (
 
   const css = currentPage?.css;
 
-  const html = useMemo(() => {
-    const rawHTML = currentPage?.html;
-
-    return rawHTML ? DOMPurify.sanitize(rawHTML) : null;
-  }, [currentPage]);
+  const { html } = usePluginSafeHTML(currentPage?.html);
 
   const interactableScripts = useMemo(() => {
     return currentPage?.event_scripts ?? {};

@@ -12,6 +12,7 @@ import type { AppPlugin, UnknownJSON } from '../types/common.js';
 import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
 import { getPartialLocation } from './run.js';
+import DOMPurify, { type RemovedAttribute, type RemovedElement } from 'dompurify';
 
 type AllowedConfig =
   | FloatingFrameConfig
@@ -211,4 +212,37 @@ export const getLinkValue = (
   const result = appendParams(baseValue, params);
 
   return result;
+};
+
+export type RemovedHTML = RemovedAttribute | RemovedElement;
+
+export const getPluginSafeHTML = (
+  html?: string,
+): { html: string; error: Error | null; removed: RemovedHTML[] } => {
+  if (!html) {
+    return { html: '', error: null, removed: [] };
+  }
+
+  try {
+    const cleanHtml = DOMPurify.sanitize(html, {
+      ADD_TAGS: ['iframe'],
+      ADD_ATTR: [
+        'allow',
+        'allowfullscreen',
+        'frameborder',
+        'scrolling',
+        'src',
+        'sandbox',
+        'name',
+        'loading',
+        'width',
+        'height',
+        'title',
+      ],
+    });
+
+    return { html: cleanHtml, error: null, removed: DOMPurify.removed as RemovedHTML[] };
+  } catch (err) {
+    return { html: '', error: err as Error, removed: [] };
+  }
 };
