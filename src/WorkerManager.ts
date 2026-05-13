@@ -64,7 +64,7 @@ import {
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
-import { getPluginSafeHTML } from './react/hooks/usePluginSafeHTML.js';
+import { getPluginSafeHTML } from './util/values.js';
 
 const isRelative = (url: string): boolean => {
   return url.startsWith('/');
