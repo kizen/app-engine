@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useRef, type RefObject } from 'react';
 import type {
   FloatingFrameConfig,
   MaybeMessageError,
@@ -8,6 +8,7 @@ import type {
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
+import { useManualInteraction } from './useManualInteraction.js';
 import { usePluginSafeHTML } from './usePluginSafeHTML.js';
 
 interface PluginCustomHTML {
@@ -31,10 +32,6 @@ export const useAppCustomHTML = (
 
   const { html } = usePluginSafeHTML(currentPage?.html);
 
-  const interactableScripts = useMemo(() => {
-    return currentPage?.event_scripts ?? {};
-  }, [currentPage]);
-
   const [executeInline, { pending: inlinePending }] = useGenericAppCustomScript({
     onError: (e) => {
       showToast({
@@ -46,35 +43,7 @@ export const useAppCustomHTML = (
     plugin: currentPage,
   });
 
-  const handleClick = useCallback(
-    (e: PointerEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!inlinePending) {
-        const target = e.target as HTMLElement;
-        const scriptName = target.getAttribute('data-script');
-
-        if (scriptName && interactableScripts[scriptName]) {
-          void executeInline(interactableScripts[scriptName], args);
-        }
-      }
-    },
-    [inlinePending, executeInline, interactableScripts, args],
-  );
-
-  useEffect(() => {
-    const e = interactableScriptRef.current;
-
-    if (e) {
-      e.addEventListener('click', handleClick);
-    }
-
-    return () => {
-      if (e) {
-        e.removeEventListener('click', handleClick);
-      }
-    };
-  }, [handleClick, currentPage]);
+  useManualInteraction(executeInline, currentPage, interactableScriptRef, inlinePending, args as Record<string, unknown>);
 
   return {
     scopedCss: `
