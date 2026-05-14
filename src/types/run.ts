@@ -225,6 +225,12 @@ export interface AuthorizeEvent extends BaseEvent {
   };
 }
 
+export interface ShowViewInModalRequestEvent extends BaseEvent {
+  id: string;
+  viewId: string;
+  args?: UnknownJSON;
+}
+
 export type MessageEventData =
   | QueryRequestEvent
   | UIOutputEvent
@@ -248,6 +254,7 @@ export type MessageEventData =
   | InstallThirdPartyScriptRequestEvent
   | PromptRequestEvent
   | DynamicPromptRequestEvent
+  | ShowViewInModalRequestEvent
   | AuthorizeEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;

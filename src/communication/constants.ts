@@ -30,6 +30,7 @@ export const ACTIONS = {
   RELEASE_BLOCKING_SCRIPT: 'releaseblockingscript',
   AUTHORIZE: 'authorize',
   COPY_TO_CLIPBOARD: 'copytoclipboard',
+  SHOW_VIEW_IN_MODAL_REQUEST: 'showviewinmodal:request',
 };
 
 export const RESPONSES = {

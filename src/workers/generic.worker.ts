@@ -12,6 +12,7 @@ import {
   postFormDataHandler,
   promptHandler,
   refreshEntityHandler,
+  showViewInModalHandler,
   uploadFileHandler,
 } from './util.js';
 import { WorkerPromise } from './WorkerPromise.js';
@@ -59,6 +60,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       refreshEntity: refreshEntityHandler(self, promises),
       openCreateRecord: openCreateRecordHandler(self, promises),
       openCreateRelatedRecord: openCreateRelatedRecordHandler(self, promises),
+      showViewInModal: showViewInModalHandler(self, promises),
       pluginApiName,
       location,
     });
