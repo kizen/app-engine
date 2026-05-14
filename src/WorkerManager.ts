@@ -820,11 +820,7 @@ export class WorkerManager {
     }
   };
 
-  private handleShowViewInModalRequest = (
-    id: string,
-    viewId: string,
-    args?: UnknownJSON,
-  ): void => {
+  private handleShowViewInModalRequest = (id: string, viewId: string, args?: UnknownJSON): void => {
     if (this.onShowModal) {
       this.onShowModal(
         {

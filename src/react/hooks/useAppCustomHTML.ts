@@ -43,7 +43,13 @@ export const useAppCustomHTML = (
     plugin: currentPage,
   });
 
-  useManualInteraction(executeInline, currentPage, interactableScriptRef, inlinePending, args as Record<string, unknown>);
+  useManualInteraction(
+    executeInline,
+    currentPage,
+    interactableScriptRef,
+    inlinePending,
+    args as Record<string, unknown>,
+  );
 
   return {
     scopedCss: `

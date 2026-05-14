@@ -216,6 +216,7 @@ export const useCalendarSourceCustomScript = ({
       getPendingCacheCount,
       invalidateCache,
       t,
+      closeCurrentModal,
     ],
   );
 
