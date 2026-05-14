@@ -258,10 +258,7 @@ export type CleanValueStoreType =
 
 export type CleanValueStore = Record<string, CleanValueStoreType>;
 
-export type OnShowModalFn = (
-  config: ModalConfig,
-  cb: (result?: UnknownJSON) => void,
-) => void;
+export type OnShowModalFn = (config: ModalConfig, cb: (result?: UnknownJSON) => void) => void;
 
 export type OnShowCreateRecordModalFn = (
   objectId: string,
