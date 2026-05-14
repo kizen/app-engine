@@ -51,7 +51,8 @@ export const useFloatingFrameCustomScript = ({
     appPath,
   } = useAppState();
 
-  const { showModal, showCreateRecordModal, showCreateRelatedRecordModal } = useModals();
+  const { showModal, showCreateRecordModal, showCreateRelatedRecordModal, closeCurrentModal } =
+    useModals();
 
   const { sendException } = useMonitoring();
 
@@ -145,6 +146,7 @@ export const useFloatingFrameCustomScript = ({
         sessionData,
         setSessionData,
         onShowModal: showModal,
+        onCloseModal: closeCurrentModal,
         onShowCreateRecordModal: showCreateRecordModal,
         onShowCreateRelatedRecordModal: showCreateRelatedRecordModal,
         appPath,
@@ -183,6 +185,7 @@ export const useFloatingFrameCustomScript = ({
       getPendingCacheCount,
       invalidateCache,
       t,
+      closeCurrentModal,
     ],
   );
 

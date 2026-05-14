@@ -45,7 +45,8 @@ export const useRecordDetailCustomScript = ({
 
   const { getRunnerState, getRunnerStateUpdater } = useRunnerState();
 
-  const { showModal, showCreateRecordModal, showCreateRelatedRecordModal } = useModals();
+  const { showModal, showCreateRecordModal, showCreateRelatedRecordModal, closeCurrentModal } =
+    useModals();
 
   const { sendException } = useMonitoring();
 
@@ -131,6 +132,7 @@ export const useRecordDetailCustomScript = ({
         sessionData,
         setSessionData,
         onShowModal: showModal,
+        onCloseModal: closeCurrentModal,
         onShowCreateRecordModal: showCreateRecordModal,
         onShowCreateRelatedRecordModal: showCreateRelatedRecordModal,
         appPath,
@@ -170,6 +172,7 @@ export const useRecordDetailCustomScript = ({
       getPendingCacheCount,
       invalidateCache,
       t,
+      closeCurrentModal,
     ],
   );
 

@@ -3,6 +3,7 @@ import { BaseWorkerContext } from '../contexts/BaseWorkerContext.js';
 import type { WorkerEvent } from '../types/workers.js';
 import { getFn } from '../util/run.js';
 import {
+  closeModalHandler,
   dynamicPromptHandler,
   handleCommonResponse,
   installThirdPartyScriptHandler,
@@ -61,6 +62,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       openCreateRecord: openCreateRecordHandler(self, promises),
       openCreateRelatedRecord: openCreateRelatedRecordHandler(self, promises),
       showViewInModal: showViewInModalHandler(self, promises),
+      closeModal: closeModalHandler(self),
       pluginApiName,
       location,
     });

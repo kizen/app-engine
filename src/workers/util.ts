@@ -10,6 +10,7 @@ import type {
   AssistantField,
   BooleanValueStore,
   CleanValueStore,
+  CurriedCloseModalFn,
   CurriedDynamicPromptFn,
   CurriedShowViewInModalFn,
   CustomObjectCleanValue,
@@ -315,6 +316,18 @@ export const showViewInModalHandler: CurriedShowViewInModalFn =
         }),
       );
     });
+  };
+
+export const closeModalHandler: CurriedCloseModalFn =
+  (instance) =>
+  (values, canceled): void => {
+    instance.postMessage(
+      JSON.stringify({
+        action: ACTIONS.CLOSE_MODAL_REQUEST,
+        values,
+        canceled,
+      }),
+    );
   };
 
 export const uploadFileHandler: CurriedUploadFileFn = (instance, promises) => (payload) => {

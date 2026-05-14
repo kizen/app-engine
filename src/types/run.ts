@@ -6,6 +6,7 @@ import type {
   WorkerContextArgs,
 } from './contexts.js';
 import type {
+  OnCloseModalFn,
   OnShowCreateRecordModalFn,
   OnShowCreateRelatedRecordModalFn,
   OnShowModalFn,
@@ -58,6 +59,7 @@ export interface RunScriptOptions {
   onShowModal: OnShowModalFn;
   onShowCreateRecordModal: OnShowCreateRecordModalFn;
   onShowCreateRelatedRecordModal: OnShowCreateRelatedRecordModalFn;
+  onCloseModal?: OnCloseModalFn;
   onNetworkError?: OnNetworkErrorFn;
   scriptBody: WorkerContextArgs['scriptBody'];
   user: WorkerContextArgs['user'];
@@ -231,6 +233,11 @@ export interface ShowViewInModalRequestEvent extends BaseEvent {
   args?: UnknownJSON;
 }
 
+export interface CloseModalRequestEvent extends BaseEvent {
+  values?: UnknownJSON;
+  canceled?: boolean;
+}
+
 export type MessageEventData =
   | QueryRequestEvent
   | UIOutputEvent
@@ -255,6 +262,7 @@ export type MessageEventData =
   | PromptRequestEvent
   | DynamicPromptRequestEvent
   | ShowViewInModalRequestEvent
+  | CloseModalRequestEvent
   | AuthorizeEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;

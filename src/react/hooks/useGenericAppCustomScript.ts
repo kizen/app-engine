@@ -41,7 +41,7 @@ export const useGenericAppCustomScript = ({
 
   const { getRunnerState, getRunnerStateUpdater } = useRunnerState();
 
-  const { showModal, showCreateRecordModal } = useModals();
+  const { showModal, showCreateRecordModal, closeCurrentModal } = useModals();
 
   const { sendException } = useMonitoring();
 
@@ -123,6 +123,7 @@ export const useGenericAppCustomScript = ({
         sessionData,
         setSessionData,
         onShowModal: showModal,
+        onCloseModal: closeCurrentModal,
         onShowCreateRecordModal: showCreateRecordModal,
         onShowCreateRelatedRecordModal: () => {
           /* empty */
@@ -161,6 +162,7 @@ export const useGenericAppCustomScript = ({
       getPendingCacheCount,
       invalidateCache,
       t,
+      closeCurrentModal,
     ],
   );
 

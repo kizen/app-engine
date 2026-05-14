@@ -102,6 +102,10 @@ export type CurriedShowViewInModalFn = (
   promises: WorkerPromise,
 ) => ShowViewInModalFn;
 
+export type CloseModalFn = (values?: UnknownJSON, canceled?: boolean) => void;
+
+export type CurriedCloseModalFn = (instance: Instance) => CloseModalFn;
+
 export type DynamicPromptFn = (config: DynamicPromptConfig) => Promise<{
   values: Record<string, ValueStore>;
 }>;
@@ -259,6 +263,8 @@ export type CleanValueStoreType =
 export type CleanValueStore = Record<string, CleanValueStoreType>;
 
 export type OnShowModalFn = (config: ModalConfig, cb: (result?: UnknownJSON) => void) => void;
+
+export type OnCloseModalFn = (values?: UnknownJSON, canceled?: boolean) => void;
 
 export type OnShowCreateRecordModalFn = (
   objectId: string,

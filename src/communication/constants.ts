@@ -31,6 +31,7 @@ export const ACTIONS = {
   AUTHORIZE: 'authorize',
   COPY_TO_CLIPBOARD: 'copytoclipboard',
   SHOW_VIEW_IN_MODAL_REQUEST: 'showviewinmodal:request',
+  CLOSE_MODAL_REQUEST: 'closemodal:request',
 };
 
 export const RESPONSES = {
