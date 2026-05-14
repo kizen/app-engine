@@ -44,6 +44,7 @@ import type {
   PerformKizenFileUploadFn,
   UploadFilePayload,
   UploadFileRequestEvent,
+  ShowViewInModalRequestEvent,
 } from './types/run.js';
 import type {
   ModalConfig,
@@ -416,6 +417,13 @@ export class WorkerManager {
 
         return;
       }
+      case ACTIONS.SHOW_VIEW_IN_MODAL_REQUEST: {
+        const consideredEvent = event as ShowViewInModalRequestEvent;
+
+        this.handleShowViewInModalRequest(consideredEvent.id, consideredEvent.viewId);
+
+        return;
+      }
       case ACTIONS.RELEASE_BLOCKING_SCRIPT: {
         this.handleReleaseBlockingScript();
 
@@ -780,6 +788,28 @@ export class WorkerManager {
           ...config,
           pluginApiName: this.pluginApiName ?? '',
           dynamic,
+        },
+        (result = {}) => {
+          this.postMessage(RESPONSES.PROMPT_RESPONSE, {
+            id,
+            data: result,
+          });
+        },
+      );
+    } else {
+      this.postMessage(RESPONSES.PROMPT_RESPONSE, {
+        id,
+        data: { canceled: true },
+      });
+    }
+  };
+
+  private handleShowViewInModalRequest = (id: string, viewId: string): void => {
+    if (this.onShowModal) {
+      this.onShowModal(
+        {
+          viewId,
+          pluginApiName: this.pluginApiName ?? '',
         },
         (result = {}) => {
           this.postMessage(RESPONSES.PROMPT_RESPONSE, {

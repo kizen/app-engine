@@ -34,6 +34,7 @@ import type {
   DynamicPromptConfig,
   DynamicPromptFn,
   ModalConfig,
+  ShowViewInModalFn,
   PromptState,
   UnknownFunction,
 } from '../types/modals.js';
@@ -112,6 +113,7 @@ export class BaseWorkerContext {
   private installThirdPartyScriptHandler: InstallThirdPartyScriptFn;
   private promptHandler: PromptFn;
   private dynamicPromptHandler: DynamicPromptFn;
+  private showViewInModalHandler: ShowViewInModalFn;
   private refreshEntityHandler: RefreshEntityFn;
   private openCreateRecordHandler: OpenCreateRecordFn;
   private openCreateRelatedRecordHandler: OpenCreateRelatedRecordFn;
@@ -142,6 +144,7 @@ export class BaseWorkerContext {
     openCreateRelatedRecord,
     pluginApiName,
     dynamicPrompt,
+    showViewInModal,
     location,
   }: WorkerContextArgs) {
     this.user = user;
@@ -174,6 +177,7 @@ export class BaseWorkerContext {
     this.runnerType = 'base';
     this.pluginApiName = pluginApiName;
     this.dynamicPromptHandler = dynamicPrompt;
+    this.showViewInModalHandler = showViewInModal;
 
     try {
       this.args = JSON.parse(args ?? '{}') as Args;
@@ -678,6 +682,10 @@ export class BaseWorkerContext {
 
   public prompt(config: ModalConfig): Promise<unknown> {
     return this.promptHandler(config);
+  }
+
+  public async showViewInModal(id: string): Promise<unknown> {
+    return this.showViewInModalHandler(id);
   }
 
   public async dynamicPrompt(_config: DynamicPromptConfig): Promise<unknown> {

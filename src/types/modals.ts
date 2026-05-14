@@ -69,6 +69,7 @@ export type ModalBlock =
 
 export interface ModalConfig {
   title?: string;
+  viewId?: string;
   confirmButton?: ButtonConfig;
   cancelButton?: ButtonConfig;
   content?: ModalBlock[];
@@ -85,6 +86,15 @@ export interface DynamicPromptConfig {
 }
 
 export type PromptState = Record<string, unknown>;
+
+export type ShowViewInModalFn = (id: string) => Promise<{
+  values: UnknownJSON;
+}>;
+
+export type CurriedShowViewInModalFn = (
+  instance: Instance,
+  promises: WorkerPromise,
+) => ShowViewInModalFn;
 
 export type DynamicPromptFn = (config: DynamicPromptConfig) => Promise<{
   values: Record<string, ValueStore>;

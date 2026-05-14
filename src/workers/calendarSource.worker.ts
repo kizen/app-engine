@@ -60,6 +60,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       refreshEntity: notAllowed('refreshEntity'),
       openCreateRecord: notAllowed('openCreateRecord'),
       openCreateRelatedRecord: notAllowed('openCreateRelatedRecord'),
+      showViewInModal: notAllowed('showViewInModal'),
       pluginApiName,
       location,
     });

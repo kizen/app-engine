@@ -11,6 +11,7 @@ import type {
   BooleanValueStore,
   CleanValueStore,
   CurriedDynamicPromptFn,
+  CurriedShowViewInModalFn,
   CustomObjectCleanValue,
   CustomObjectValueStore,
   FieldCleanValue,
@@ -300,6 +301,20 @@ export const dynamicPromptHandler: CurriedDynamicPromptFn = (instance, promises)
     );
   });
 };
+
+export const showViewInModalHandler: CurriedShowViewInModalFn =
+  (instance, promises) => (viewId) => {
+    return new Promise((resolve, reject) => {
+      const id = promises.register(resolve as PromiseResolve, reject);
+      instance.postMessage(
+        JSON.stringify({
+          action: ACTIONS.SHOW_VIEW_IN_MODAL_REQUEST,
+          id,
+          viewId,
+        }),
+      );
+    });
+  };
 
 export const uploadFileHandler: CurriedUploadFileFn = (instance, promises) => (payload) => {
   return new Promise((resolve, reject) => {
