@@ -228,6 +228,7 @@ export interface AuthorizeEvent extends BaseEvent {
 export interface ShowViewInModalRequestEvent extends BaseEvent {
   id: string;
   viewId: string;
+  args?: UnknownJSON;
 }
 
 export type MessageEventData =

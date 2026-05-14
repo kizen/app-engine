@@ -420,7 +420,11 @@ export class WorkerManager {
       case ACTIONS.SHOW_VIEW_IN_MODAL_REQUEST: {
         const consideredEvent = event as ShowViewInModalRequestEvent;
 
-        this.handleShowViewInModalRequest(consideredEvent.id, consideredEvent.viewId);
+        this.handleShowViewInModalRequest(
+          consideredEvent.id,
+          consideredEvent.viewId,
+          consideredEvent.args,
+        );
 
         return;
       }
@@ -804,11 +808,16 @@ export class WorkerManager {
     }
   };
 
-  private handleShowViewInModalRequest = (id: string, viewId: string): void => {
+  private handleShowViewInModalRequest = (
+    id: string,
+    viewId: string,
+    args?: UnknownJSON,
+  ): void => {
     if (this.onShowModal) {
       this.onShowModal(
         {
           viewId,
+          ...(args !== undefined && { args }),
           pluginApiName: this.pluginApiName ?? '',
         },
         (result = {}) => {

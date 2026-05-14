@@ -70,6 +70,7 @@ export type ModalBlock =
 export interface ModalConfig {
   title?: string;
   viewId?: string;
+  args?: UnknownJSON;
   confirmButton?: ButtonConfig;
   cancelButton?: ButtonConfig;
   content?: ModalBlock[];
@@ -87,8 +88,13 @@ export interface DynamicPromptConfig {
 
 export type PromptState = Record<string, unknown>;
 
-export type ShowViewInModalFn = (id: string) => Promise<{
-  values: UnknownJSON;
+export type ShowViewInModalFn = (
+  id: string,
+  args?: UnknownJSON,
+) => Promise<{
+  canceled: boolean;
+  result?: unknown;
+  error?: unknown;
 }>;
 
 export type CurriedShowViewInModalFn = (
@@ -252,7 +258,10 @@ export type CleanValueStoreType =
 
 export type CleanValueStore = Record<string, CleanValueStoreType>;
 
-export type OnShowModalFn = (config: ModalConfig, cb: () => void) => void;
+export type OnShowModalFn = (
+  config: ModalConfig,
+  cb: (result?: UnknownJSON) => void,
+) => void;
 
 export type OnShowCreateRecordModalFn = (
   objectId: string,

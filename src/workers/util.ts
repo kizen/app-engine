@@ -303,7 +303,7 @@ export const dynamicPromptHandler: CurriedDynamicPromptFn = (instance, promises)
 };
 
 export const showViewInModalHandler: CurriedShowViewInModalFn =
-  (instance, promises) => (viewId) => {
+  (instance, promises) => (viewId, args) => {
     return new Promise((resolve, reject) => {
       const id = promises.register(resolve as PromiseResolve, reject);
       instance.postMessage(
@@ -311,6 +311,7 @@ export const showViewInModalHandler: CurriedShowViewInModalFn =
           action: ACTIONS.SHOW_VIEW_IN_MODAL_REQUEST,
           id,
           viewId,
+          args,
         }),
       );
     });

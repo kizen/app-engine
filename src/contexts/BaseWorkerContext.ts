@@ -684,8 +684,8 @@ export class BaseWorkerContext {
     return this.promptHandler(config);
   }
 
-  public async showViewInModal(id: string): Promise<unknown> {
-    return this.showViewInModalHandler(id);
+  public async showViewInModal(id: string, args?: UnknownJSON): Promise<unknown> {
+    return this.showViewInModalHandler(id, args);
   }
 
   public async dynamicPrompt(_config: DynamicPromptConfig): Promise<unknown> {
