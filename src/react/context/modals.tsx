@@ -138,7 +138,8 @@ export const ModalsWrapper: FC<ModalWrapperContextArgs> = ({
   const closeCurrentModal = useCallback(
     (values?: UnknownJSON, canceled?: boolean) => {
       if (cbRef.current) {
-        cbRef.current({ canceled: canceled ?? false, values: values ?? {} });
+        cbRef.current({ canceled: canceled ?? false, values: values ?? {}, eventSource: 'script' });
+
         onConfirm();
         completeModal();
       }

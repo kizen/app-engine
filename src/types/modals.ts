@@ -285,7 +285,7 @@ export type CreateRelatedRecordModalQueue = {
   cb: (result: UnknownJSON) => void;
 }[];
 
-export type ModalCancelEventSource = 'button' | 'close';
+export type ModalCancelEventSource = 'button' | 'close' | 'script';
 
 export interface ConfigService {
   api_name: string;
