@@ -3,7 +3,12 @@ import type { MaybeMessageError, RoutablePageConfig, UnknownJSON } from '../../t
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
-import { useManualInteraction, useAppCustomHTML } from '../index.js';
+import {
+  useManualInteraction,
+  useAppCustomHTML,
+  type CollectedFormData,
+  type CollectedFormDataResponse,
+} from '../index.js';
 
 interface UsePluginEngineReturn {
   scriptUIRef: React.RefObject<HTMLDivElement>;
@@ -13,7 +18,7 @@ interface UsePluginEngineReturn {
   interactableScriptRef: React.RefObject<HTMLDivElement>;
   iframeURL?: string | undefined;
   pending: boolean;
-  collectFormData: () => Record<string, FormDataEntryValue>;
+  collectFormData: () => CollectedFormDataResponse;
 }
 
 export const useAppPage = (
@@ -91,18 +96,24 @@ export const useAppPage = (
     };
   }, [handleMessage]);
 
-  const collectFormData = useCallback((): Record<string, FormDataEntryValue> => {
-    const data: Record<string, FormDataEntryValue> = {};
+  const collectFormData = useCallback((): CollectedFormDataResponse => {
+    const data: CollectedFormData = {};
+    let ready = true;
 
     [scriptUIRef.current, interactableScriptRef.current].filter(Boolean).forEach((container) => {
       container?.querySelectorAll('form').forEach((form) => {
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          ready = false;
+        }
+
         new FormData(form).forEach((value, key) => {
           data[key] = value;
         });
       });
     });
 
-    return data;
+    return { data, ready };
   }, [interactableScriptRef]);
 
   return {
