@@ -36,7 +36,10 @@ export const useManualInteraction = (
         const target = e.target as HTMLFormElement;
         const scriptName = target.getAttribute('data-script');
         if (scriptName && interactableScripts[scriptName]) {
-          const formData = Object.fromEntries(new FormData(target));
+          const rawFormData = new FormData(target);
+          const formData = Object.fromEntries(
+            [...new Set(rawFormData.keys())].map((key) => [key, rawFormData.getAll(key)]),
+          );
           void execute(interactableScripts[scriptName], { ...args, formData });
         }
       }

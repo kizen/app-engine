@@ -838,7 +838,9 @@ export class WorkerManager {
             ? { frameless: true }
             : {
                 ...(options?.title !== undefined && { title: options.title }),
-                ...(options?.confirmButton !== undefined && { confirmButton: options.confirmButton }),
+                ...(options?.confirmButton !== undefined && {
+                  confirmButton: options.confirmButton,
+                }),
                 ...(options?.cancelButton !== undefined && { cancelButton: options.cancelButton }),
               }),
         },

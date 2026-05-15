@@ -107,9 +107,10 @@ export const useAppPage = (
           ready = false;
         }
 
-        new FormData(form).forEach((value, key) => {
-          data[key] = value;
-        });
+        const formData = new FormData(form);
+        for (const key of new Set(formData.keys())) {
+          data[key] = formData.getAll(key);
+        }
       });
     });
 

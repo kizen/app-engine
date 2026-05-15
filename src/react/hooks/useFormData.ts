@@ -1,6 +1,6 @@
 import { useImperativeHandle, type ForwardedRef } from 'react';
 
-export type CollectedFormData = Record<string, FormDataEntryValue>;
+export type CollectedFormData = Record<string, FormDataEntryValue[]>;
 
 export interface CollectedFormDataResponse {
   data: CollectedFormData;
