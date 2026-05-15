@@ -68,6 +68,7 @@ import {
   type ALLOWED_INTEGRATIONS,
 } from './communication/ThirdPartyScript.js';
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
+import { deserializeConsoleArg } from './util/console.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
@@ -461,9 +462,22 @@ export class WorkerManager {
       }
       case ACTIONS.CONSOLE_LOG: {
         const consideredEvent = event as ConsoleLogEvent;
-
-        console[consideredEvent.level](...consideredEvent.args);
-        this.onConsoleLog?.(consideredEvent.level, consideredEvent.args);
+        let deserializedArgs: unknown[] = [];
+        try {
+          deserializedArgs = consideredEvent.args.map(deserializeConsoleArg);
+        } catch {
+          deserializedArgs = ['[unparseable plugin log]'];
+        }
+        try {
+          console[consideredEvent.level](...deserializedArgs);
+        } catch {
+          /* swallow */
+        }
+        try {
+          this.onConsoleLog?.(consideredEvent.level, deserializedArgs);
+        } catch {
+          /* swallow */
+        }
 
         return;
       }

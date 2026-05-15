@@ -46,22 +46,8 @@ import type {
   RequestOptions,
   RequestWithErrorsResponse,
 } from '../types/request.js';
+import { serializeConsoleArg } from '../util/console.js';
 import { cleanConfig } from '../workers/util.js';
-
-const serializeConsoleArg = (arg: unknown): string => {
-  if (arg === null) return 'null';
-  if (arg === undefined) return 'undefined';
-  if (typeof arg === 'string') return arg;
-  if (typeof arg === 'number' || typeof arg === 'boolean' || typeof arg === 'bigint')
-    return String(arg);
-  if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
-  try {
-    return JSON.stringify(arg);
-  } catch {
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return String(arg);
-  }
-};
 
 const buildErrorResponse = async (result: Response): Promise<ErrorResponse> => {
   let errorJSON: unknown = null;
@@ -985,21 +971,38 @@ export class BaseWorkerContext {
   }
 
   get console(): Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'> {
+    const supported = new Set(['log', 'warn', 'error', 'info', 'debug']);
     return new Proxy({} as Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'>, {
       get: (_, prop) => {
-        if (['log', 'warn', 'error', 'info', 'debug'].includes(String(prop))) {
-          return (...args: unknown[]) => {
-            this.instance.postMessage(
-              JSON.stringify({
+        const level = supported.has(String(prop)) ? String(prop) : 'log';
+        return (...args: unknown[]) => {
+          try {
+            const serializedArgs = args.map((arg) => {
+              try {
+                return serializeConsoleArg(arg);
+              } catch {
+                return null;
+              }
+            });
+            let payload: string;
+            try {
+              payload = JSON.stringify({
                 action: ACTIONS.CONSOLE_LOG,
-                level: prop,
-                args: args.map(serializeConsoleArg),
-              }),
-            );
-          };
-        }
-
-        throw new Error(`Console method ${String(prop)} is not supported in plugin scripts`);
+                level,
+                args: serializedArgs,
+              });
+            } catch {
+              payload = JSON.stringify({
+                action: ACTIONS.CONSOLE_LOG,
+                level,
+                args: ['[unserializable log payload]'],
+              });
+            }
+            this.instance.postMessage(payload);
+          } catch {
+            /* never crash plugin code from logging */
+          }
+        };
       },
     });
   }

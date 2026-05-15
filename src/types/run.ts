@@ -245,10 +245,10 @@ export type ConsoleLogLevel = 'log' | 'warn' | 'error' | 'info' | 'debug';
 
 export interface ConsoleLogEvent extends BaseEvent {
   level: ConsoleLogLevel;
-  args: string[];
+  args: unknown[];
 }
 
-export type OnConsoleLogFn = (level: ConsoleLogLevel, args: string[]) => void;
+export type OnConsoleLogFn = (level: ConsoleLogLevel, args: unknown[]) => void;
 
 export type MessageEventData =
   | QueryRequestEvent
