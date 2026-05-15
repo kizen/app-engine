@@ -239,8 +239,6 @@ export const getPluginSafeHTML = (
         'height',
         'title',
       ],
-      // Turn off dom sanitization since it can interfere with forms
-      SANITIZE_DOM: false,
     });
 
     return { html: cleanHtml, error: null, removed: DOMPurify.removed as RemovedHTML[] };
