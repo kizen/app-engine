@@ -76,6 +76,14 @@ export interface ModalConfig {
   content?: ModalBlock[];
   dynamic?: boolean;
   pluginApiName?: string;
+  frameless?: boolean;
+}
+
+export interface ShowViewInModalOptions {
+  title?: string;
+  confirmButton?: ButtonConfig;
+  cancelButton?: ButtonConfig;
+  frameless?: boolean;
 }
 
 export interface DynamicPromptConfig {
@@ -90,7 +98,7 @@ export type PromptState = Record<string, unknown>;
 
 export type ShowViewInModalFn = (
   id: string,
-  args?: UnknownJSON,
+  config?: { args?: UnknownJSON; options?: ShowViewInModalOptions },
 ) => Promise<{
   canceled: boolean;
   result?: unknown;
@@ -101,6 +109,10 @@ export type CurriedShowViewInModalFn = (
   instance: Instance,
   promises: WorkerPromise,
 ) => ShowViewInModalFn;
+
+export type CloseModalFn = (values?: UnknownJSON, canceled?: boolean) => void;
+
+export type CurriedCloseModalFn = (instance: Instance) => CloseModalFn;
 
 export type DynamicPromptFn = (config: DynamicPromptConfig) => Promise<{
   values: Record<string, ValueStore>;
@@ -260,6 +272,8 @@ export type CleanValueStore = Record<string, CleanValueStoreType>;
 
 export type OnShowModalFn = (config: ModalConfig, cb: (result?: UnknownJSON) => void) => void;
 
+export type OnCloseModalFn = (values?: UnknownJSON, canceled?: boolean) => void;
+
 export type OnShowCreateRecordModalFn = (
   objectId: string,
   cb: (result: UnknownJSON) => void,
@@ -279,7 +293,7 @@ export type CreateRelatedRecordModalQueue = {
   cb: (result: UnknownJSON) => void;
 }[];
 
-export type ModalCancelEventSource = 'button' | 'close';
+export type ModalCancelEventSource = 'button' | 'close' | 'script';
 
 export interface ConfigService {
   api_name: string;

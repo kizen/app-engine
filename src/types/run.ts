@@ -6,10 +6,12 @@ import type {
   WorkerContextArgs,
 } from './contexts.js';
 import type {
+  OnCloseModalFn,
   OnShowCreateRecordModalFn,
   OnShowCreateRelatedRecordModalFn,
   OnShowModalFn,
   ModalConfig,
+  ShowViewInModalOptions,
 } from './modals.js';
 import type { HideConfig, ShowConfig } from './floatingFrames.js';
 import type { OnNetworkErrorFn } from './request.js';
@@ -58,6 +60,7 @@ export interface RunScriptOptions {
   onShowModal: OnShowModalFn;
   onShowCreateRecordModal: OnShowCreateRecordModalFn;
   onShowCreateRelatedRecordModal: OnShowCreateRelatedRecordModalFn;
+  onCloseModal?: OnCloseModalFn;
   onNetworkError?: OnNetworkErrorFn;
   scriptBody: WorkerContextArgs['scriptBody'];
   user: WorkerContextArgs['user'];
@@ -229,6 +232,12 @@ export interface ShowViewInModalRequestEvent extends BaseEvent {
   id: string;
   viewId: string;
   args?: UnknownJSON;
+  options?: ShowViewInModalOptions;
+}
+
+export interface CloseModalRequestEvent extends BaseEvent {
+  values?: UnknownJSON;
+  canceled?: boolean;
 }
 
 export type MessageEventData =
@@ -255,6 +264,7 @@ export type MessageEventData =
   | PromptRequestEvent
   | DynamicPromptRequestEvent
   | ShowViewInModalRequestEvent
+  | CloseModalRequestEvent
   | AuthorizeEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;

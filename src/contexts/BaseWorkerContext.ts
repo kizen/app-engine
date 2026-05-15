@@ -32,9 +32,11 @@ import type {
 } from '../types/contexts.js';
 import type {
   DynamicPromptConfig,
+  CloseModalFn,
   DynamicPromptFn,
   ModalConfig,
   ShowViewInModalFn,
+  ShowViewInModalOptions,
   PromptState,
   UnknownFunction,
 } from '../types/modals.js';
@@ -114,6 +116,7 @@ export class BaseWorkerContext {
   private promptHandler: PromptFn;
   private dynamicPromptHandler: DynamicPromptFn;
   private showViewInModalHandler: ShowViewInModalFn;
+  private closeModalHandler: CloseModalFn;
   private refreshEntityHandler: RefreshEntityFn;
   private openCreateRecordHandler: OpenCreateRecordFn;
   private openCreateRelatedRecordHandler: OpenCreateRelatedRecordFn;
@@ -145,6 +148,7 @@ export class BaseWorkerContext {
     pluginApiName,
     dynamicPrompt,
     showViewInModal,
+    closeModal,
     location,
   }: WorkerContextArgs) {
     this.user = user;
@@ -178,6 +182,7 @@ export class BaseWorkerContext {
     this.pluginApiName = pluginApiName;
     this.dynamicPromptHandler = dynamicPrompt;
     this.showViewInModalHandler = showViewInModal;
+    this.closeModalHandler = closeModal;
 
     try {
       this.args = JSON.parse(args ?? '{}') as Args;
@@ -684,8 +689,15 @@ export class BaseWorkerContext {
     return this.promptHandler(config);
   }
 
-  public async showViewInModal(id: string, args?: UnknownJSON): Promise<unknown> {
-    return this.showViewInModalHandler(id, args);
+  public async showViewInModal(
+    id: string,
+    config?: { args?: UnknownJSON; options?: ShowViewInModalOptions },
+  ): Promise<unknown> {
+    return this.showViewInModalHandler(id, config);
+  }
+
+  public closeModal(values?: UnknownJSON, canceled?: boolean): void {
+    this.closeModalHandler(values, canceled);
   }
 
   public async dynamicPrompt(_config: DynamicPromptConfig): Promise<unknown> {

@@ -3,7 +3,12 @@ import type { MaybeMessageError, RoutablePageConfig, UnknownJSON } from '../../t
 import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
-import { useManualInteraction, useAppCustomHTML } from '../index.js';
+import {
+  useManualInteraction,
+  useAppCustomHTML,
+  type CollectedFormData,
+  type CollectedFormDataResponse,
+} from '../index.js';
 
 interface UsePluginEngineReturn {
   scriptUIRef: React.RefObject<HTMLDivElement>;
@@ -13,6 +18,7 @@ interface UsePluginEngineReturn {
   interactableScriptRef: React.RefObject<HTMLDivElement>;
   iframeURL?: string | undefined;
   pending: boolean;
+  collectFormData: () => CollectedFormDataResponse;
 }
 
 export const useAppPage = (
@@ -90,6 +96,27 @@ export const useAppPage = (
     };
   }, [handleMessage]);
 
+  const collectFormData = useCallback((): CollectedFormDataResponse => {
+    const data: CollectedFormData = {};
+    let ready = true;
+
+    [scriptUIRef.current, interactableScriptRef.current].filter(Boolean).forEach((container) => {
+      container?.querySelectorAll('form').forEach((form) => {
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          ready = false;
+        }
+
+        const formData = new FormData(form);
+        for (const key of new Set(formData.keys())) {
+          data[key] = formData.getAll(key);
+        }
+      });
+    });
+
+    return { data, ready };
+  }, [interactableScriptRef]);
+
   return {
     scriptUIRef,
     outputUIRef,
@@ -98,5 +125,6 @@ export const useAppPage = (
     interactableScriptRef,
     iframeURL,
     pending,
+    collectFormData,
   };
 };

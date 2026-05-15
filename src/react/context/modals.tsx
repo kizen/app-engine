@@ -15,6 +15,7 @@ import type {
   ModalCancelEventSource,
   ModalConfig,
   ModalQueue,
+  OnCloseModalFn,
 } from '../../types/modals.js';
 import type { UnknownJSON } from '../../types/common.js';
 
@@ -35,6 +36,7 @@ interface ModalsContextValue {
   ) => void;
   onCreateRecordComplete: (result: UnknownJSON) => void;
   onCreateRelatedRecordComplete: (result: UnknownJSON) => void;
+  closeCurrentModal: OnCloseModalFn;
 }
 
 export interface ExposedModals {
@@ -46,6 +48,7 @@ export interface ExposedModals {
   };
   handleCreateRecordComplete: (result: UnknownJSON) => void;
   handleCreateRelatedRecordComplete: (result: UnknownJSON) => void;
+  closeCurrentModal: OnCloseModalFn;
   showCreateRecordModal: boolean;
   createRecordModalObjectId: string;
   showCreateRelatedRecordModal: boolean;
@@ -132,6 +135,23 @@ export const ModalsWrapper: FC<ModalWrapperContextArgs> = ({
     setModalQueue((prev) => prev.slice(1));
   }, []);
 
+  const closeCurrentModal = useCallback(
+    (values?: UnknownJSON, canceled?: boolean) => {
+      if (cbRef.current) {
+        cbRef.current({ canceled: canceled ?? false, values: values ?? {}, eventSource: 'script' });
+
+        if (!canceled) {
+          onConfirm();
+        } else {
+          onHide('script');
+        }
+
+        completeModal();
+      }
+    },
+    [completeModal, onConfirm, onHide],
+  );
+
   const derivedModalState = useMemo(() => {
     return {
       props: {
@@ -164,6 +184,7 @@ export const ModalsWrapper: FC<ModalWrapperContextArgs> = ({
         showCreateRelatedRecordModal: handleShowCreateRelatedRecordModal,
         onCreateRecordComplete: handleCreateRecordComplete,
         onCreateRelatedRecordComplete: handleCreateRelatedRecordComplete,
+        closeCurrentModal,
       }}
     >
       {children({
@@ -175,6 +196,7 @@ export const ModalsWrapper: FC<ModalWrapperContextArgs> = ({
         derivedModalState,
         handleCreateRecordComplete,
         handleCreateRelatedRecordComplete,
+        closeCurrentModal,
         showCreateRecordModal: createRecordModalQueue.length > 0,
         createRecordModalObjectId: createRecordModalQueue[0]?.objectId ?? '',
         showCreateRelatedRecordModal: createRelatedRecordModalQueue.length > 0,

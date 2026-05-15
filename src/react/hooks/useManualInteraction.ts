@@ -14,13 +14,33 @@ export const useManualInteraction = (
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
       if (!pending) {
         const target = e.target as HTMLElement;
         const scriptName = target.getAttribute('data-script');
         if (scriptName && interactableScripts[scriptName]) {
+          e.preventDefault();
+          e.stopPropagation();
           void execute(interactableScripts[scriptName], { ...args });
+        }
+      }
+    },
+    [pending, execute, interactableScripts, args],
+  );
+
+  const handleSubmit = useCallback(
+    (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!pending) {
+        const target = e.target as HTMLFormElement;
+        const scriptName = target.getAttribute('data-script');
+        if (scriptName && interactableScripts[scriptName]) {
+          const rawFormData = new FormData(target);
+          const formData = Object.fromEntries(
+            [...new Set(rawFormData.keys())].map((key) => [key, rawFormData.getAll(key)]),
+          );
+          void execute(interactableScripts[scriptName], { ...args, formData });
         }
       }
     },
@@ -32,12 +52,14 @@ export const useManualInteraction = (
 
     if (e) {
       e.addEventListener('click', handleClick);
+      e.addEventListener('submit', handleSubmit);
     }
 
     return () => {
       if (e) {
         e.removeEventListener('click', handleClick);
+        e.removeEventListener('submit', handleSubmit);
       }
     };
-  }, [handleClick, currentPage, elementRef]);
+  }, [handleClick, handleSubmit, currentPage, elementRef]);
 };

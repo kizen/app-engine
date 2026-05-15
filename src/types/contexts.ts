@@ -9,7 +9,7 @@ import type {
   ReleaseBlockingScriptHandler,
   UnknownJSON,
 } from './common.js';
-import type { DynamicPromptFn, ModalConfig, ShowViewInModalFn } from './modals.js';
+import type { CloseModalFn, DynamicPromptFn, ModalConfig, ShowViewInModalFn } from './modals.js';
 import type {
   DeleteReturnValue,
   GetReturnValue,
@@ -147,6 +147,7 @@ export interface WorkerContextArgs {
   pluginApiName: string;
   location: PartialLocation;
   showViewInModal: ShowViewInModalFn;
+  closeModal: CloseModalFn;
 }
 
 export type KizenConfig = Record<string, unknown>;

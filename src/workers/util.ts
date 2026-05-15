@@ -10,6 +10,7 @@ import type {
   AssistantField,
   BooleanValueStore,
   CleanValueStore,
+  CurriedCloseModalFn,
   CurriedDynamicPromptFn,
   CurriedShowViewInModalFn,
   CustomObjectCleanValue,
@@ -303,7 +304,7 @@ export const dynamicPromptHandler: CurriedDynamicPromptFn = (instance, promises)
 };
 
 export const showViewInModalHandler: CurriedShowViewInModalFn =
-  (instance, promises) => (viewId, args) => {
+  (instance, promises) => (viewId, config) => {
     return new Promise((resolve, reject) => {
       const id = promises.register(resolve as PromiseResolve, reject);
       instance.postMessage(
@@ -311,10 +312,23 @@ export const showViewInModalHandler: CurriedShowViewInModalFn =
           action: ACTIONS.SHOW_VIEW_IN_MODAL_REQUEST,
           id,
           viewId,
-          args,
+          args: config?.args,
+          options: config?.options,
         }),
       );
     });
+  };
+
+export const closeModalHandler: CurriedCloseModalFn =
+  (instance) =>
+  (values, canceled): void => {
+    instance.postMessage(
+      JSON.stringify({
+        action: ACTIONS.CLOSE_MODAL_REQUEST,
+        values,
+        canceled,
+      }),
+    );
   };
 
 export const uploadFileHandler: CurriedUploadFileFn = (instance, promises) => (payload) => {

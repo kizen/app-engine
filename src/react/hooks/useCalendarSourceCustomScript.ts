@@ -84,7 +84,7 @@ export const useCalendarSourceCustomScript = ({
   } = useAppState();
 
   const { getRunnerState, getRunnerStateUpdater } = useRunnerState();
-  const { showModal, showCreateRecordModal } = useModals();
+  const { showModal, showCreateRecordModal, closeCurrentModal } = useModals();
 
   const { sendException } = useMonitoring();
 
@@ -159,6 +159,7 @@ export const useCalendarSourceCustomScript = ({
         sessionData,
         setSessionData,
         onShowModal: showModal,
+        onCloseModal: closeCurrentModal,
         onShowCreateRecordModal: showCreateRecordModal,
         onShowCreateRelatedRecordModal: () => {
           /* empty */
@@ -215,6 +216,7 @@ export const useCalendarSourceCustomScript = ({
       getPendingCacheCount,
       invalidateCache,
       t,
+      closeCurrentModal,
     ],
   );
 

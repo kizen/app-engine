@@ -21,6 +21,10 @@ const notAllowed = (fnName: string) => (): Promise<never> => {
   });
 };
 
+const notAllowedVoid = (fnName: string) => (): void => {
+  throw new Error(`${fnName} is not supported in calendar source scripts`);
+};
+
 self.onmessage = async (e: MessageEvent<string>) => {
   const data = JSON.parse(e.data) as WorkerEvent;
 
@@ -61,6 +65,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       openCreateRecord: notAllowed('openCreateRecord'),
       openCreateRelatedRecord: notAllowed('openCreateRelatedRecord'),
       showViewInModal: notAllowed('showViewInModal'),
+      closeModal: notAllowedVoid('closeModal'),
       pluginApiName,
       location,
     });

@@ -45,12 +45,15 @@ import type {
   UploadFilePayload,
   UploadFileRequestEvent,
   ShowViewInModalRequestEvent,
+  CloseModalRequestEvent,
 } from './types/run.js';
 import type {
   ModalConfig,
+  OnCloseModalFn,
   OnShowCreateRecordModalFn,
   OnShowCreateRelatedRecordModalFn,
   OnShowModalFn,
+  ShowViewInModalOptions,
 } from './types/modals.js';
 import type { OnNetworkErrorFn } from './types/request.js';
 import { ACTIONS, COMMUNICATIONS, IFRAME_PREFIX, RESPONSES } from './communication/constants.js';
@@ -101,6 +104,7 @@ export class WorkerManager {
   private setSessionData: (state: InternalSessionData) => void;
   private pluginComponentId: string;
   private onShowModal?: OnShowModalFn | undefined;
+  private onCloseModal?: OnCloseModalFn | undefined;
   private onShowCreateRecordModal?: OnShowCreateRecordModalFn | undefined;
   private onShowCreateRelatedRecordModal?: OnShowCreateRelatedRecordModalFn | undefined;
   private onReleaseBlockingScript?: WorkerContextArgs['onReleaseBlockingScript'];
@@ -129,6 +133,7 @@ export class WorkerManager {
     setSessionData?: SetInternalSessionDataFn | undefined;
     pluginComponentId: string;
     onShowModal?: OnShowModalFn | undefined;
+    onCloseModal?: OnCloseModalFn | undefined;
     onShowCreateRecordModal: OnShowCreateRecordModalFn | undefined;
     onShowCreateRelatedRecordModal: OnShowCreateRelatedRecordModalFn | undefined;
     onNetworkError?: OnNetworkErrorFn | undefined;
@@ -153,6 +158,7 @@ export class WorkerManager {
     this.onClearToasts = args.onClearToasts;
     this.pluginComponentId = args.pluginComponentId;
     this.onShowModal = args.onShowModal;
+    this.onCloseModal = args.onCloseModal;
     this.onShowCreateRecordModal = args.onShowCreateRecordModal;
     this.onShowCreateRelatedRecordModal = args.onShowCreateRelatedRecordModal;
     this.onNetworkError = args.onNetworkError;
@@ -424,7 +430,15 @@ export class WorkerManager {
           consideredEvent.id,
           consideredEvent.viewId,
           consideredEvent.args,
+          consideredEvent.options,
         );
+
+        return;
+      }
+      case ACTIONS.CLOSE_MODAL_REQUEST: {
+        const consideredEvent = event as CloseModalRequestEvent;
+
+        this.onCloseModal?.(consideredEvent.values, consideredEvent.canceled);
 
         return;
       }
@@ -812,6 +826,7 @@ export class WorkerManager {
     id: string,
     viewId: string,
     args?: UnknownJSON,
+    options?: ShowViewInModalOptions,
   ): void => {
     if (this.onShowModal) {
       this.onShowModal(
@@ -819,6 +834,15 @@ export class WorkerManager {
           viewId,
           ...(args !== undefined && { args }),
           pluginApiName: this.pluginApiName ?? '',
+          ...(options?.frameless
+            ? { frameless: true }
+            : {
+                ...(options?.title !== undefined && { title: options.title }),
+                ...(options?.confirmButton !== undefined && {
+                  confirmButton: options.confirmButton,
+                }),
+                ...(options?.cancelButton !== undefined && { cancelButton: options.cancelButton }),
+              }),
         },
         (result = {}) => {
           this.postMessage(RESPONSES.PROMPT_RESPONSE, {
