@@ -11,6 +11,7 @@ import type {
   OnShowCreateRelatedRecordModalFn,
   OnShowModalFn,
   ModalConfig,
+  ShowViewInModalOptions,
 } from './modals.js';
 import type { HideConfig, ShowConfig } from './floatingFrames.js';
 import type { OnNetworkErrorFn } from './request.js';
@@ -231,6 +232,7 @@ export interface ShowViewInModalRequestEvent extends BaseEvent {
   id: string;
   viewId: string;
   args?: UnknownJSON;
+  options?: ShowViewInModalOptions;
 }
 
 export interface CloseModalRequestEvent extends BaseEvent {

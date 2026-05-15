@@ -53,6 +53,7 @@ import type {
   OnShowCreateRecordModalFn,
   OnShowCreateRelatedRecordModalFn,
   OnShowModalFn,
+  ShowViewInModalOptions,
 } from './types/modals.js';
 import type { OnNetworkErrorFn } from './types/request.js';
 import { ACTIONS, COMMUNICATIONS, IFRAME_PREFIX, RESPONSES } from './communication/constants.js';
@@ -429,6 +430,7 @@ export class WorkerManager {
           consideredEvent.id,
           consideredEvent.viewId,
           consideredEvent.args,
+          consideredEvent.options,
         );
 
         return;
@@ -820,13 +822,25 @@ export class WorkerManager {
     }
   };
 
-  private handleShowViewInModalRequest = (id: string, viewId: string, args?: UnknownJSON): void => {
+  private handleShowViewInModalRequest = (
+    id: string,
+    viewId: string,
+    args?: UnknownJSON,
+    options?: ShowViewInModalOptions,
+  ): void => {
     if (this.onShowModal) {
       this.onShowModal(
         {
           viewId,
           ...(args !== undefined && { args }),
           pluginApiName: this.pluginApiName ?? '',
+          ...(options?.frameless
+            ? { frameless: true }
+            : {
+                ...(options?.title !== undefined && { title: options.title }),
+                ...(options?.confirmButton !== undefined && { confirmButton: options.confirmButton }),
+                ...(options?.cancelButton !== undefined && { cancelButton: options.cancelButton }),
+              }),
         },
         (result = {}) => {
           this.postMessage(RESPONSES.PROMPT_RESPONSE, {

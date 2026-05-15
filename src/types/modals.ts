@@ -76,6 +76,14 @@ export interface ModalConfig {
   content?: ModalBlock[];
   dynamic?: boolean;
   pluginApiName?: string;
+  frameless?: boolean;
+}
+
+export interface ShowViewInModalOptions {
+  title?: string;
+  confirmButton?: ButtonConfig;
+  cancelButton?: ButtonConfig;
+  frameless?: boolean;
 }
 
 export interface DynamicPromptConfig {
@@ -90,7 +98,7 @@ export type PromptState = Record<string, unknown>;
 
 export type ShowViewInModalFn = (
   id: string,
-  args?: UnknownJSON,
+  config?: { args?: UnknownJSON; options?: ShowViewInModalOptions },
 ) => Promise<{
   canceled: boolean;
   result?: unknown;

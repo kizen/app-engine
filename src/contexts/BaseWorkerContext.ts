@@ -36,6 +36,7 @@ import type {
   DynamicPromptFn,
   ModalConfig,
   ShowViewInModalFn,
+  ShowViewInModalOptions,
   PromptState,
   UnknownFunction,
 } from '../types/modals.js';
@@ -688,8 +689,11 @@ export class BaseWorkerContext {
     return this.promptHandler(config);
   }
 
-  public async showViewInModal(id: string, args?: UnknownJSON): Promise<unknown> {
-    return this.showViewInModalHandler(id, args);
+  public async showViewInModal(
+    id: string,
+    config?: { args?: UnknownJSON; options?: ShowViewInModalOptions },
+  ): Promise<unknown> {
+    return this.showViewInModalHandler(id, config);
   }
 
   public closeModal(values?: UnknownJSON, canceled?: boolean): void {
