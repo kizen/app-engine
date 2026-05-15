@@ -140,11 +140,16 @@ export const ModalsWrapper: FC<ModalWrapperContextArgs> = ({
       if (cbRef.current) {
         cbRef.current({ canceled: canceled ?? false, values: values ?? {}, eventSource: 'script' });
 
-        onConfirm();
+        if (!canceled) {
+          onConfirm();
+        } else {
+          onHide('script');
+        }
+
         completeModal();
       }
     },
-    [completeModal, onConfirm],
+    [completeModal, onConfirm, onHide],
   );
 
   const derivedModalState = useMemo(() => {
