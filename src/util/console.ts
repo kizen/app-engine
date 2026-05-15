@@ -29,40 +29,56 @@ const isMarker = (value: unknown): value is SerializedMarker =>
 
 const serialize = (value: unknown, seen: WeakSet<object>): unknown => {
   try {
-    if (value === undefined) return { __kzConsole: 'undefined' } satisfies SerializedMarker;
-    if (value === null) return null;
+    if (value === undefined) {
+      return { __kzConsole: 'undefined' } satisfies SerializedMarker;
+    }
 
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       return value;
-    if (typeof value === 'bigint')
+    }
+
+    if (typeof value === 'bigint') {
       return { __kzConsole: 'bigint', value: value.toString() } satisfies SerializedMarker;
-    if (typeof value === 'symbol')
+    }
+
+    if (typeof value === 'symbol') {
       return { __kzConsole: 'symbol', value: value.toString() } satisfies SerializedMarker;
-    if (typeof value === 'function')
+    }
+
+    if (typeof value === 'function') {
       return {
         __kzConsole: 'function',
         name: value.name || 'anonymous',
       } satisfies SerializedMarker;
+    }
 
     if (value instanceof Error) {
       let name = 'Error';
       let message = '';
       let stack: string | undefined;
+
       try {
         name = value.name;
       } catch {
         /* ignore */
       }
+
       try {
         message = value.message;
       } catch {
         /* ignore */
       }
+
       try {
         stack = value.stack;
       } catch {
         /* ignore */
       }
+
       return { __kzConsole: 'error', name, message, stack } satisfies SerializedMarker;
     }
     if (value instanceof Date) {
@@ -72,14 +88,19 @@ const serialize = (value: unknown, seen: WeakSet<object>): unknown => {
         return UNSERIALIZABLE('invalid Date');
       }
     }
-    if (value instanceof RegExp)
+    if (value instanceof RegExp) {
       return { __kzConsole: 'regexp', value: safeToString(value) } satisfies SerializedMarker;
+    }
 
-    if (seen.has(value as object)) return { __kzConsole: 'circular' } satisfies SerializedMarker;
+    if (seen.has(value as object)) {
+      return { __kzConsole: 'circular' } satisfies SerializedMarker;
+    }
+
     seen.add(value as object);
 
     if (Array.isArray(value)) {
       const arr: unknown[] = [];
+
       for (const item of value) {
         try {
           arr.push(serialize(item, seen));
@@ -91,12 +112,15 @@ const serialize = (value: unknown, seen: WeakSet<object>): unknown => {
     }
 
     const out: Record<string, unknown> = {};
+
     let keys: string[] = [];
+
     try {
       keys = Object.keys(value as Record<string, unknown>);
     } catch {
       return UNSERIALIZABLE('cannot enumerate keys');
     }
+
     for (const k of keys) {
       try {
         out[k] = serialize((value as Record<string, unknown>)[k], seen);
@@ -164,6 +188,7 @@ export const deserializeConsoleArg = (value: unknown): unknown => {
     }
 
     const out: Record<string, unknown> = {};
+
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = deserializeConsoleArg(v);
     }
