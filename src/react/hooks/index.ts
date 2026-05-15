@@ -10,3 +10,4 @@ export { useAppCallback } from './useAppCallback.js';
 export { useAppPage } from './useAppPage.js';
 export { useFloatingFrame } from './useFloatingFrame.js';
 export { usePluginSafeHTML } from './usePluginSafeHTML.js';
+export * from './useFormData.js';

@@ -13,6 +13,7 @@ interface UsePluginEngineReturn {
   interactableScriptRef: React.RefObject<HTMLDivElement>;
   iframeURL?: string | undefined;
   pending: boolean;
+  collectFormData: () => Record<string, FormDataEntryValue>;
 }
 
 export const useAppPage = (
@@ -90,6 +91,20 @@ export const useAppPage = (
     };
   }, [handleMessage]);
 
+  const collectFormData = useCallback((): Record<string, FormDataEntryValue> => {
+    const data: Record<string, FormDataEntryValue> = {};
+
+    [scriptUIRef.current, interactableScriptRef.current].filter(Boolean).forEach((container) => {
+      container?.querySelectorAll('form').forEach((form) => {
+        new FormData(form).forEach((value, key) => {
+          data[key] = value;
+        });
+      });
+    });
+
+    return data;
+  }, [interactableScriptRef]);
+
   return {
     scriptUIRef,
     outputUIRef,
@@ -98,5 +113,6 @@ export const useAppPage = (
     interactableScriptRef,
     iframeURL,
     pending,
+    collectFormData,
   };
 };
