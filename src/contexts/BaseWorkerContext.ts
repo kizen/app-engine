@@ -48,6 +48,21 @@ import type {
 } from '../types/request.js';
 import { cleanConfig } from '../workers/util.js';
 
+const serializeConsoleArg = (arg: unknown): string => {
+  if (arg === null) return 'null';
+  if (arg === undefined) return 'undefined';
+  if (typeof arg === 'string') return arg;
+  if (typeof arg === 'number' || typeof arg === 'boolean' || typeof arg === 'bigint')
+    return String(arg);
+  if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+  try {
+    return JSON.stringify(arg);
+  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return String(arg);
+  }
+};
+
 const buildErrorResponse = async (result: Response): Promise<ErrorResponse> => {
   let errorJSON: unknown = null;
 
@@ -103,7 +118,6 @@ export class BaseWorkerContext {
   protected isDebug = false;
   protected scriptBody: string;
   protected internalState: StateChangePayload = { indicator: INDICATOR_TYPE.NONE };
-  public console = console;
   protected instance: Instance;
   private breakOnException = false;
   public args: Args;
@@ -968,5 +982,25 @@ export class BaseWorkerContext {
 
   public formatDateForResponse(date: Date): number {
     return date.getTime();
+  }
+
+  get console(): Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'> {
+    return new Proxy({} as Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'>, {
+      get: (_, prop) => {
+        if (['log', 'warn', 'error', 'info', 'debug'].includes(String(prop))) {
+          return (...args: unknown[]) => {
+            this.instance.postMessage(
+              JSON.stringify({
+                action: ACTIONS.CONSOLE_LOG,
+                level: prop,
+                args: args.map(serializeConsoleArg),
+              }),
+            );
+          };
+        }
+
+        throw new Error(`Console method ${String(prop)} is not supported in plugin scripts`);
+      },
+    });
   }
 }

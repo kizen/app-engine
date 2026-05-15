@@ -79,6 +79,7 @@ export interface RunScriptOptions {
   performFileUpload?: PerformKizenFileUploadFn | undefined;
   getPendingCacheCount?: GetPendingCacheCountFn | undefined;
   invalidateCache?: InvalidateCacheFn | undefined;
+  onConsoleLog?: OnConsoleLogFn;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';
@@ -240,6 +241,15 @@ export interface CloseModalRequestEvent extends BaseEvent {
   canceled?: boolean;
 }
 
+export type ConsoleLogLevel = 'log' | 'warn' | 'error' | 'info' | 'debug';
+
+export interface ConsoleLogEvent extends BaseEvent {
+  level: ConsoleLogLevel;
+  args: string[];
+}
+
+export type OnConsoleLogFn = (level: ConsoleLogLevel, args: string[]) => void;
+
 export type MessageEventData =
   | QueryRequestEvent
   | UIOutputEvent
@@ -265,7 +275,8 @@ export type MessageEventData =
   | DynamicPromptRequestEvent
   | ShowViewInModalRequestEvent
   | CloseModalRequestEvent
-  | AuthorizeEvent;
+  | AuthorizeEvent
+  | ConsoleLogEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;
 

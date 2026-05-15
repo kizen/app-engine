@@ -9,6 +9,7 @@ import type {
 import type {
   AuthorizeEvent,
   CommonExecutionPlugin,
+  ConsoleLogEvent,
   CommonPluginDefinition,
   CommunicateEvent,
   CopyToClipboardEvent,
@@ -24,6 +25,7 @@ import type {
   KizenFile,
   MessageEventData,
   OnClearToastsFn,
+  OnConsoleLogFn,
   OnNetworkRequestFn,
   OnShowToastFn,
   OpenCreateRecordModalRequestEvent,
@@ -117,6 +119,7 @@ export class WorkerManager {
   private performFileUpload?: PerformKizenFileUploadFn | undefined;
   private pushHistory?: ((path: string) => void) | undefined;
   private appPath: string;
+  private onConsoleLog?: OnConsoleLogFn | undefined;
 
   constructor(args: {
     worker: Worker;
@@ -144,6 +147,7 @@ export class WorkerManager {
     performFileUpload?: PerformKizenFileUploadFn | undefined;
     pushHistory?: ((path: string) => void) | undefined;
     appPath: string;
+    onConsoleLog?: OnConsoleLogFn | undefined;
   }) {
     this.scriptUIRef = args.scriptUIRef;
     this.onStateChange = args.onStateChange;
@@ -169,6 +173,7 @@ export class WorkerManager {
     this.performFileUpload = args.performFileUpload;
     this.pushHistory = args.pushHistory;
     this.appPath = args.appPath;
+    this.onConsoleLog = args.onConsoleLog;
 
     if (this.plugin) {
       this.frameId = `${IFRAME_PREFIX}-${this.plugin.plugin_api_name}-${this.plugin.api_name}`;
@@ -451,6 +456,14 @@ export class WorkerManager {
         const consideredEvent = event as AuthorizeEvent;
 
         this.handleAuthorize(consideredEvent.serviceName, consideredEvent.config);
+
+        return;
+      }
+      case ACTIONS.CONSOLE_LOG: {
+        const consideredEvent = event as ConsoleLogEvent;
+
+        console[consideredEvent.level](...consideredEvent.args);
+        this.onConsoleLog?.(consideredEvent.level, consideredEvent.args);
 
         return;
       }
