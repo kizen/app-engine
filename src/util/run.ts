@@ -40,6 +40,7 @@ export const getFnWithReturn = (script: string): BuiltAsyncFn => {
   const functionBody = `
     const __cleanup = this.__cleanup.bind(this);
     const __error = this.onError.bind(this);
+    const console = this.console;
     let __kizen_internal_result;
     {
       this.__setup();
@@ -74,6 +75,7 @@ export const getFn = (script: string): BuiltAsyncFn => {
   const functionBody = `
     const __cleanup = this.__cleanup.bind(this);
     const __error = this.onError.bind(this);
+    const console = this.console;
     {
       this.__setup();
     }
