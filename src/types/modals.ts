@@ -102,6 +102,7 @@ export interface DynamicPromptConfig {
   cancelButton?: ButtonConfig;
   content?: ModalBlock[];
   registerUtils?: Record<string, (...args: unknown[]) => unknown>;
+  size?: ModalSize;
 }
 
 export type PromptState = Record<string, unknown>;
