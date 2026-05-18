@@ -861,6 +861,7 @@ export class WorkerManager {
           viewId,
           ...(args !== undefined && { args }),
           pluginApiName: this.pluginApiName ?? '',
+          ...(options?.size !== undefined && { size: options.size }),
           ...(options?.frameless
             ? { frameless: true }
             : {

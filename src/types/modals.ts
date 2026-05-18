@@ -2,6 +2,14 @@ import type { WorkerPromise } from '../workers/WorkerPromise.js';
 import type { SelectOption, UnknownJSON } from './common.js';
 import type { Instance } from './contexts.js';
 
+export const modalSize = {
+  small: 400,
+  medium: 900,
+  large: 1200,
+} as const;
+
+export type ModalSize = keyof typeof modalSize;
+
 export interface ButtonConfig {
   label: string;
   variant?: 'text' | 'standard';
@@ -77,6 +85,7 @@ export interface ModalConfig {
   dynamic?: boolean;
   pluginApiName?: string;
   frameless?: boolean;
+  size?: ModalSize;
 }
 
 export interface ShowViewInModalOptions {
@@ -84,6 +93,7 @@ export interface ShowViewInModalOptions {
   confirmButton?: ButtonConfig;
   cancelButton?: ButtonConfig;
   frameless?: boolean;
+  size?: ModalSize;
 }
 
 export interface DynamicPromptConfig {
@@ -92,6 +102,7 @@ export interface DynamicPromptConfig {
   cancelButton?: ButtonConfig;
   content?: ModalBlock[];
   registerUtils?: Record<string, (...args: unknown[]) => unknown>;
+  size?: ModalSize;
 }
 
 export type PromptState = Record<string, unknown>;
