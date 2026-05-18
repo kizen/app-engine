@@ -3,6 +3,7 @@ import { Communicate } from '../communication/Communicate.js';
 import { ACTIONS, INDICATOR_TYPE, RESPONSES } from '../communication/constants.js';
 import { ThirdPartyScript } from '../communication/ThirdPartyScript.js';
 import type {
+  ConsoleBridge,
   CurrentUser,
   PartialBusiness,
   PartialClientObject,
@@ -970,9 +971,9 @@ export class BaseWorkerContext {
     return date.getTime();
   }
 
-  get console(): Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'> {
+  get console(): ConsoleBridge {
     const supported = new Set(['log', 'warn', 'error', 'info', 'debug']);
-    return new Proxy({} as Pick<Console, 'log' | 'warn' | 'error' | 'info' | 'debug'>, {
+    return new Proxy({} as ConsoleBridge, {
       get: (_, prop) => {
         const level = supported.has(String(prop)) ? String(prop) : 'log';
         return (...args: unknown[]) => {

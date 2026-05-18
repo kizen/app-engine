@@ -15,7 +15,7 @@ import type {
 } from './modals.js';
 import type { HideConfig, ShowConfig } from './floatingFrames.js';
 import type { OnNetworkErrorFn } from './request.js';
-import type { UnknownJSON } from './common.js';
+import type { ConsoleLogLevel, UnknownJSON } from './common.js';
 import type { ACTIONS } from '../communication/constants.js';
 import type { ALLOWED_INTEGRATIONS } from '../communication/ThirdPartyScript.js';
 
@@ -240,8 +240,6 @@ export interface CloseModalRequestEvent extends BaseEvent {
   values?: UnknownJSON;
   canceled?: boolean;
 }
-
-export type ConsoleLogLevel = 'log' | 'warn' | 'error' | 'info' | 'debug';
 
 export interface ConsoleLogEvent extends BaseEvent {
   level: ConsoleLogLevel;

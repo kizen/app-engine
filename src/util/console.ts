@@ -142,7 +142,7 @@ export const serializeConsoleArg = (value: unknown): unknown => {
   }
 };
 
-const REGEXP_PATTERN = /^\/(.*)\/([gimsuy]*)$/;
+const REGEXP_PATTERN = /^\/(.*)\/([dgimsuvy]*)$/;
 
 export const deserializeConsoleArg = (value: unknown): unknown => {
   try {
