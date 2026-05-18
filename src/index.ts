@@ -9,3 +9,4 @@ export {
 } from './run.js';
 
 export type * from './types/index.js';
+export { modalSize } from './types/modals.js';
