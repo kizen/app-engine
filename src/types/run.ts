@@ -15,7 +15,7 @@ import type {
 } from './modals.js';
 import type { HideConfig, ShowConfig } from './floatingFrames.js';
 import type { OnNetworkErrorFn } from './request.js';
-import type { UnknownJSON } from './common.js';
+import type { ConsoleLogLevel, UnknownJSON } from './common.js';
 import type { ACTIONS } from '../communication/constants.js';
 import type { ALLOWED_INTEGRATIONS } from '../communication/ThirdPartyScript.js';
 
@@ -79,6 +79,7 @@ export interface RunScriptOptions {
   performFileUpload?: PerformKizenFileUploadFn | undefined;
   getPendingCacheCount?: GetPendingCacheCountFn | undefined;
   invalidateCache?: InvalidateCacheFn | undefined;
+  onConsoleLog?: OnConsoleLogFn;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';
@@ -240,6 +241,13 @@ export interface CloseModalRequestEvent extends BaseEvent {
   canceled?: boolean;
 }
 
+export interface ConsoleLogEvent extends BaseEvent {
+  level: ConsoleLogLevel;
+  args: unknown[];
+}
+
+export type OnConsoleLogFn = (level: ConsoleLogLevel, args: unknown[]) => void;
+
 export type MessageEventData =
   | QueryRequestEvent
   | UIOutputEvent
@@ -265,7 +273,8 @@ export type MessageEventData =
   | DynamicPromptRequestEvent
   | ShowViewInModalRequestEvent
   | CloseModalRequestEvent
-  | AuthorizeEvent;
+  | AuthorizeEvent
+  | ConsoleLogEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;
 

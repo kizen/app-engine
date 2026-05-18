@@ -92,3 +92,7 @@ export type AppPlugins = Record<string, AppPlugin>;
 export type MaybeMessageError = { message?: string } | undefined;
 
 export type EmployeeConfig<T = unknown> = Record<string, T>;
+
+export type ConsoleLogLevel = 'log' | 'warn' | 'error' | 'info' | 'debug';
+
+export type ConsoleBridge = Pick<Console, ConsoleLogLevel>;

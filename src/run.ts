@@ -37,6 +37,7 @@ export const runScript = async ({
   performFileUpload,
   getPendingCacheCount,
   invalidateCache,
+  onConsoleLog,
 }: RunScriptOptions): Promise<unknown> => {
   const isDebug = isFlagEnabled('script-runner-logging');
 
@@ -128,6 +129,7 @@ export const runScript = async ({
       performFileUpload,
       getPendingCacheCount,
       invalidateCache,
+      onConsoleLog,
     });
 
     setLoadingState(true);

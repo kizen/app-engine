@@ -3,6 +3,7 @@ import { Communicate } from '../communication/Communicate.js';
 import { ACTIONS, INDICATOR_TYPE, RESPONSES } from '../communication/constants.js';
 import { ThirdPartyScript } from '../communication/ThirdPartyScript.js';
 import type {
+  ConsoleBridge,
   CurrentUser,
   PartialBusiness,
   PartialClientObject,
@@ -46,6 +47,7 @@ import type {
   RequestOptions,
   RequestWithErrorsResponse,
 } from '../types/request.js';
+import { serializeConsoleArg } from '../util/console.js';
 import { cleanConfig } from '../workers/util.js';
 
 const buildErrorResponse = async (result: Response): Promise<ErrorResponse> => {
@@ -103,7 +105,6 @@ export class BaseWorkerContext {
   protected isDebug = false;
   protected scriptBody: string;
   protected internalState: StateChangePayload = { indicator: INDICATOR_TYPE.NONE };
-  public console = console;
   protected instance: Instance;
   private breakOnException = false;
   public args: Args;
@@ -968,5 +969,42 @@ export class BaseWorkerContext {
 
   public formatDateForResponse(date: Date): number {
     return date.getTime();
+  }
+
+  get console(): ConsoleBridge {
+    const supported = new Set(['log', 'warn', 'error', 'info', 'debug']);
+    return new Proxy({} as ConsoleBridge, {
+      get: (_, prop) => {
+        const level = supported.has(String(prop)) ? String(prop) : 'log';
+        return (...args: unknown[]) => {
+          try {
+            const serializedArgs = args.map((arg) => {
+              try {
+                return serializeConsoleArg(arg);
+              } catch {
+                return null;
+              }
+            });
+            let payload: string;
+            try {
+              payload = JSON.stringify({
+                action: ACTIONS.CONSOLE_LOG,
+                level,
+                args: serializedArgs,
+              });
+            } catch {
+              payload = JSON.stringify({
+                action: ACTIONS.CONSOLE_LOG,
+                level,
+                args: ['[unserializable log payload]'],
+              });
+            }
+            this.instance.postMessage(payload);
+          } catch {
+            /* never crash plugin code from logging */
+          }
+        };
+      },
+    });
   }
 }

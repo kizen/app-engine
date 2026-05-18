@@ -32,6 +32,7 @@ export const ACTIONS = {
   COPY_TO_CLIPBOARD: 'copytoclipboard',
   SHOW_VIEW_IN_MODAL_REQUEST: 'showviewinmodal:request',
   CLOSE_MODAL_REQUEST: 'closemodal:request',
+  CONSOLE_LOG: 'consolelog',
 };
 
 export const RESPONSES = {
