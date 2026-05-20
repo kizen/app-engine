@@ -137,7 +137,7 @@ export const reduceEnabledResults = (
 export const forceQualifiedUrl = (url: string): string => {
   let qualifiedUrl = url;
 
-  if (/^(http|https):\/\//.test(url)) {
+  if (/^(http|https|kizen|kizenvoice):\/\//.test(url)) {
     qualifiedUrl = url;
   } else if (url.startsWith('/')) {
     qualifiedUrl = `${getPartialLocation().origin}${qualifiedUrl}`;
