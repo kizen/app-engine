@@ -5,3 +5,4 @@ export { getHash, getStableHash } from './encode.js';
 export { isFlagEnabled } from './flags.js';
 export * from './network.js';
 export { KizenRequestError } from './errors.js';
+export * from './assistant.js';

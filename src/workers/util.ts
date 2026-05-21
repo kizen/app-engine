@@ -48,6 +48,7 @@ import type {
 import type { WorkerPromise } from './WorkerPromise.js';
 import { KizenRequestError } from '../util/errors.js';
 import type { UnknownJSON } from '../types/common.js';
+import { getActionFieldKey } from '../util/assistant.js';
 
 interface KizenErrorPayload {
   __kizenError: true;
@@ -59,7 +60,7 @@ interface KizenErrorPayload {
 
 export const getFieldFromAction = (action: AssistantConfigAction): AssistantField => {
   return {
-    key: `action__${action.api_name}`,
+    key: getActionFieldKey(action.api_name),
     type: 'custom_object',
     label: action.name,
     allow_multiple: true,
