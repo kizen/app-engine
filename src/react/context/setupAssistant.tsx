@@ -211,7 +211,7 @@ export const SetupAssistantController = ({
         };
 
         associations.forEach((assoc) => {
-          if (assoc.include_perform_action) {
+          if (assoc.include_perform_action && assoc.custom_object.id) {
             actionTemplateMenuPartialState[
               getActionMenuFieldKey(actionApiName, assoc.custom_object.id)
             ] = {

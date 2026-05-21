@@ -1,6 +1,7 @@
 import type { UnknownJSON } from '../types/common.js';
 import type { CleanValueStore, SetupAssistantConfig, ValueStore } from '../types/modals.js';
-import { cleanConfig, getHash } from './index.js';
+import { cleanConfig } from '../workers/util.js';
+import { getHash } from './encode.js';
 
 const ACTION_PREFIX = 'action';
 const ACTION_MENU_PREFIX = `${ACTION_PREFIX}__menu`;
