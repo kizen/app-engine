@@ -49,8 +49,9 @@
   ],
   "scripts": {
     "extract-translations": "i18next --config i18next-parser.config.cjs",
-    "build": "pnpm run extract-translations && tsup && cp locales/en/translation.json dist/translation.json && cp -r src/scripts/ dist/scripts/",
+    "build": "pnpm run extract-translations && tsup && pnpm run copy:translations && pnpm run copy:scripts && pnpm run build:verify",
     "build:watch": "tsup --watch",
+    "build:verify": "node scripts/check-worker-bundles.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
@@ -60,7 +61,9 @@
     "version:check": "node scripts/version-release.js",
     "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next",
-    "merge-translations": "node dist/merge-translations.js"
+    "merge-translations": "node dist/merge-translations.js",
+    "copy:translations": "cp locales/en/translation.json dist/translation.json",
+    "copy:scripts": "cp -r src/scripts/ dist/scripts/"
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5",
