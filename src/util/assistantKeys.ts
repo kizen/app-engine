@@ -17,8 +17,8 @@ export const getActionMenuHeadingKey = (actionApiName: string): string => {
   return `action__menuheading__${actionApiName}`;
 };
 
-export const getActionMenuFieldKey = (actionApiName: string, objectId?: string): string => {
-  return `${getActionMenuKey(actionApiName)}_${objectId ?? ''}`;
+export const getActionMenuFieldKey = (actionApiName: string, objectId: string): string => {
+  return `${getActionMenuKey(actionApiName)}_${objectId}`;
 };
 
 export const isActionMenuFieldKey = (key: string): boolean => {

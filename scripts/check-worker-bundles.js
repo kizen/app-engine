@@ -41,6 +41,7 @@ const collectChunksReachableFromWorkers = () => {
 
   while (queue.length) {
     const chunk = queue.shift();
+
     for (const next of findChunkImports(readFileSync(join(DIST, chunk), 'utf8'))) {
       if (!reachable.has(next)) {
         reachable.add(next);
@@ -60,29 +61,39 @@ for (const chunk of chunks) {
   const path = join(DIST, chunk);
   totalSize += statSync(path).size;
   const content = readFileSync(path, 'utf8');
+
   for (const symbol of FORBIDDEN_SYMBOLS) {
     if (content.includes(symbol)) violations.push({ chunk, symbol });
   }
 }
 
 const errors = [];
+
 if (violations.length) {
   errors.push('Forbidden symbols found in worker-reachable chunks:');
+
   for (const { chunk, symbol } of violations) {
     errors.push(`  ${chunk}: contains "${symbol}"`);
   }
 }
+
 if (totalSize > WORKER_CHUNK_SIZE_BUDGET) {
   errors.push(`Worker chunk total size ${totalSize}B exceeds budget ${WORKER_CHUNK_SIZE_BUDGET}B`);
 }
 
 if (errors.length) {
   console.error('check-worker-bundles failed:');
-  for (const e of errors) console.error(e);
+
+  for (const e of errors) {
+    console.error(e);
+  }
+
   console.error('');
+
   console.error(
     'If this is intentional, update FORBIDDEN_SYMBOLS or WORKER_CHUNK_SIZE_BUDGET in scripts/check-worker-bundles.js.',
   );
+
   process.exit(1);
 }
 
