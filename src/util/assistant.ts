@@ -1,61 +1,15 @@
 import type { UnknownJSON } from '../types/common.js';
 import type { CleanValueStore, SetupAssistantConfig, ValueStore } from '../types/modals.js';
 import { cleanConfig } from '../workers/util.js';
+import {
+  getActionFieldKey,
+  isActionFieldKey,
+  isActionMenuFieldKey,
+  splitActionMenuFieldKey,
+} from './assistantKeys.js';
 import { getHash } from './encode.js';
 
-const ACTION_PREFIX = 'action';
-const ACTION_MENU_PREFIX = `${ACTION_PREFIX}__menu`;
-
-export const getActionContainerKey = (actionApiName: string): string => {
-  return `${ACTION_PREFIX}__container__${actionApiName}`;
-};
-
-export const getActionFieldKey = (actionApiName: string): string => {
-  return `${ACTION_PREFIX}__${actionApiName}`;
-};
-
-export const getActionMenuKey = (actionApiName: string): string => {
-  return `${ACTION_MENU_PREFIX}__${actionApiName}`;
-};
-
-export const getActionMenuHeadingKey = (actionApiName: string): string => {
-  return `${ACTION_MENU_PREFIX}_heading__${actionApiName}`;
-};
-
-export const getActionMenuFieldKey = (actionApiName: string, objectId?: string): string => {
-  return `${getActionMenuKey(actionApiName)}_${objectId ?? ''}`;
-};
-
-export const isActionFieldKey = (key: string): boolean => {
-  return key.startsWith(`${ACTION_PREFIX}__`);
-};
-
-export const isActionMenuFieldKey = (key: string): boolean => {
-  return key.startsWith(`${ACTION_MENU_PREFIX}__`);
-};
-
-export const splitActionMenuFieldKey = (
-  key: string,
-): { actionApiName: string; objectId?: string } => {
-  if (!isActionMenuFieldKey(key)) {
-    return { actionApiName: '', objectId: '' };
-  }
-
-  const suffix = key.slice(`${ACTION_MENU_PREFIX}__`.length);
-  const lastUnderscore = suffix.lastIndexOf('_');
-
-  if (lastUnderscore === -1) {
-    return { actionApiName: '', objectId: '' };
-  }
-
-  const apiName = suffix.slice(0, lastUnderscore);
-  const objectId = suffix.slice(lastUnderscore + 1);
-
-  return {
-    actionApiName: apiName,
-    objectId,
-  };
-};
+type ActionsToLink = Record<string, ValueStore & { menuFlags?: Record<string, boolean> }>;
 
 export const getProcessedAssistantConfig = (
   currentAssistantConfig: Record<string, UnknownJSON>,
@@ -66,24 +20,12 @@ export const getProcessedAssistantConfig = (
     __kizen_setup_assistant_hash: number;
     __kizen_clean_config: CleanValueStore;
   };
-  actionsToLink: Record<
-    string,
-    {
-      menuFlags?: Record<string, boolean>;
-    }
-  >;
+  actionsToLink: ActionsToLink;
 } => {
-  const actionsToLink: Record<
-    string,
-    {
-      menuFlags?: Record<string, boolean>;
-    }
-  > = {};
-
+  const actionsToLink: ActionsToLink = {};
   const configValuesToSet: Record<string, ValueStore> = {};
 
   const configKeys = Object.keys(currentAssistantConfig);
-
   const configHash = getHash(JSON.stringify(setupAssistantConfig));
 
   for (const configKey of configKeys) {

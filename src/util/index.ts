@@ -5,4 +5,10 @@ export { getHash, getStableHash } from './encode.js';
 export { isFlagEnabled } from './flags.js';
 export * from './network.js';
 export { KizenRequestError } from './errors.js';
-export * from './assistant.js';
+export { getProcessedAssistantConfig } from './assistant.js';
+export {
+  getActionContainerKey,
+  getActionMenuFieldKey,
+  isActionMenuFieldKey,
+  getActionMenuHeadingKey,
+} from './assistantKeys.js';

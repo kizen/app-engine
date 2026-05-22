@@ -29,7 +29,7 @@ interface TemplateAssociation {
 import { getAllNestedInputsFromConfig, getFieldFromAction } from '../../workers/util.js';
 import { useAppState } from './appState.js';
 import { runExpression } from '../../run.js';
-import { getActionFieldKey, getActionMenuFieldKey } from '../../util/assistant.js';
+import { getActionFieldKey, getActionMenuFieldKey } from '../../util/assistantKeys.js';
 
 interface SetupAssistantContextValue {
   state: Record<string, unknown>;

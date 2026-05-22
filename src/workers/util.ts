@@ -48,7 +48,7 @@ import type {
 import type { WorkerPromise } from './WorkerPromise.js';
 import { KizenRequestError } from '../util/errors.js';
 import type { UnknownJSON } from '../types/common.js';
-import { getActionFieldKey } from '../util/assistant.js';
+import { getActionFieldKey } from '../util/assistantKeys.js';
 
 interface KizenErrorPayload {
   __kizenError: true;
