@@ -11,4 +11,5 @@ export {
   getActionMenuFieldKey,
   isActionMenuFieldKey,
   getActionMenuHeadingKey,
+  splitActionFieldKey,
 } from './assistantKeys.js';

@@ -29,28 +29,26 @@ export const getProcessedAssistantConfig = (
   const configHash = getHash(JSON.stringify(setupAssistantConfig));
 
   for (const configKey of configKeys) {
-    if (isActionFieldKey(configKey)) {
-      if (isActionMenuFieldKey(configKey)) {
-        const { actionApiName, objectId } = splitActionMenuFieldKey(configKey);
+    if (isActionMenuFieldKey(configKey)) {
+      const { actionApiName, objectId } = splitActionMenuFieldKey(configKey);
 
-        if (actionApiName && objectId) {
-          const actionKey = getActionFieldKey(actionApiName);
+      if (actionApiName && objectId) {
+        const actionKey = getActionFieldKey(actionApiName);
 
-          const existing = actionsToLink[actionKey] ?? {};
-          actionsToLink[actionKey] = {
-            ...existing,
-            menuFlags: {
-              ...(existing.menuFlags ?? {}),
-              [objectId]: Boolean(currentAssistantConfig[configKey]?.value),
-            },
-          };
-        }
-      } else {
-        actionsToLink[configKey] = {
-          ...actionsToLink[configKey],
-          ...currentAssistantConfig[configKey],
+        const existing = actionsToLink[actionKey] ?? {};
+        actionsToLink[actionKey] = {
+          ...existing,
+          menuFlags: {
+            ...(existing.menuFlags ?? {}),
+            [objectId]: Boolean(currentAssistantConfig[configKey]?.value),
+          },
         };
       }
+    } else if (isActionFieldKey(configKey)) {
+      actionsToLink[configKey] = {
+        ...actionsToLink[configKey],
+        ...currentAssistantConfig[configKey],
+      };
     } else if (currentAssistantConfig[configKey]) {
       configValuesToSet[configKey] = currentAssistantConfig[configKey];
     }
