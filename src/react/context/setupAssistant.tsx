@@ -23,10 +23,13 @@ interface TemplateAssociation {
     object_name?: string;
   };
   browser_js_action_template: AssistantConfigAction;
+  include_perform_action?: boolean;
 }
+
 import { getAllNestedInputsFromConfig, getFieldFromAction } from '../../workers/util.js';
 import { useAppState } from './appState.js';
 import { runExpression } from '../../run.js';
+import { getActionFieldKey, getActionMenuFieldKey } from '../../util/assistantKeys.js';
 
 interface SetupAssistantContextValue {
   state: Record<string, unknown>;
@@ -186,10 +189,12 @@ export const SetupAssistantController = ({
   }, [flattenedFields]);
 
   const state = useMemo(() => {
+    const actionTemplateMenuPartialState: Record<string, unknown> = {};
+
     const actionTemplatePartialState = Object.entries(
       templateAssociationsByActionApiName ?? {},
     ).reduce((acc: Record<string, unknown>, [actionApiName, associations]) => {
-      const actionFieldKey = `action__${actionApiName}`;
+      const actionFieldKey = getActionFieldKey(actionApiName);
 
       const associatedObjects = associations.map((assoc) => {
         return {
@@ -204,6 +209,17 @@ export const SetupAssistantController = ({
           value: associatedObjects,
           config: getFieldFromAction(associations[0].browser_js_action_template),
         };
+
+        associations.forEach((assoc) => {
+          if (assoc.include_perform_action && assoc.custom_object.id) {
+            actionTemplateMenuPartialState[
+              getActionMenuFieldKey(actionApiName, assoc.custom_object.id)
+            ] = {
+              type: 'boolean',
+              value: true,
+            };
+          }
+        });
       }
 
       return acc;
@@ -211,6 +227,7 @@ export const SetupAssistantController = ({
 
     const stateValues = {
       ...actionTemplatePartialState,
+      ...actionTemplateMenuPartialState,
       ..._rawState,
     };
 
