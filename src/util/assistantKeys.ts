@@ -1,5 +1,7 @@
-// These helpers can be used in a worker context, so we avoid inflating the worker bundle
-// by keeping them in a separate file from assistant.ts
+/*
+ * These helpers can be used in a worker context, so we avoid inflating the worker bundle
+ * by keeping them in a separate file from assistant.ts
+ */
 
 const KIZEN_ACTION_PREFIX = '__kizen__action__';
 const KIZEN_ACTION_MENU_PREFIX = '__kizen__actionmenu__';
