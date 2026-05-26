@@ -1,4 +1,3 @@
-import type { UnknownJSON } from '../types/common.js';
 import type { CleanValueStore, SetupAssistantConfig, ValueStore } from '../types/modals.js';
 import { cleanConfig } from '../workers/util.js';
 import {
@@ -12,7 +11,7 @@ import { getHash } from './encode.js';
 type ActionsToLink = Record<string, ValueStore & { menuFlags?: Record<string, boolean> }>;
 
 export const getProcessedAssistantConfig = (
-  currentAssistantConfig: Record<string, UnknownJSON>,
+  currentAssistantConfig: Record<string, ValueStore | undefined>,
   setupAssistantConfig: SetupAssistantConfig,
 ): {
   partialNewConfig: {
