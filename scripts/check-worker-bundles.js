@@ -16,7 +16,7 @@ const FORBIDDEN_SYMBOLS = [
 ];
 
 // Total size across all chunks reachable from workers/*.js. Only bump deliberately
-// when the worker needs more code, but realistically we should try to stay under'
+// when the worker needs more code, but realistically we should try to stay under
 // this size
 const WORKER_CHUNK_SIZE_BUDGET = 80_000;
 

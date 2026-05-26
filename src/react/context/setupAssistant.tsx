@@ -23,7 +23,7 @@ interface TemplateAssociation {
     object_name?: string;
   };
   browser_js_action_template: AssistantConfigAction;
-  include_perform_action: boolean;
+  include_perform_action?: boolean;
 }
 
 import { getAllNestedInputsFromConfig, getFieldFromAction } from '../../workers/util.js';
