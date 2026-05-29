@@ -38,6 +38,7 @@ export const runScript = async ({
   getPendingCacheCount,
   invalidateCache,
   onConsoleLog,
+  onRunEventScript,
 }: RunScriptOptions): Promise<unknown> => {
   const isDebug = isFlagEnabled('script-runner-logging');
 
@@ -130,6 +131,7 @@ export const runScript = async ({
       getPendingCacheCount,
       invalidateCache,
       onConsoleLog,
+      onRunEventScript,
     });
 
     setLoadingState(true);

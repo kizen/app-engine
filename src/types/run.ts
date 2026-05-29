@@ -80,6 +80,7 @@ export interface RunScriptOptions {
   getPendingCacheCount?: GetPendingCacheCountFn | undefined;
   invalidateCache?: InvalidateCacheFn | undefined;
   onConsoleLog?: OnConsoleLogFn;
+  onRunEventScript?: OnRunEventScriptFn;
 }
 
 export type RequestableQueryMethods = 'get' | 'post' | 'patch' | 'delete';
@@ -246,7 +247,14 @@ export interface ConsoleLogEvent extends BaseEvent {
   args: unknown[];
 }
 
+export interface RunEventScriptEvent extends BaseEvent {
+  scriptName: string;
+  args?: UnknownJSON;
+}
+
 export type OnConsoleLogFn = (level: ConsoleLogLevel, args: unknown[]) => void;
+
+export type OnRunEventScriptFn = (scriptName: string, args?: UnknownJSON) => void;
 
 export type MessageEventData =
   | QueryRequestEvent
@@ -274,7 +282,8 @@ export type MessageEventData =
   | ShowViewInModalRequestEvent
   | CloseModalRequestEvent
   | AuthorizeEvent
-  | ConsoleLogEvent;
+  | ConsoleLogEvent
+  | RunEventScriptEvent;
 
 export type InvalidateCacheFn = (category: 'timeline' | 'entity', entityId: string) => void;
 
