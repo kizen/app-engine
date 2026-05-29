@@ -197,3 +197,7 @@ const ScriptButton = ({ pluginScript }: { pluginScript: string }) => {
 #### Worker Runner
 
 Some worker calls are coordinated using `@tanstack/react-query`. If your consumer app also uses react-query, the app engine will use your existing query provider. If you aren't already using react-query, the engine provider will be wrapped in its own query context and no additional action is needed.
+
+### Script Return Values
+
+Scripts can return values from the worker thread. Awaiting the execute function returned from a plugin runner script will yield the value that the worker thread returned.
