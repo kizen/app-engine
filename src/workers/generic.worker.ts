@@ -1,7 +1,7 @@
 import { ACTIONS } from '../communication/constants.js';
 import { BaseWorkerContext } from '../contexts/BaseWorkerContext.js';
 import type { WorkerEvent } from '../types/workers.js';
-import { getFn } from '../util/run.js';
+import { buildCodeRunnerFunction } from '../util/run.js';
 import {
   closeModalHandler,
   dynamicPromptHandler,
@@ -37,7 +37,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
   } = data;
 
   if (action === ACTIONS.RUN && setup && script) {
-    const { fn, functionBody } = getFn(script);
+    const { fn, functionBody } = buildCodeRunnerFunction(script);
 
     runner = new BaseWorkerContext({
       user: setup.user,

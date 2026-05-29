@@ -36,15 +36,19 @@ const AsyncFunction = (
   }) as { constructor: AsyncFunctionConstructor }
 ).constructor;
 
-export const getFnWithReturn = (script: string): BuiltAsyncFn => {
+export const buildCodeRunnerFunction = (script: string): BuiltAsyncFn => {
   const functionBody = `
     const __cleanup = this.__cleanup.bind(this);
     const __error = this.onError.bind(this);
+
     const console = this.console;
+
     let __kizen_internal_result;
+
     {
       this.__setup();
     }
+
     try {
         __kizen_internal_result = await (async () => { ${script} })();
     } catch (ex) {
@@ -61,41 +65,9 @@ export const getFnWithReturn = (script: string): BuiltAsyncFn => {
   } catch {
     const errorFnBody = `
       this.__setup();
+
       this.onError({ message: "The script has a syntax error and could not be parsed" });
-      this.__cleanup();
-    `;
-
-    const fn = new AsyncFunction(errorFnBody);
-
-    return { fn, functionBody: errorFnBody };
-  }
-};
-
-export const getFn = (script: string): BuiltAsyncFn => {
-  const functionBody = `
-    const __cleanup = this.__cleanup.bind(this);
-    const __error = this.onError.bind(this);
-    const console = this.console;
-    {
-      this.__setup();
-    }
-    try {
-        ${script}
-    } catch (ex) {
-        __error(ex);
-    } finally {
-        __cleanup();
-    }
-  `;
-
-  try {
-    const fn = new AsyncFunction(functionBody);
-
-    return { fn, functionBody };
-  } catch {
-    const errorFnBody = `
-      this.__setup();
-      this.onError({ message: "The script has a syntax error and could not be parsed" });
+      
       this.__cleanup();
     `;
 
