@@ -124,6 +124,7 @@ export class WorkerManager {
   private appPath: string;
   private onConsoleLog?: OnConsoleLogFn | undefined;
   private onRunEventScript?: OnRunEventScriptFn | undefined;
+  private isDebug: boolean;
 
   constructor(args: {
     worker: Worker;
@@ -153,6 +154,7 @@ export class WorkerManager {
     appPath: string;
     onConsoleLog?: OnConsoleLogFn | undefined;
     onRunEventScript?: OnRunEventScriptFn | undefined;
+    isDebug?: boolean;
   }) {
     this.scriptUIRef = args.scriptUIRef;
     this.onStateChange = args.onStateChange;
@@ -180,6 +182,7 @@ export class WorkerManager {
     this.appPath = args.appPath;
     this.onConsoleLog = args.onConsoleLog;
     this.onRunEventScript = args.onRunEventScript;
+    this.isDebug = args.isDebug ?? false;
 
     if (this.plugin) {
       this.frameId = `${IFRAME_PREFIX}-${this.plugin.plugin_api_name}-${this.plugin.api_name}`;
@@ -490,6 +493,10 @@ export class WorkerManager {
         const consideredEvent = event as RunEventScriptEvent;
 
         this.onRunEventScript?.(consideredEvent.scriptName, consideredEvent.args);
+
+        if (!this.onRunEventScript && this.isDebug) {
+          console.warn(`No handler for RUN_EVENT_SCRIPT: ${consideredEvent.scriptName}`);
+        }
 
         return;
       }

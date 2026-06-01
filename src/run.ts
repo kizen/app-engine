@@ -132,6 +132,7 @@ export const runScript = async ({
       invalidateCache,
       onConsoleLog,
       onRunEventScript,
+      isDebug,
     });
 
     setLoadingState(true);
