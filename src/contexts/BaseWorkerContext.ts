@@ -686,6 +686,20 @@ export class BaseWorkerContext {
     );
   }
 
+  public runEventScript(scriptName: string, args: UnknownJSON = {}): void {
+    if (!scriptName) {
+      throw new Error('A script name is required to run an event script');
+    }
+
+    this.instance.postMessage(
+      JSON.stringify({
+        action: ACTIONS.RUN_EVENT_SCRIPT,
+        scriptName,
+        args,
+      }),
+    );
+  }
+
   public prompt(config: ModalConfig): Promise<unknown> {
     return this.promptHandler(config);
   }

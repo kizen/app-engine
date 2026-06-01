@@ -50,4 +50,7 @@ export interface FloatingFrameConfig extends CommonPluginDefinition {
   args?: Record<string, UnknownJSON>;
 }
 
-export type ExecuteFloatingFrameScript = (script: string, args?: Record<string, unknown>) => void;
+export type ExecuteFloatingFrameScript = (
+  script: string,
+  args?: Record<string, unknown>,
+) => Promise<unknown>;

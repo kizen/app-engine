@@ -33,6 +33,7 @@ export const ACTIONS = {
   SHOW_VIEW_IN_MODAL_REQUEST: 'showviewinmodal:request',
   CLOSE_MODAL_REQUEST: 'closemodal:request',
   CONSOLE_LOG: 'consolelog',
+  RUN_EVENT_SCRIPT: 'runeventscript',
 };
 
 export const RESPONSES = {

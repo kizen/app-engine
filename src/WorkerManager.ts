@@ -48,6 +48,8 @@ import type {
   UploadFileRequestEvent,
   ShowViewInModalRequestEvent,
   CloseModalRequestEvent,
+  OnRunEventScriptFn,
+  RunEventScriptEvent,
 } from './types/run.js';
 import type {
   ModalConfig,
@@ -121,6 +123,8 @@ export class WorkerManager {
   private pushHistory?: ((path: string) => void) | undefined;
   private appPath: string;
   private onConsoleLog?: OnConsoleLogFn | undefined;
+  private onRunEventScript?: OnRunEventScriptFn | undefined;
+  private isDebug: boolean;
 
   constructor(args: {
     worker: Worker;
@@ -149,6 +153,8 @@ export class WorkerManager {
     pushHistory?: ((path: string) => void) | undefined;
     appPath: string;
     onConsoleLog?: OnConsoleLogFn | undefined;
+    onRunEventScript?: OnRunEventScriptFn | undefined;
+    isDebug?: boolean;
   }) {
     this.scriptUIRef = args.scriptUIRef;
     this.onStateChange = args.onStateChange;
@@ -175,6 +181,8 @@ export class WorkerManager {
     this.pushHistory = args.pushHistory;
     this.appPath = args.appPath;
     this.onConsoleLog = args.onConsoleLog;
+    this.onRunEventScript = args.onRunEventScript;
+    this.isDebug = args.isDebug ?? false;
 
     if (this.plugin) {
       this.frameId = `${IFRAME_PREFIX}-${this.plugin.plugin_api_name}-${this.plugin.api_name}`;
@@ -477,6 +485,17 @@ export class WorkerManager {
           this.onConsoleLog?.(consideredEvent.level, deserializedArgs);
         } catch {
           /* swallow */
+        }
+
+        return;
+      }
+      case ACTIONS.RUN_EVENT_SCRIPT: {
+        const consideredEvent = event as RunEventScriptEvent;
+
+        this.onRunEventScript?.(consideredEvent.scriptName, consideredEvent.args);
+
+        if (!this.onRunEventScript && this.isDebug) {
+          console.warn(`No handler for RUN_EVENT_SCRIPT: ${consideredEvent.scriptName}`);
         }
 
         return;

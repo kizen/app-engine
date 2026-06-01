@@ -155,6 +155,17 @@ export const useFloatingFrameCustomScript = ({
         performFileUpload,
         getPendingCacheCount,
         invalidateCache,
+        onRunEventScript: (scriptName, eventArgs) => {
+          const body = plugin.event_scripts?.[scriptName];
+
+          if (!body) {
+            handleError({ message: `${t('Event script not found:')} ${scriptName}` });
+
+            return;
+          }
+
+          void executeScript(body, eventArgs);
+        },
       });
     },
     [

@@ -530,7 +530,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
   useEffect(() => {
     if (!hasRunScript.current && script && type === 'script' && !isHiddenByPattern) {
       hasRunScript.current = true;
-      execute(script, { ...args });
+      void execute(script, { ...args });
     }
   }, [execute, script, type, args, isHiddenByPattern]);
 
@@ -558,7 +558,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
         if (payload.recipient.script && currentWindow.event_scripts?.[payload.recipient.script]) {
           const script = currentWindow.event_scripts[payload.recipient.script] ?? '';
 
-          execute(script, {
+          void execute(script, {
             ...payload.args,
             ...args,
             ...additionalArgs,
@@ -649,7 +649,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
         messageHandlerScript &&
         !defaultFrameIgnoreUrls.includes(ev.origin)
       ) {
-        execute(messageHandlerScript, {
+        void execute(messageHandlerScript, {
           ...args,
           eventData: ev.data,
         });
