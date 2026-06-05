@@ -10,6 +10,7 @@ import { useTranslation } from '../context/translation.js';
 import { useGenericAppCustomScript } from './useGenericAppCustomScript.js';
 import { useManualInteraction } from './useManualInteraction.js';
 import { usePluginSafeHTML } from './usePluginSafeHTML.js';
+import type { BuildIframeURLWithProxyOptions } from '../../util/frames.js';
 
 interface PluginCustomHTML {
   scopedCss: string;
@@ -21,6 +22,7 @@ interface PluginCustomHTML {
 export const useAppCustomHTML = (
   currentPage?: FloatingFrameConfig | RoutablePageConfig,
   args?: UnknownJSON,
+  frameOptions?: BuildIframeURLWithProxyOptions,
 ): PluginCustomHTML => {
   const { showToast } = useToast();
   const { t } = useTranslation();
@@ -30,7 +32,7 @@ export const useAppCustomHTML = (
 
   const css = currentPage?.css;
 
-  const { html } = usePluginSafeHTML(currentPage?.html);
+  const { html } = usePluginSafeHTML(currentPage?.html, currentPage?.plugin_api_name, frameOptions);
 
   const [executeInline, { pending: inlinePending }] = useGenericAppCustomScript({
     onError: (e) => {

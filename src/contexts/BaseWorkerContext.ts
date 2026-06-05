@@ -49,6 +49,7 @@ import type {
 } from '../types/request.js';
 import { serializeConsoleArg } from '../util/console.js';
 import { cleanConfig } from '../workers/util.js';
+import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from '../util/frames.js';
 
 const buildErrorResponse = async (result: Response): Promise<ErrorResponse> => {
   let errorJSON: unknown = null;
@@ -677,11 +678,12 @@ export class BaseWorkerContext {
     );
   }
 
-  public outputUI(markup: string): void {
+  public outputUI(markup: string, options?: BuildIframeURLWithProxyOptions): void {
     this.instance.postMessage(
       JSON.stringify({
         action: ACTIONS.UI_OUTPUT,
         markup,
+        options,
       }),
     );
   }
@@ -789,11 +791,19 @@ export class BaseWorkerContext {
     };
   }
 
-  public outputIframe(url: string, allow?: string[], sandbox?: string): void {
+  public outputIframe(
+    url: string,
+    allow?: string[],
+    sandbox?: string[],
+    options?: BuildIframeURLWithProxyOptions,
+  ): void {
+    const formattedUrl = buildIframeURLWithProxy(url, options);
+
     this.instance.postMessage(
       JSON.stringify({
         action: ACTIONS.IFRAME_OUTPUT,
-        url,
+        url: formattedUrl,
+        name: this.pluginApiName,
         allow,
         sandbox,
         preserve: this.preserve,

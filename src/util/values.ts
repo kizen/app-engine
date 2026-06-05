@@ -11,6 +11,7 @@ import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
 import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
+import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from './frames.js';
 import { getPartialLocation } from './run.js';
 import DOMPurify, { type RemovedAttribute, type RemovedElement } from 'dompurify';
 
@@ -218,13 +219,30 @@ export type RemovedHTML = RemovedAttribute | RemovedElement;
 
 export const getPluginSafeHTML = (
   html?: string,
+  pluginApiName?: string,
+  options?: BuildIframeURLWithProxyOptions,
 ): { html: string; error: Error | null; removed: RemovedHTML[] } => {
   if (!html) {
     return { html: '', error: null, removed: [] };
   }
 
   try {
-    const cleanHtml = DOMPurify.sanitize(html, {
+    // Create a new DOMPurify instance so we can add hooks
+    // without polluting other/subsequent calls
+    const purify = DOMPurify();
+
+    purify.addHook('uponSanitizeElement', (node, data) => {
+      if (data.tagName === 'iframe') {
+        const element = node as HTMLIFrameElement;
+        const src = element.getAttribute('src') ?? '';
+
+        const newUrl = buildIframeURLWithProxy(src, options);
+        element.setAttribute('src', newUrl);
+        element.setAttribute('name', pluginApiName ?? '');
+      }
+    });
+
+    const cleanHtml = purify.sanitize(html, {
       ADD_TAGS: ['iframe'],
       ADD_ATTR: [
         'allow',
@@ -241,7 +259,7 @@ export const getPluginSafeHTML = (
       ],
     });
 
-    return { html: cleanHtml, error: null, removed: DOMPurify.removed as RemovedHTML[] };
+    return { html: cleanHtml, error: null, removed: purify.removed as RemovedHTML[] };
   } catch (err) {
     return { html: '', error: err as Error, removed: [] };
   }

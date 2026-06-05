@@ -18,6 +18,7 @@ import type { OnNetworkErrorFn } from './request.js';
 import type { ConsoleLogLevel, UnknownJSON } from './common.js';
 import type { ACTIONS } from '../communication/constants.js';
 import type { ALLOWED_INTEGRATIONS } from '../communication/ThirdPartyScript.js';
+import type { BuildIframeURLWithProxyOptions } from '../util/frames.js';
 
 export interface CommonPluginDefinition {
   plugin_api_name: string;
@@ -106,6 +107,7 @@ export interface QueryRequestEvent extends BaseEvent {
 
 export interface UIOutputEvent extends BaseEvent {
   markup: string;
+  options?: BuildIframeURLWithProxyOptions;
 }
 
 export interface IframeOutputEvent extends BaseEvent {
@@ -113,6 +115,7 @@ export interface IframeOutputEvent extends BaseEvent {
   allow?: string[];
   sandbox?: string[];
   preserve?: boolean;
+  name: string;
 }
 
 export interface PostFormDataRequestEvent extends BaseEvent {

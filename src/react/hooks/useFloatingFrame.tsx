@@ -13,6 +13,7 @@ import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { runFrameScriptEventName } from '../../communication/index.js';
 import { useFloatingFrameContext } from '../context/floatingFrame.js';
+import type { BuildIframeURLWithProxyOptions } from '../../util/frames.js';
 
 interface UseFloatingFrameArgs {
   currentWindow: FloatingFrameConfig;
@@ -130,7 +131,10 @@ interface UseFloatingFrameResult {
   scriptUIRef: RefObject<HTMLDivElement> | undefined;
 }
 
-export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrameResult => {
+export const useFloatingFrame = (
+  params: UseFloatingFrameArgs,
+  options?: BuildIframeURLWithProxyOptions,
+): UseFloatingFrameResult => {
   const {
     currentWindow,
     pathname,
@@ -666,6 +670,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
   const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentWindow,
     {},
+    options,
   );
 
   const hidden = !delayedModalHide
