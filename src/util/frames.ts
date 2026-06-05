@@ -3,7 +3,23 @@ export const FRAME_PROXY_DOMAIN_PROD = 'plugin-assets.kizen.com';
 
 export const frameProxyDomains = [FRAME_PROXY_DOMAIN_DEV, FRAME_PROXY_DOMAIN_PROD];
 
-export const buildIframeURLWithProxy = (originalURL: string, useDevMode = false): string => {
+const defaultOptions = {
+  useDevMode: false,
+  __dangerouslySkipProxy: false,
+};
+
+export type BuildIframeURLWithProxyOptions = Partial<typeof defaultOptions>;
+
+export const buildIframeURLWithProxy = (
+  originalURL: string,
+  options: BuildIframeURLWithProxyOptions = defaultOptions,
+): string => {
+  const { useDevMode, __dangerouslySkipProxy } = options;
+
+  if (__dangerouslySkipProxy) {
+    return originalURL;
+  }
+
   try {
     const parsed = new URL(originalURL);
 

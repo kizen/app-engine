@@ -9,6 +9,7 @@ import {
   type CollectedFormData,
   type CollectedFormDataResponse,
 } from '../index.js';
+import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from '../../util/frames.js';
 
 interface UsePluginEngineReturn {
   scriptUIRef: React.RefObject<HTMLDivElement>;
@@ -25,9 +26,16 @@ export const useAppPage = (
   currentPage?: RoutablePageConfig,
   search?: string,
   isLoading?: boolean,
-  useDevMode = false,
+  frameOptions?: BuildIframeURLWithProxyOptions,
 ): UsePluginEngineReturn => {
-  const iframeURL = currentPage?.iframe_url;
+  const iframeURL = useMemo(
+    () =>
+      currentPage?.iframe_url
+        ? buildIframeURLWithProxy(currentPage.iframe_url, frameOptions)
+        : currentPage?.iframe_url,
+    [currentPage?.iframe_url, frameOptions],
+  );
+
   const script = currentPage?.script;
   const callback = currentPage?.callback;
   const pluginArgs = currentPage?.args;
@@ -61,7 +69,7 @@ export const useAppPage = (
   const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentPage,
     args,
-    useDevMode,
+    frameOptions,
   );
 
   useManualInteraction(execute, currentPage, scriptUIRef, pending);

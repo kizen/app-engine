@@ -74,6 +74,7 @@ import { deserializeConsoleArg } from './util/console.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
+import type { BuildIframeURLWithProxyOptions } from './util/frames.js';
 
 const isRelative = (url: string): boolean => {
   return url.startsWith('/');
@@ -226,7 +227,7 @@ export class WorkerManager {
       case ACTIONS.UI_OUTPUT: {
         const consideredEvent = event as UIOutputEvent;
 
-        this.handleUIOutput(consideredEvent.markup, consideredEvent.useDevMode);
+        this.handleUIOutput(consideredEvent.markup, consideredEvent.options);
 
         return;
       }
@@ -612,9 +613,9 @@ export class WorkerManager {
     }
   };
 
-  private handleUIOutput = (markup: string, useDevMode = false): void => {
+  private handleUIOutput = (markup: string, options?: BuildIframeURLWithProxyOptions): void => {
     if (this.scriptUIRef?.current) {
-      const sanitizedMarkup = getPluginSafeHTML(markup, this.pluginApiName, useDevMode).html;
+      const sanitizedMarkup = getPluginSafeHTML(markup, this.pluginApiName, options).html;
 
       this.scriptUIRef.current.innerHTML = sanitizedMarkup;
     }

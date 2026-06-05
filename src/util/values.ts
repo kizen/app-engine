@@ -11,7 +11,7 @@ import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
 import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
-import { buildIframeURLWithProxy } from './frames.js';
+import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from './frames.js';
 import { getPartialLocation } from './run.js';
 import DOMPurify, { type RemovedAttribute, type RemovedElement } from 'dompurify';
 
@@ -220,7 +220,7 @@ export type RemovedHTML = RemovedAttribute | RemovedElement;
 export const getPluginSafeHTML = (
   html?: string,
   pluginApiName?: string,
-  useDevMode = false,
+  options?: BuildIframeURLWithProxyOptions,
 ): { html: string; error: Error | null; removed: RemovedHTML[] } => {
   if (!html) {
     return { html: '', error: null, removed: [] };
@@ -236,7 +236,7 @@ export const getPluginSafeHTML = (
         const element = node as HTMLIFrameElement;
         const src = element.getAttribute('src') ?? '';
 
-        const newUrl = buildIframeURLWithProxy(src, useDevMode);
+        const newUrl = buildIframeURLWithProxy(src, options);
         element.setAttribute('src', newUrl);
         element.setAttribute('name', pluginApiName ?? '');
       }
