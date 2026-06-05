@@ -130,7 +130,10 @@ interface UseFloatingFrameResult {
   scriptUIRef: RefObject<HTMLDivElement> | undefined;
 }
 
-export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrameResult => {
+export const useFloatingFrame = (
+  params: UseFloatingFrameArgs,
+  useDevMode = false,
+): UseFloatingFrameResult => {
   const {
     currentWindow,
     pathname,
@@ -666,6 +669,7 @@ export const useFloatingFrame = (params: UseFloatingFrameArgs): UseFloatingFrame
   const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentWindow,
     {},
+    useDevMode,
   );
 
   const hidden = !delayedModalHide

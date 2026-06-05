@@ -21,6 +21,7 @@ interface PluginCustomHTML {
 export const useAppCustomHTML = (
   currentPage?: FloatingFrameConfig | RoutablePageConfig,
   args?: UnknownJSON,
+  useDevMode = false,
 ): PluginCustomHTML => {
   const { showToast } = useToast();
   const { t } = useTranslation();
@@ -30,7 +31,7 @@ export const useAppCustomHTML = (
 
   const css = currentPage?.css;
 
-  const { html } = usePluginSafeHTML(currentPage?.html);
+  const { html } = usePluginSafeHTML(currentPage?.html, currentPage?.plugin_api_name, useDevMode);
 
   const [executeInline, { pending: inlinePending }] = useGenericAppCustomScript({
     onError: (e) => {

@@ -106,6 +106,7 @@ export interface QueryRequestEvent extends BaseEvent {
 
 export interface UIOutputEvent extends BaseEvent {
   markup: string;
+  useDevMode?: boolean;
 }
 
 export interface IframeOutputEvent extends BaseEvent {
@@ -113,6 +114,7 @@ export interface IframeOutputEvent extends BaseEvent {
   allow?: string[];
   sandbox?: string[];
   preserve?: boolean;
+  name: string;
 }
 
 export interface PostFormDataRequestEvent extends BaseEvent {

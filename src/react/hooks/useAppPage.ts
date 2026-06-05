@@ -25,6 +25,7 @@ export const useAppPage = (
   currentPage?: RoutablePageConfig,
   search?: string,
   isLoading?: boolean,
+  useDevMode = false,
 ): UsePluginEngineReturn => {
   const iframeURL = currentPage?.iframe_url;
   const script = currentPage?.script;
@@ -60,6 +61,7 @@ export const useAppPage = (
   const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentPage,
     args,
+    useDevMode,
   );
 
   useManualInteraction(execute, currentPage, scriptUIRef, pending);

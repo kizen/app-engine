@@ -113,7 +113,7 @@ export class WorkerManager {
   private onShowCreateRecordModal?: OnShowCreateRecordModalFn | undefined;
   private onShowCreateRelatedRecordModal?: OnShowCreateRelatedRecordModalFn | undefined;
   private onReleaseBlockingScript?: WorkerContextArgs['onReleaseBlockingScript'];
-  private pluginApiName?: string;
+  private pluginApiName: string;
   private onNetworkError?: OnNetworkErrorFn | undefined;
   private onNetworkRequest?: OnNetworkRequestFn | undefined;
   private invalidateCache?: InvalidateCacheFn | undefined; // todo
@@ -194,8 +194,7 @@ export class WorkerManager {
     if (this.pluginApiName) {
       this.sessionData = args.sessionData[this.pluginApiName] as InternalSessionData;
       this.setSessionData = (state: InternalSessionData) => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        args.setSessionData?.(this.pluginApiName!, state);
+        args.setSessionData?.(this.pluginApiName, state);
       };
     } else {
       this.setSessionData = () => {
@@ -227,7 +226,7 @@ export class WorkerManager {
       case ACTIONS.UI_OUTPUT: {
         const consideredEvent = event as UIOutputEvent;
 
-        this.handleUIOutput(consideredEvent.markup);
+        this.handleUIOutput(consideredEvent.markup, consideredEvent.useDevMode);
 
         return;
       }
@@ -239,6 +238,7 @@ export class WorkerManager {
           consideredEvent.allow,
           consideredEvent.sandbox,
           consideredEvent.preserve,
+          consideredEvent.name,
         );
 
         return;
@@ -531,12 +531,11 @@ export class WorkerManager {
     } else if (type === COMMUNICATIONS.CALL_THIRD_PARTY_SCRIPT) {
       this.handleCallThirdPartyScript(recipient.type, params);
     } else {
-      const pluginApiName = this.executionPlugin?.plugin_api_name ?? this.plugin?.plugin_api_name;
       const event = new CustomEvent(`integration:${type}`, {
         detail: {
           recipient: {
             ...recipient,
-            plugin: pluginApiName,
+            plugin: this.pluginApiName,
           },
           args,
         },
@@ -613,9 +612,9 @@ export class WorkerManager {
     }
   };
 
-  private handleUIOutput = (markup: string): void => {
+  private handleUIOutput = (markup: string, useDevMode = false): void => {
     if (this.scriptUIRef?.current) {
-      const sanitizedMarkup = getPluginSafeHTML(markup).html;
+      const sanitizedMarkup = getPluginSafeHTML(markup, this.pluginApiName, useDevMode).html;
 
       this.scriptUIRef.current.innerHTML = sanitizedMarkup;
     }
@@ -633,12 +632,17 @@ export class WorkerManager {
     allow: string[] = [],
     sandbox: string[] = [],
     preserve = false,
+    name = '',
   ): void => {
     if (this.scriptUIRef?.current) {
       const parsedAllowList = allow.filter((a) => allowedAllowValues.includes(a));
       const parsedSandboxList = sandbox.filter((s) => allowedSandboxValues.includes(s));
+
       this.waitForFrame = true;
+
       const element = document.createElement('iframe');
+
+      element.name = name;
       element.src = url;
       element.allow = parsedAllowList.join('; ');
       parsedSandboxList.forEach((s) => {
@@ -648,9 +652,11 @@ export class WorkerManager {
       element.style.width = '100%';
       element.style.height = '100%';
       element.onload = this.onLoad.bind(this, { iframe: element, preserve });
+
       if (this.frameId) {
         element.id = this.frameId;
       }
+
       this.scriptUIRef.current.replaceChildren(element);
     }
   };
@@ -850,7 +856,7 @@ export class WorkerManager {
       this.onShowModal(
         {
           ...config,
-          pluginApiName: this.pluginApiName ?? '',
+          pluginApiName: this.pluginApiName,
           dynamic,
         },
         (result = {}) => {
@@ -879,7 +885,7 @@ export class WorkerManager {
         {
           viewId,
           ...(args !== undefined && { args }),
-          pluginApiName: this.pluginApiName ?? '',
+          pluginApiName: this.pluginApiName,
           ...(options?.size !== undefined && { size: options.size }),
           ...(options?.frameless
             ? { frameless: true }
