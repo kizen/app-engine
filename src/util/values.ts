@@ -11,7 +11,11 @@ import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
 import type { AppPlugin, UnknownJSON } from '../types/common.js';
 import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
-import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from './frames.js';
+import {
+  buildIframeURLWithProxy,
+  getParentFrameAllowParam,
+  type BuildIframeURLWithProxyOptions,
+} from './frames.js';
 import { getPartialLocation } from './run.js';
 import DOMPurify, { type RemovedAttribute, type RemovedElement } from 'dompurify';
 
@@ -235,8 +239,17 @@ export const getPluginSafeHTML = (
       if (data.tagName === 'iframe') {
         const element = node as HTMLIFrameElement;
         const src = element.getAttribute('src') ?? '';
+        const allow = element.getAttribute('allow') ?? '';
 
-        const newUrl = buildIframeURLWithProxy(src, options);
+        const { url: newUrl, isUsingProxy } = buildIframeURLWithProxy(src, options, allow);
+
+        // When we skip the proxy, we should keep the allow attribute alone.
+        // Otherwise, we should set it to the default allow string which
+        // allows all permissions to be passed from the parent frame to the iframe
+        if (isUsingProxy) {
+          element.setAttribute('allow', getParentFrameAllowParam());
+        }
+
         element.setAttribute('src', newUrl);
         element.setAttribute('name', pluginApiName ?? '');
       }

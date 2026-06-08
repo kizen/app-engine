@@ -797,7 +797,11 @@ export class BaseWorkerContext {
     sandbox?: string[],
     options?: BuildIframeURLWithProxyOptions,
   ): void {
-    const formattedUrl = buildIframeURLWithProxy(url, options);
+    const { url: formattedUrl, isUsingProxy } = buildIframeURLWithProxy(
+      url,
+      options,
+      allow?.join('; '),
+    );
 
     this.instance.postMessage(
       JSON.stringify({
@@ -807,6 +811,7 @@ export class BaseWorkerContext {
         allow,
         sandbox,
         preserve: this.preserve,
+        isUsingProxy,
       }),
     );
   }
