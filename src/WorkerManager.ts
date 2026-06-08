@@ -75,7 +75,8 @@ import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
 import {
-  filterSanboxList,
+  filterAllowList,
+  filterSandboxList,
   getParentFrameAllowParam,
   type BuildIframeURLWithProxyOptions,
 } from './util/frames.js';
@@ -632,7 +633,7 @@ export class WorkerManager {
   ): void => {
     if (this.scriptUIRef?.current) {
       const defaultAllowString = getParentFrameAllowParam();
-      const parsedSandboxList = filterSanboxList(sandbox);
+      const parsedSandboxList = filterSandboxList(sandbox);
 
       this.waitForFrame = true;
 
@@ -644,7 +645,8 @@ export class WorkerManager {
       if (isUsingProxy) {
         element.allow = defaultAllowString;
       } else {
-        element.allow = allow.join('; ');
+        const filteredAllowList = filterAllowList(allow);
+        element.allow = filteredAllowList.join('; ');
       }
 
       element.name = name;

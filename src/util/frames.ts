@@ -31,7 +31,7 @@ export const buildIframeURLWithProxy = (
 } => {
   const { useDevMode, __dangerouslySkipProxy } = options;
 
-  let url;
+  let url = '';
 
   if (__dangerouslySkipProxy) {
     url = originalURL;
@@ -65,7 +65,15 @@ export const buildIframeURLWithProxy = (
   };
 };
 
-export const filterSanboxList = (sandbox: string[]): string[] => {
+export const filterAllowList = (allow: string[]): string[] => {
+  const parsedAllowList = allow.filter((allowEntry) => {
+    return allowedAllowFields.some((allowedField) => allowEntry.startsWith(allowedField));
+  });
+
+  return parsedAllowList;
+};
+
+export const filterSandboxList = (sandbox: string[]): string[] => {
   const parsedSandboxList = sandbox.filter((sandboxEntry) =>
     allowedSandboxValues.includes(sandboxEntry),
   );
