@@ -116,6 +116,7 @@ export interface IframeOutputEvent extends BaseEvent {
   sandbox?: string[];
   preserve?: boolean;
   name: string;
+  isUsingProxy?: boolean;
 }
 
 export interface PostFormDataRequestEvent extends BaseEvent {

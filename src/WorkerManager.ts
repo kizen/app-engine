@@ -74,22 +74,15 @@ import { deserializeConsoleArg } from './util/console.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
-import type { BuildIframeURLWithProxyOptions } from './util/frames.js';
+import {
+  filterSanboxList,
+  getParentFrameAllowParam,
+  type BuildIframeURLWithProxyOptions,
+} from './util/frames.js';
 
 const isRelative = (url: string): boolean => {
   return url.startsWith('/');
 };
-
-const allowedAllowValues = [
-  'microphone',
-  'speaker-selection',
-  'autoplay',
-  'camera',
-  'display-capture',
-  'hid',
-];
-
-const allowedSandboxValues = ['allow-popups', 'allow-scripts', 'allow-same-origin'];
 
 const refreshTimeout = 30000; // 30 seconds
 const refreshInterval = 100;
@@ -240,6 +233,7 @@ export class WorkerManager {
           consideredEvent.sandbox,
           consideredEvent.preserve,
           consideredEvent.name,
+          consideredEvent.isUsingProxy,
         );
 
         return;
@@ -634,18 +628,27 @@ export class WorkerManager {
     sandbox: string[] = [],
     preserve = false,
     name = '',
+    isUsingProxy = true,
   ): void => {
     if (this.scriptUIRef?.current) {
-      const parsedAllowList = allow.filter((a) => allowedAllowValues.includes(a));
-      const parsedSandboxList = sandbox.filter((s) => allowedSandboxValues.includes(s));
+      const defaultAllowString = getParentFrameAllowParam();
+      const parsedSandboxList = filterSanboxList(sandbox);
 
       this.waitForFrame = true;
 
       const element = document.createElement('iframe');
 
+      // When we skip the proxy, we should keep the allow attribute alone.
+      // Otherwise, we should set it to the default allow string which
+      // allows all permissions to be passed from the parent frame to the iframe
+      if (isUsingProxy) {
+        element.allow = defaultAllowString;
+      } else {
+        element.allow = allow.join('; ');
+      }
+
       element.name = name;
       element.src = url;
-      element.allow = parsedAllowList.join('; ');
       parsedSandboxList.forEach((s) => {
         element.sandbox.add(s);
       });

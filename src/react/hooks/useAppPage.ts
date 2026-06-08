@@ -28,10 +28,13 @@ export const useAppPage = (
   isLoading?: boolean,
   frameOptions?: BuildIframeURLWithProxyOptions,
 ): UsePluginEngineReturn => {
+  // App-page iframes are proxied for basic embedding only — we intentionally
+  // pass no `allow` so the proxy's `&allow=` re-delegation is empty.
+  // Plugins that need mic/camera/etc. should use outputIframe()/outputUI() instead.
   const iframeURL = useMemo(
     () =>
       currentPage?.iframe_url
-        ? buildIframeURLWithProxy(currentPage.iframe_url, frameOptions)
+        ? buildIframeURLWithProxy(currentPage.iframe_url, frameOptions).url
         : currentPage?.iframe_url,
     [currentPage?.iframe_url, frameOptions],
   );
