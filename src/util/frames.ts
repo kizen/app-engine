@@ -3,6 +3,37 @@ export const FRAME_PROXY_DOMAIN_PROD = 'plugin-assets.kizen.com';
 
 export const frameProxyDomains = [FRAME_PROXY_DOMAIN_DEV, FRAME_PROXY_DOMAIN_PROD];
 
+export const isFrameProxyOrigin = (origin: string): boolean =>
+  frameProxyDomains.some((domain) => origin === `https://${domain}`);
+
+export interface FrameProxyEnvelope<T = unknown> {
+  plugin_api_name: string;
+  source_url: string;
+  event: 'message' | 'loaded' | 'error';
+  data?: T;
+  error?: string;
+  _kizen_proxy_nonce: string;
+}
+
+export type UnwrappedProxyMessage = { handled: true; data: unknown } | { handled: false };
+
+export const unwrapProxyMessage = (event: MessageEvent): UnwrappedProxyMessage => {
+  const data: unknown = event.data;
+
+  // Messages pass through as-is that aren't from the proxy
+  if (!isFrameProxyOrigin(event.origin)) {
+    return { handled: true, data };
+  }
+
+  const envelope = data as FrameProxyEnvelope;
+
+  if (typeof data !== 'object' || data === null || envelope.event !== 'message') {
+    return { handled: false };
+  }
+
+  return { handled: true, data: envelope.data };
+};
+
 export const allowedAllowFields = [
   'microphone',
   'speaker-selection',

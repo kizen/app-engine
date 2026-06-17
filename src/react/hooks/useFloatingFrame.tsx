@@ -13,7 +13,7 @@ import { useToast } from '../context/toast.js';
 import { useTranslation } from '../context/translation.js';
 import { runFrameScriptEventName } from '../../communication/index.js';
 import { useFloatingFrameContext } from '../context/floatingFrame.js';
-import type { BuildIframeURLWithProxyOptions } from '../../util/frames.js';
+import { unwrapProxyMessage, type BuildIframeURLWithProxyOptions } from '../../util/frames.js';
 
 interface UseFloatingFrameArgs {
   currentWindow: FloatingFrameConfig;
@@ -645,19 +645,27 @@ export const useFloatingFrame = (
   // This is the handler for click events coming from the floating frame.
   useManualInteraction(execute, currentWindow, scriptUIRef, pending, args);
 
-  // This is the handler for frame messages coming from the iframe inside the floaing frame.
+  // This is the handler for frame messages coming from the iframe inside the floating frame.
   useEffect(() => {
     const handleMessageEvent = (ev: MessageEvent): void => {
       if (
-        ev.source !== window &&
-        messageHandlerScript &&
-        !defaultFrameIgnoreUrls.includes(ev.origin)
+        ev.source === window ||
+        !messageHandlerScript ||
+        defaultFrameIgnoreUrls.includes(ev.origin)
       ) {
-        void execute(messageHandlerScript, {
-          ...args,
-          eventData: ev.data,
-        });
+        return;
       }
+
+      const result = unwrapProxyMessage(ev);
+
+      if (!result.handled) {
+        return;
+      }
+
+      void execute(messageHandlerScript, {
+        ...args,
+        eventData: result.data,
+      });
     };
 
     window.addEventListener('message', handleMessageEvent);
