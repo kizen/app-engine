@@ -34,6 +34,10 @@ export default defineConfig({
   outDir: 'dist',
   esbuildOptions(options) {
     options.conditions = ['import', 'browser'];
-    options.define = { ...options.define, __PKG_VERSION__: JSON.stringify(version) };
+    options.define = {
+      ...options.define,
+      __PKG_VERSION__: JSON.stringify(version),
+      __LOCAL_PROXY_ORIGIN__: JSON.stringify(process.env.KIZEN_LOCAL_PROXY_ORIGIN ?? ''),
+    };
   },
 });

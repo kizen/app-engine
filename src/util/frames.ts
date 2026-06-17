@@ -3,8 +3,35 @@ export const FRAME_PROXY_DOMAIN_PROD = 'plugin-assets.kizen.com';
 
 export const frameProxyDomains = [FRAME_PROXY_DOMAIN_DEV, FRAME_PROXY_DOMAIN_PROD];
 
+// Local-proxy dev override (off by default). When the engine is built with the
+// env var KIZEN_LOCAL_PROXY_ORIGIN=<origin> — see tsup.config.ts, which injects it
+// as __LOCAL_PROXY_ORIGIN__ — plugin iframes are routed through that locally-served
+// plugin-frame-proxy
+const isLocalhostOrigin = (origin: string): boolean => {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  } catch {
+    return false;
+  }
+};
+
+const localProxyOrigin =
+  __LOCAL_PROXY_ORIGIN__ && isLocalhostOrigin(__LOCAL_PROXY_ORIGIN__) ? __LOCAL_PROXY_ORIGIN__ : '';
+
+const hasLocalProxy = localProxyOrigin !== '';
+
 export const isFrameProxyOrigin = (origin: string): boolean =>
+  (hasLocalProxy && origin === localProxyOrigin) ||
   frameProxyDomains.some((domain) => origin === `https://${domain}`);
+
+const isProxiedUrl = (candidate: string): boolean => {
+  try {
+    return isFrameProxyOrigin(new URL(candidate).origin);
+  } catch {
+    return false;
+  }
+};
 
 export interface FrameProxyEnvelope<T = unknown> {
   plugin_api_name: string;
@@ -70,12 +97,14 @@ export const buildIframeURLWithProxy = (
     try {
       const parsed = new URL(originalURL);
 
-      if (frameProxyDomains.includes(parsed.hostname)) {
+      if (isFrameProxyOrigin(parsed.origin)) {
         url = originalURL;
       } else {
-        const proxyDomain = useDevMode ? FRAME_PROXY_DOMAIN_DEV : FRAME_PROXY_DOMAIN_PROD;
+        const proxyBase = hasLocalProxy
+          ? localProxyOrigin
+          : `https://${useDevMode ? FRAME_PROXY_DOMAIN_DEV : FRAME_PROXY_DOMAIN_PROD}`;
 
-        url = `https://${proxyDomain}?url=${encodeURIComponent(originalURL)}&allow=${encodeURIComponent(allowString)}`;
+        url = `${proxyBase}?url=${encodeURIComponent(originalURL)}&allow=${encodeURIComponent(allowString)}`;
       }
     } catch (ex) {
       console.warn(
@@ -86,9 +115,7 @@ export const buildIframeURLWithProxy = (
     }
   }
 
-  const isUsingProxy =
-    url.startsWith(`https://${FRAME_PROXY_DOMAIN_DEV}`) ||
-    url.startsWith(`https://${FRAME_PROXY_DOMAIN_PROD}`);
+  const isUsingProxy = isProxiedUrl(url);
 
   return {
     url,
