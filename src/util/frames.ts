@@ -16,8 +16,17 @@ const isLocalhostOrigin = (origin: string): boolean => {
   }
 };
 
-const localProxyOrigin =
-  __LOCAL_PROXY_ORIGIN__ && isLocalhostOrigin(__LOCAL_PROXY_ORIGIN__) ? __LOCAL_PROXY_ORIGIN__ : '';
+const localProxyOrigin = (() => {
+  if (!__LOCAL_PROXY_ORIGIN__ || !isLocalhostOrigin(__LOCAL_PROXY_ORIGIN__)) {
+    return '';
+  }
+
+  try {
+    return new URL(__LOCAL_PROXY_ORIGIN__).origin;
+  } catch {
+    return '';
+  }
+})();
 
 const hasLocalProxy = localProxyOrigin !== '';
 
