@@ -9,7 +9,11 @@ import {
   type CollectedFormData,
   type CollectedFormDataResponse,
 } from '../index.js';
-import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from '../../util/frames.js';
+import {
+  buildIframeURLWithProxy,
+  unwrapProxyMessage,
+  type BuildIframeURLWithProxyOptions,
+} from '../../util/frames.js';
 
 interface UsePluginEngineReturn {
   scriptUIRef: React.RefObject<HTMLDivElement>;
@@ -87,14 +91,20 @@ export const useAppPage = (
   }, [iframeURL, execute, script, args, isLoading]);
 
   const handleMessage = useCallback(
-    (e: MessageEvent<{ type: string; query: UnknownJSON } | undefined>) => {
-      const message = e.data;
+    (e: MessageEvent) => {
+      const result = unwrapProxyMessage(e);
+
+      if (!result.handled) {
+        return;
+      }
+
+      const message = result.data as { type: string; query: UnknownJSON } | undefined;
 
       if (message?.type === 'kizen:plugin_callback') {
-        const args = message.query;
+        const callbackArgs = message.query;
 
         if (callback) {
-          void execute(callback, args);
+          void execute(callback, callbackArgs);
         }
       }
     },

@@ -1,6 +1,6 @@
 {
   "name": "@kizenapps/engine",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Run JavaScript plugin apps inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
   "type": "module",
@@ -52,6 +52,9 @@
     "build": "pnpm run extract-translations && tsup && pnpm run copy:translations && pnpm run copy:scripts && pnpm run build:verify",
     "build:watch": "tsup --watch",
     "build:verify": "node scripts/check-worker-bundles.js",
+    "build:localproxy": "KIZEN_LOCAL_PROXY_ORIGIN=${KIZEN_LOCAL_PROXY_ORIGIN:-http://localhost:8080} pnpm run build",
+    "yalc:push": "pnpm run build && yalc push",
+    "yalc:localproxy": "pnpm run build:localproxy && yalc push",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
