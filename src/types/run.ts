@@ -25,6 +25,7 @@ export interface CommonPluginDefinition {
   api_name: string;
   id?: string;
   script_id?: string;
+  worker_key?: string;
 }
 
 export interface CommonExecutionPlugin {
@@ -33,6 +34,7 @@ export interface CommonExecutionPlugin {
   api_name: string;
   field_type?: string;
   plugin_api_name?: string;
+  worker_key?: string;
 }
 
 export type OnShowToastFn = (options: { message: string } & ShowToastOptions) => void;
