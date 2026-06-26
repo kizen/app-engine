@@ -70,14 +70,14 @@ export const runScript = async ({
     const hashedScript = getHash(scriptBody);
     const hashedArgs = getHash(args);
 
-    let workerId = `${plugin?.plugin_api_name ?? ''}-${plugin?.api_name ?? ''}-${String(hashedScript)}-${String(hashedArgs)}`;
+    let workerId = `${plugin?.plugin_api_name ?? ''}-${plugin?.api_name ?? ''}-${plugin?.id ?? ''}-${String(hashedScript)}-${String(hashedArgs)}`;
     let componentId = `${plugin?.plugin_api_name ?? ''}-${plugin?.api_name ?? ''}`;
 
     if (executionPlugin?.field_type) {
-      workerId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.field_type}-${String(hashedScript)}-${String(hashedArgs)}`;
+      workerId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.id}-${executionPlugin.field_type}-${String(hashedScript)}-${String(hashedArgs)}`;
       componentId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.field_type ?? executionPlugin.script_id}`;
     } else if (executionPlugin) {
-      workerId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.api_name}-${String(hashedScript)}-${String(hashedArgs)}`;
+      workerId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.id}-${executionPlugin.api_name}-${String(hashedScript)}-${String(hashedArgs)}`;
       componentId = `${executionPlugin.plugin_api_name ?? ''}-${executionPlugin.api_name}`;
     }
 
