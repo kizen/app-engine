@@ -677,7 +677,7 @@ export const useFloatingFrame = (
 
   const { outputUIRef, scopedCss, sanitizedHtml, interactableScriptRef } = useAppCustomHTML(
     currentWindow,
-    {},
+    args,
     options,
   );
 

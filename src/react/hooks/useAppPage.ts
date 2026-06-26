@@ -79,7 +79,7 @@ export const useAppPage = (
     frameOptions,
   );
 
-  useManualInteraction(execute, currentPage, scriptUIRef, pending);
+  useManualInteraction(execute, currentPage, scriptUIRef, pending, args);
 
   const hasRunScript = useRef(false);
 
