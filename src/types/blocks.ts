@@ -4,7 +4,7 @@ export type BlockType =
   | 'charts'
   | 'records';
 
-export type BlockConfig = {
+export interface BlockConfig {
   api_name: string;
   name: string;
   types?: BlockType[];
