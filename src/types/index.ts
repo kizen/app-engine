@@ -6,6 +6,7 @@ export type * from './request.js';
 export type * from './promise.js';
 export type * from './workers.js';
 export type * from './floatingFrames.js';
+export type * from './blocks.js';
 
 // Artifacts
 export type * from './artifacts/calendar.js';
