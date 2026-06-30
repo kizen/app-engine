@@ -17,3 +17,4 @@ export type * from './artifacts/toolbarItem.js';
 export type * from './artifacts/routeScript.js';
 export type * from './artifacts/objectSettingsMenuItem.js';
 export type * from './artifacts/automation.js';
+export type * from './artifacts/blocks.js';
