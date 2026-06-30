@@ -846,8 +846,7 @@ export class WorkerManager {
     if (scriptType && thirdPartyGlobalNames[scriptType]) {
       const globalName = thirdPartyGlobalNames[scriptType];
       const fn = (window as unknown as Record<string, unknown>)[globalName] as
-        | ((...args: unknown[]) => void)
-        | undefined;
+        ((...args: unknown[]) => void) | undefined;
 
       fn?.(...args);
     }

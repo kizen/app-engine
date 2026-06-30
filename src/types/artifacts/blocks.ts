@@ -1,7 +1,9 @@
+import type { EmployeeConfig, UnknownJSON } from '../common.js';
+import type { CommonPluginDefinition } from '../run.js';
+
 export type BlockType = 'homepages' | 'dashboards' | 'charts' | 'records';
 
-export interface BlockConfig {
-  api_name: string;
+export interface BlockConfig extends CommonPluginDefinition {
   name: string;
   types?: BlockType[];
   min_w?: number;
@@ -9,4 +11,5 @@ export interface BlockConfig {
   min_h?: number;
   max_h?: number;
   recommended_height?: number;
+  when?: string;
 }

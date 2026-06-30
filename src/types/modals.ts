@@ -69,11 +69,7 @@ export interface ModalContainer {
 }
 
 export type ModalBlock =
-  | ModalDescription
-  | ModalTextInput
-  | ModalSpacer
-  | ModalDropdown
-  | ModalContainer;
+  ModalDescription | ModalTextInput | ModalSpacer | ModalDropdown | ModalContainer;
 
 export interface ModalConfig {
   title?: string;
