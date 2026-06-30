@@ -1,8 +1,4 @@
-export type BlockType =
-  | 'homepages'
-  | 'dashboards'
-  | 'charts'
-  | 'records';
+export type BlockType = 'homepages' | 'dashboards' | 'charts' | 'records';
 
 export interface BlockConfig {
   api_name: string;
@@ -13,4 +9,4 @@ export interface BlockConfig {
   min_h?: number;
   max_h?: number;
   recommended_height?: number;
-};
+}
