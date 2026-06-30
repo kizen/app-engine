@@ -1,4 +1,3 @@
-import type { EmployeeConfig, UnknownJSON } from '../common.js';
 import type { CommonPluginDefinition } from '../run.js';
 
 export type BlockType = 'homepages' | 'dashboards' | 'charts' | 'records';
