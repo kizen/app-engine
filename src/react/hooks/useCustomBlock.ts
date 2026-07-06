@@ -92,17 +92,26 @@ export const useCustomBlock = (
     frameOptions,
   );
 
-  const argsHash = useMemo(() => getStableHash(scriptArgs), [scriptArgs]);
-  const lastRunHash = useRef<number | null>(null);
+  const runKey = useMemo(
+    () =>
+      getStableHash({
+        plugin: block?.plugin_api_name,
+        block: block?.api_name,
+        script: block?.script,
+        args: scriptArgs,
+      }),
+    [block?.plugin_api_name, block?.api_name, block?.script, scriptArgs],
+  );
+  const lastRunKey = useRef<number | null>(null);
 
   useEffect(() => {
-    if (iframeURL || isLoading || !block?.script || lastRunHash.current === argsHash) {
+    if (iframeURL || isLoading || !block?.script || lastRunKey.current === runKey) {
       return;
     }
 
-    lastRunHash.current = argsHash;
+    lastRunKey.current = runKey;
     void execute(block.script, scriptArgs);
-  }, [block, scriptArgs, argsHash, iframeURL, isLoading, execute]);
+  }, [block, scriptArgs, runKey, iframeURL, isLoading, execute]);
 
   const runEventScript = useCallback(
     (scriptName: string, eventArgs?: Record<string, unknown>): void => {
