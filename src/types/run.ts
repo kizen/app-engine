@@ -160,6 +160,7 @@ export interface OpenWindowEvent extends BaseEvent {
 
 export interface RecipientConfig {
   frame?: string;
+  block?: string;
   script?: string;
   type?: (typeof ALLOWED_INTEGRATIONS)[keyof typeof ALLOWED_INTEGRATIONS];
 }

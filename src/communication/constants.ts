@@ -51,6 +51,7 @@ export const RESPONSES = {
 
 export const COMMUNICATIONS = {
   RUN_FRAME_SCRIPT: 'runframescript',
+  RUN_BLOCK_SCRIPT: 'runblockscript',
   SEND_MESSAGE_TO_FRAME: 'sendmessagetoframe',
   CALL_THIRD_PARTY_SCRIPT: 'callthirdpartyscript',
 };

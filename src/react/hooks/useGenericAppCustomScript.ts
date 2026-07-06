@@ -12,6 +12,7 @@ import { useHistory } from '../context/history.js';
 import type { MaybeMessageError } from '../../types/common.js';
 import { generateExecutionKey } from '../../util/run.js';
 import { useRunnerState } from '../context/runnerState.js';
+import type { INDICATOR_TYPE } from '../../communication/constants.js';
 import type { CommonExecutionPlugin } from '../../types/run.js';
 import { useNetwork } from '../context/network.js';
 import { useTranslation } from '../context/translation.js';
@@ -26,7 +27,10 @@ export const useGenericAppCustomScript = ({
   onError,
   scriptUIRef,
   plugin,
-}: UseGenericPluginCustomScriptProps): [ExecuteGenericScript, { pending: boolean }] => {
+}: UseGenericPluginCustomScriptProps): [
+  ExecuteGenericScript,
+  { pending: boolean; indicator: INDICATOR_TYPE },
+] => {
   const { terminators } = useTerminators();
   const { sessionData, setSessionData } = useSessionData();
   const {
