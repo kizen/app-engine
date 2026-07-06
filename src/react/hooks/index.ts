@@ -9,5 +9,6 @@ export { useManualInteraction } from './useManualInteraction.js';
 export { useAppCallback } from './useAppCallback.js';
 export { useAppPage } from './useAppPage.js';
 export { useFloatingFrame } from './useFloatingFrame.js';
+export { useCustomBlock } from './useCustomBlock.js';
 export { usePluginSafeHTML } from './usePluginSafeHTML.js';
 export * from './useFormData.js';

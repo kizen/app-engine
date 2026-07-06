@@ -2,6 +2,7 @@ import type { Instance } from '../types/contexts.js';
 import { ACTIONS, COMMUNICATIONS } from './constants.js';
 
 export const runFrameScriptEventName = `integration:${COMMUNICATIONS.RUN_FRAME_SCRIPT}`;
+export const runBlockScriptEventName = `integration:${COMMUNICATIONS.RUN_BLOCK_SCRIPT}`;
 
 export class Communicate {
   private instance: Instance;
@@ -22,6 +23,25 @@ export class Communicate {
         eventName: runFrameScriptEventName,
         recipient: {
           frame: frameAPIName,
+          script: scriptId,
+        },
+        args,
+      }),
+    );
+  }
+
+  public runBlockScript(
+    blockAPIName: string,
+    scriptId: string,
+    args?: Record<string, string | number>,
+  ): void {
+    this.instance.postMessage(
+      JSON.stringify({
+        action: ACTIONS.COMMUNICATE,
+        type: COMMUNICATIONS.RUN_BLOCK_SCRIPT,
+        eventName: runBlockScriptEventName,
+        recipient: {
+          block: blockAPIName,
           script: scriptId,
         },
         args,
