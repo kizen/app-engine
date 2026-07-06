@@ -134,23 +134,26 @@ export const useCustomBlock = (
     }
 
     const handleRunBlockScript = (e: Event): void => {
-      const { detail } = e as CustomEvent<{
-        recipient?: { block?: string; plugin?: string; script?: string };
-        args?: Record<string, unknown>;
-      }>;
+      const event = e as
+        | {
+            detail?: {
+              recipient?: { block?: string; plugin?: string; script?: string };
+              args?: Record<string, unknown>;
+            };
+          }
+        | undefined;
 
-      if (
-        detail.recipient?.block !== block.api_name ||
-        detail.recipient.plugin !== block.plugin_api_name
-      ) {
+      const recipient = event?.detail?.recipient;
+
+      if (recipient?.block !== block.api_name || recipient.plugin !== block.plugin_api_name) {
         return;
       }
 
-      const scriptId = detail.recipient.script;
+      const scriptId = recipient.script;
       const scriptBody = scriptId ? block.event_scripts?.[scriptId] : undefined;
 
       if (scriptBody) {
-        void execute(scriptBody, { ...detail.args, ...scriptArgs });
+        void execute(scriptBody, { ...event?.detail?.args, ...scriptArgs });
       }
     };
 
