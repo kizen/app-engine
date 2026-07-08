@@ -8,5 +8,11 @@ export {
   runStringExpression,
 } from './run.js';
 
+export {
+  readNavigationContext,
+  clearNavigationContext,
+  consumeNavigationContext,
+} from './communication/storage.js';
+
 export type * from './types/index.js';
 export { modalSize } from './types/modals.js';

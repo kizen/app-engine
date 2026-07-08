@@ -86,6 +86,16 @@ const isRelative = (url: string): boolean => {
   return url.startsWith('/');
 };
 
+// Guards the noopener-less new-tab path: a protocol-relative url (`//host`) passes isRelative
+// but resolves cross-origin, and we must never expose window.opener to a cross-origin page.
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const refreshTimeout = 30000; // 30 seconds
 const refreshInterval = 100;
 
@@ -972,31 +982,72 @@ export class WorkerManager {
     }
   };
 
+  private applyNavigationContext = (url: string, context: Record<string, unknown>): string => {
+    try {
+      const storageKey = storeNavigationContext(context);
+
+      return transformNavigationUrl(url, storageKey);
+    } catch {
+      this.onError?.({
+        message: 'Failed to store context in sessionStorage.',
+      });
+
+      return url;
+    }
+  };
+
   private handleOpenWindow = (
     url: string,
     target: string,
     features: string,
     context?: Record<string, unknown>,
   ): void => {
-    let finalUrl = url;
+    const { pushHistory } = this;
 
-    if (context) {
+    // In-app same-tab navigation (relative, non-_blank). Context is in this tab's
+    // sessionStorage, which survives the navigation. Prefer the SPA router when it's wired,
+    // otherwise fall back to a same-tab window.open.
+    if (isRelative(url) && target !== '_blank') {
+      const finalUrl = context ? this.applyNavigationContext(url, context) : url;
+
+      if (pushHistory) {
+        pushHistory(finalUrl);
+      } else {
+        window.open(finalUrl, target, features);
+      }
+
+      return;
+    }
+
+    // In-app new-tab navigation with context (relative, _blank, same-origin). Opening without
+    // noopener/noreferrer lets the browser copy this tab's sessionStorage into the new tab at
+    // creation time.
+    if (isRelative(url) && target === '_blank' && context && isSameOrigin(url)) {
+      let storageKey: string;
+
       try {
-        const storageKey = storeNavigationContext(context);
-
-        finalUrl = transformNavigationUrl(url, storageKey);
+        storageKey = storeNavigationContext(context);
       } catch {
+        // Storage failed, so no context was transmitted: fall back to a secure open.
         this.onError?.({
           message: 'Failed to store context in sessionStorage.',
         });
+
+        window.open(url, target, features);
+
+        return;
       }
+
+      window.open(transformNavigationUrl(url, storageKey), '_blank');
+
+      // The new tab already holds its own copy, so drop this tab's copy
+      sessionStorage.removeItem(storageKey);
+
+      return;
     }
 
-    if (!isRelative(url) || target === '_blank' || !this.pushHistory) {
-      window.open(finalUrl, target, features);
-    } else {
-      this.pushHistory(finalUrl);
-    }
+    // External / cross-origin navigations, or _blank without context
+    window.open(url, target, features);
   };
 
   private handleAuthorize = (

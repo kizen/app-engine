@@ -1,14 +1,16 @@
 import { generateUUIDV4 } from '../util/run.js';
 
 const STORAGE_KEY_PREFIX = 'kizen-app-context';
-export const URL_LOAD_PARAM = 'load_storage_key';
+export const SESSION_DATA_PARAM = 'session_data_key';
 
-const getStorageKey = (): string => {
-  const storageId = generateUUIDV4();
+const getStorageKey = (): string => `${STORAGE_KEY_PREFIX}-${generateUUIDV4()}`;
 
-  const storageKey = `${STORAGE_KEY_PREFIX}-${storageId}`;
-
-  return storageKey;
+const getStorageKeyFromUrl = (url: string): string | null => {
+  try {
+    return new URL(url, window.location.origin).searchParams.get(SESSION_DATA_PARAM);
+  } catch {
+    return null;
+  }
 };
 
 export const storeNavigationContext = (context: Record<string, unknown>): string => {
@@ -22,11 +24,43 @@ export const storeNavigationContext = (context: Record<string, unknown>): string
 export const transformNavigationUrl = (url: string, key: string): string => {
   const urlObj = new URL(url, window.location.origin);
 
-  urlObj.searchParams.set(URL_LOAD_PARAM, key);
+  urlObj.searchParams.set(SESSION_DATA_PARAM, key);
 
-  return urlObj.toString();
+  return `${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
 };
 
-export const clearNavigationContext = (key: string): void => {
-  sessionStorage.removeItem(key);
+export const readNavigationContext = (url: string): Record<string, unknown> | undefined => {
+  const storageKey = getStorageKeyFromUrl(url);
+
+  if (!storageKey) {
+    return undefined;
+  }
+
+  try {
+    const contextString = sessionStorage.getItem(storageKey);
+
+    if (!contextString) {
+      return undefined;
+    }
+
+    return JSON.parse(contextString) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+};
+
+export const clearNavigationContext = (url: string): void => {
+  const storageKey = getStorageKeyFromUrl(url);
+
+  if (storageKey) {
+    sessionStorage.removeItem(storageKey);
+  }
+};
+
+export const consumeNavigationContext = (url: string): Record<string, unknown> | undefined => {
+  const context = readNavigationContext(url);
+
+  clearNavigationContext(url);
+
+  return context;
 };
