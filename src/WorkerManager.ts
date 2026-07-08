@@ -80,6 +80,7 @@ import {
   getParentFrameAllowParam,
   type BuildIframeURLWithProxyOptions,
 } from './util/frames.js';
+import { storeNavigationContext, transformNavigationUrl } from './communication/storage.js';
 
 const isRelative = (url: string): boolean => {
   return url.startsWith('/');
@@ -286,6 +287,7 @@ export class WorkerManager {
           consideredEvent.url,
           consideredEvent.target,
           consideredEvent.features,
+          consideredEvent.context,
         );
 
         return;
@@ -970,11 +972,30 @@ export class WorkerManager {
     }
   };
 
-  private handleOpenWindow = (url: string, target: string, features: string): void => {
+  private handleOpenWindow = (
+    url: string,
+    target: string,
+    features: string,
+    context?: Record<string, unknown>,
+  ): void => {
+    let finalUrl = url;
+
+    if (context) {
+      try {
+        const storageKey = storeNavigationContext(context);
+
+        finalUrl = transformNavigationUrl(url, storageKey);
+      } catch {
+        this.onError?.({
+          message: 'Failed to store context in sessionStorage.',
+        });
+      }
+    }
+
     if (!isRelative(url) || target === '_blank' || !this.pushHistory) {
-      window.open(url, target, features);
+      window.open(finalUrl, target, features);
     } else {
-      this.pushHistory(url);
+      this.pushHistory(finalUrl);
     }
   };
 

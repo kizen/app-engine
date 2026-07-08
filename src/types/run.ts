@@ -156,6 +156,7 @@ export interface OpenWindowEvent extends BaseEvent {
   url: string;
   target: string;
   features: string;
+  context?: Record<string, unknown>;
 }
 
 export interface RecipientConfig {
