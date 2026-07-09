@@ -7,7 +7,11 @@ const getStorageKey = (): string => `${STORAGE_KEY_PREFIX}-${generateUUIDV4()}`;
 
 const getStorageKeyFromUrl = (url: string): string | null => {
   try {
-    return new URL(url, window.location.origin).searchParams.get(SESSION_DATA_PARAM);
+    const key = new URL(url, window.location.origin).searchParams.get(SESSION_DATA_PARAM);
+
+    // Only accept keys minted by storeNavigationContext, so a crafted
+    // ?session_data_key= can't read or delete unrelated sessionStorage entries.
+    return key?.startsWith(`${STORAGE_KEY_PREFIX}-`) ? key : null;
   } catch {
     return null;
   }

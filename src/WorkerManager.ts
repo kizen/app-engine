@@ -983,13 +983,30 @@ export class WorkerManager {
   };
 
   private applyNavigationContext = (url: string, context: Record<string, unknown>): string => {
-    try {
-      const storageKey = storeNavigationContext(context);
+    let storageKey: string;
 
-      return transformNavigationUrl(url, storageKey);
+    try {
+      storageKey = storeNavigationContext(context);
     } catch {
       this.onError?.({
         message: 'Failed to store context in sessionStorage.',
+      });
+
+      return url;
+    }
+
+    try {
+      return transformNavigationUrl(url, storageKey);
+    } catch {
+      try {
+        // The navigation will never consume the entry, so don't orphan it.
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        // Best-effort cleanup. It's not critical if this fails since session storage isn't long-lived
+      }
+
+      this.onError?.({
+        message: 'Failed to append the context key to the navigation URL.',
       });
 
       return url;
