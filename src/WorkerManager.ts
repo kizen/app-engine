@@ -86,8 +86,6 @@ const isRelative = (url: string): boolean => {
   return url.startsWith('/');
 };
 
-// Guards the noopener-less new-tab path: a protocol-relative url (`//host`) passes isRelative
-// but resolves cross-origin, and we must never expose window.opener to a cross-origin page.
 const isSameOrigin = (url: string): boolean => {
   try {
     return new URL(url, window.location.origin).origin === window.location.origin;
@@ -1022,7 +1020,7 @@ export class WorkerManager {
     const { pushHistory } = this;
 
     // In-app same-tab navigation (relative, non-_blank). Context is in this tab's
-    // sessionStorage, which survives the navigation. Prefer the SPA router when it's wired,
+    // sessionStorage, which survives the navigation. Prefer the passed router when it's available,
     // otherwise fall back to a same-tab window.open.
     if (isRelative(url) && target !== '_blank') {
       const finalUrl = context ? this.applyNavigationContext(url, context) : url;
