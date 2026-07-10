@@ -227,13 +227,14 @@ export class BaseWorkerContext {
     return phone.replace(/\+/g, '');
   }
 
-  openWindow(url: string, target = '_blank'): void {
+  openWindow(url: string, target = '_blank', context?: Record<string, unknown>): void {
     this.instance.postMessage(
       JSON.stringify({
         action: ACTIONS.OPEN_WINDOW,
         url,
         target,
         features: 'noopener noreferrer',
+        context,
       }),
     );
   }

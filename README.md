@@ -201,3 +201,77 @@ Some worker calls are coordinated using `@tanstack/react-query`. If your consume
 ### Script Return Values
 
 Scripts can return values from the worker thread. Awaiting the execute function returned from a plugin runner script will yield the value that the worker thread returned.
+
+### Navigation Context
+
+A script can hand a JSON payload to the page it navigates to — for example, to open a custom object page with an unsaved filter already applied. The engine stores the payload in `sessionStorage`, appends a `session_data_key` query param to the target URL, and lets the destination page read it back.
+
+Context only applies to **in-app** (same-origin, relative) navigations. Both targets are supported:
+
+- **`'_self'`** navigates the current tab via the host router.
+- **`'_blank'`** opens a new tab. The browser copies the current tab's `sessionStorage` into the new one at open time, so the payload rides along. (This is why the engine opens context-carrying `_blank` tabs without `noopener`/`noreferrer` — that copy only happens while the opener relationship is intact. It is restricted to same-origin URLs so `window.opener` is never exposed cross-origin.)
+
+**External / cross-origin** navigations ignore context entirely and keep the secure `noopener noreferrer` defaults. The reader helpers are **main-thread only** — workers cannot read this state.
+
+#### Passing context from a script
+
+Pass the payload as the third argument to `openWindow`. It is serialized with `JSON.stringify`: circular references and `BigInt` values throw synchronously, while functions, `undefined`, and symbols are silently dropped (standard `JSON.stringify` behavior).
+
+```js
+// Same tab:
+this.openWindow('/custom-objects/leads/records', '_self', {
+  unsavedFilter: {
+    /* ...payload */
+  },
+});
+
+// New tab — same payload, copied into the new tab's sessionStorage:
+this.openWindow('/custom-objects/leads/records', '_blank', {
+  unsavedFilter: {
+    /* ...payload */
+  },
+});
+```
+
+#### Reading context in React
+
+`useAppNavigationContext` takes the current URL (feed it from your router) and returns the payload plus a `clear` callback. Clear it once applied so a back-nav or refresh doesn't reapply stale context.
+
+```tsx
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAppNavigationContext } from '@kizenapps/engine/react';
+
+const RecordsPage = () => {
+  const { pathname, search } = useLocation();
+  const [navContext, clearNavContext] = useAppNavigationContext(`${pathname}${search}`);
+
+  useEffect(() => {
+    if (!navContext) return;
+
+    applyUnsavedFilter(navContext.unsavedFilter);
+
+    clearNavContext();
+  }, [navContext, clearNavContext]);
+
+  return null;
+};
+```
+
+#### Reading context outside React
+
+The package root exports plain helpers that all take an explicit URL. `consumeNavigationContext` reads and clears in one call:
+
+```ts
+import {
+  consumeNavigationContext, // read + clear (default choice)
+  readNavigationContext, // read only
+  clearNavigationContext, // clear only
+} from '@kizenapps/engine';
+
+const context = consumeNavigationContext(window.location.href);
+
+if (context?.unsavedFilter) {
+  applyUnsavedFilter(context.unsavedFilter);
+}
+```
