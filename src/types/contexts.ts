@@ -90,6 +90,22 @@ export type CurriedInstallThirdPartyScriptFn = (
   promises: WorkerPromise,
 ) => InstallThirdPartyScriptFn;
 
+export type CompleteSetupLevel = 'business' | 'user';
+
+export interface CompleteSetupOptions {
+  level?: CompleteSetupLevel | undefined;
+}
+
+export type CompleteSetupFn = (
+  payload: UnknownJSON,
+  options?: CompleteSetupOptions,
+) => Promise<unknown>;
+
+export type CurriedCompleteSetupFn = (
+  instance: Instance,
+  promises: WorkerPromise,
+) => CompleteSetupFn;
+
 export type PromptFn = (config: ModalConfig) => Promise<unknown>;
 
 export type CurriedPromptFn = (instance: Instance, promises: WorkerPromise) => PromptFn;
@@ -148,6 +164,7 @@ export interface WorkerContextArgs {
   location: PartialLocation;
   showViewInModal: ShowViewInModalFn;
   closeModal: CloseModalFn;
+  completeSetup: CompleteSetupFn;
 }
 
 export type KizenConfig = Record<string, unknown>;

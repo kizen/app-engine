@@ -71,6 +71,12 @@ export interface InstallThirdPartyScriptResponsePayload {
   data: { success: boolean };
 }
 
+export interface CompleteSetupResponsePayload {
+  id: string;
+  success: boolean;
+  error?: string;
+}
+
 export interface PromptResponsePayload {
   id: string;
   data: unknown;

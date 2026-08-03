@@ -4,6 +4,7 @@ import type { WorkerEvent } from '../types/workers.js';
 import { buildCodeRunnerFunction } from '../util/run.js';
 import {
   closeModalHandler,
+  completeSetupHandler,
   dynamicPromptHandler,
   handleCommonResponse,
   installThirdPartyScriptHandler,
@@ -61,6 +62,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       openCreateRelatedRecord: openCreateRelatedRecordHandler(self, promises),
       showViewInModal: showViewInModalHandler(self, promises),
       closeModal: closeModalHandler(self),
+      completeSetup: completeSetupHandler(self, promises),
       pluginApiName,
       location,
     });

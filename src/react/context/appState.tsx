@@ -14,6 +14,7 @@ import type {
   PartialUser,
   UnknownJSON,
 } from '../../types/common.js';
+import type { HostCompleteSetupFn } from '../../types/run.js';
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
@@ -32,6 +33,12 @@ export interface AppStateWrapperProps {
   business: PartialBusiness;
   clientObject?: PartialClientObject | undefined;
   appPath: string;
+  /*
+   * Persists a plugin's setup config and stamps the setup hash. Supplied once here rather than per
+   * surface so `this.completeSetup()` works from anywhere a script runs — a plugin can re-trigger
+   * its own setup flow from a block or toolbar item, not just from the setup assistant.
+   */
+  onCompleteSetup?: HostCompleteSetupFn | undefined;
 }
 
 export type RouteScriptRunState = Record<
@@ -48,6 +55,7 @@ interface AppStateContextValue {
   business: PartialBusiness;
   clientObject?: PartialClientObject | undefined;
   appPath: string;
+  onCompleteSetup?: HostCompleteSetupFn | undefined;
   onInitialBootstrap: () => void;
   setRouteScriptRunState: React.Dispatch<React.SetStateAction<RouteScriptRunState>>;
 }
@@ -61,6 +69,7 @@ export const AppStateWrapper: FC<AppStateWrapperProps> = ({
   business,
   clientObject,
   appPath,
+  onCompleteSetup,
 }) => {
   // Track whether the app has become fully visible already, since we don't want to show a blocking loader
   // if a plugin is later enabled after the initial load
@@ -104,6 +113,7 @@ export const AppStateWrapper: FC<AppStateWrapperProps> = ({
         business,
         clientObject,
         appPath,
+        onCompleteSetup,
         onInitialBootstrap,
         setRouteScriptRunState,
       }}

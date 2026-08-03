@@ -15,6 +15,8 @@ import type {
 import type {
   Args,
   BaseAPI,
+  CompleteSetupFn,
+  CompleteSetupOptions,
   DataCache,
   ErrorResponse,
   InstallThirdPartyScriptFn,
@@ -122,6 +124,7 @@ export class BaseWorkerContext {
   private refreshEntityHandler: RefreshEntityFn;
   private openCreateRecordHandler: OpenCreateRecordFn;
   private openCreateRelatedRecordHandler: OpenCreateRelatedRecordFn;
+  private completeSetupHandler: CompleteSetupFn;
   protected runnerType: 'base' | 'floatingFrame' | 'recordDetail';
   public pluginApiName: string;
   public tempPromptState: PromptState = {};
@@ -151,6 +154,7 @@ export class BaseWorkerContext {
     dynamicPrompt,
     showViewInModal,
     closeModal,
+    completeSetup,
     location,
   }: WorkerContextArgs) {
     this.user = user;
@@ -185,6 +189,7 @@ export class BaseWorkerContext {
     this.dynamicPromptHandler = dynamicPrompt;
     this.showViewInModalHandler = showViewInModal;
     this.closeModalHandler = closeModal;
+    this.completeSetupHandler = completeSetup;
 
     try {
       this.args = JSON.parse(args ?? '{}') as Args;
@@ -484,6 +489,16 @@ export class BaseWorkerContext {
     });
 
     return mutationResult;
+  }
+
+  public async completeSetup(payload: UnknownJSON, options?: CompleteSetupOptions): Promise<void> {
+    const candidate: unknown = payload;
+
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+      throw new Error('completeSetup requires a configuration object');
+    }
+
+    await this.completeSetupHandler(payload, options);
   }
 
   async patch(url: string, body?: UnknownJSON, options?: RequestOptions): Promise<unknown> {

@@ -27,6 +27,7 @@ import type {
 import type { CurriedKizenRequestFn } from '../types/request.js';
 import type { PromiseResolve } from '../types/promise.js';
 import type {
+  CurriedCompleteSetupFn,
   CurriedInstallThirdPartyScriptFn,
   CurriedOpenCreateRecordFn,
   CurriedOpenCreateRelatedRecordFn,
@@ -36,6 +37,7 @@ import type {
   CurriedUploadFileFn,
 } from '../types/contexts.js';
 import type {
+  CompleteSetupResponsePayload,
   CreateRecordResponsePayload,
   CreateRelatedRecordResponsePayload,
   InstallThirdPartyScriptResponsePayload,
@@ -345,6 +347,21 @@ export const uploadFileHandler: CurriedUploadFileFn = (instance, promises) => (p
   });
 };
 
+export const completeSetupHandler: CurriedCompleteSetupFn =
+  (instance, promises) => (payload, options) => {
+    return new Promise((resolve, reject) => {
+      const id = promises.register(resolve, reject);
+      instance.postMessage(
+        JSON.stringify({
+          action: ACTIONS.COMPLETE_SETUP_REQUEST,
+          id,
+          payload,
+          options,
+        }),
+      );
+    });
+  };
+
 export const installThirdPartyScriptHandler: CurriedInstallThirdPartyScriptFn =
   (instance, promises) => (url, args) => {
     return new Promise((resolve, reject) => {
@@ -446,6 +463,17 @@ export const handleCommonResponse = (
         promises.resolve(id, data);
       } else {
         promises.reject(id, error);
+      }
+
+      break;
+    }
+
+    case RESPONSES.COMPLETE_SETUP_RESPONSE: {
+      const { id, success, error } = JSON.parse(e.data) as CompleteSetupResponsePayload;
+      if (success) {
+        promises.resolve(id);
+      } else {
+        promises.reject(id, new Error(error ?? 'Setup configuration could not be saved'));
       }
 
       break;

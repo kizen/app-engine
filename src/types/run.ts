@@ -1,4 +1,5 @@
 import type {
+  CompleteSetupOptions,
   InternalSessionData,
   SetInternalSessionDataFn,
   ShowToastOptions,
@@ -61,6 +62,7 @@ export interface RunScriptOptions {
   sessionData: InternalSessionData;
   setSessionData: SetInternalSessionDataFn;
   onShowModal: OnShowModalFn;
+  onCompleteSetup?: OnCompleteSetupFn | undefined;
   onShowCreateRecordModal: OnShowCreateRecordModalFn;
   onShowCreateRelatedRecordModal: OnShowCreateRelatedRecordModalFn;
   onCloseModal?: OnCloseModalFn;
@@ -110,6 +112,12 @@ export interface QueryRequestEvent extends BaseEvent {
 export interface UIOutputEvent extends BaseEvent {
   markup: string;
   options?: BuildIframeURLWithProxyOptions;
+}
+
+export interface CompleteSetupRequestEvent extends BaseEvent {
+  id: string;
+  payload: UnknownJSON;
+  options?: CompleteSetupOptions;
 }
 
 export interface IframeOutputEvent extends BaseEvent {
@@ -264,9 +272,21 @@ export type OnConsoleLogFn = (level: ConsoleLogLevel, args: unknown[]) => void;
 
 export type OnRunEventScriptFn = (scriptName: string, args?: UnknownJSON) => void;
 
+export type OnCompleteSetupFn = (
+  payload: UnknownJSON,
+  options?: CompleteSetupOptions,
+) => Promise<unknown>;
+
+export type HostCompleteSetupFn = (
+  pluginApiName: string,
+  payload: UnknownJSON,
+  options?: CompleteSetupOptions,
+) => Promise<unknown>;
+
 export type MessageEventData =
   | QueryRequestEvent
   | UIOutputEvent
+  | CompleteSetupRequestEvent
   | IframeOutputEvent
   | PostFormDataRequestEvent
   | UploadFileRequestEvent

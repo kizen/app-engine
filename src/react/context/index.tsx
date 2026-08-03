@@ -71,6 +71,7 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
     t,
     invalidateCache,
     getPendingCacheCount,
+    onCompleteSetup,
   } = props;
 
   useLocationChange();
@@ -85,6 +86,7 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
         business={business}
         clientObject={clientObject}
         appPath={appPath}
+        onCompleteSetup={onCompleteSetup}
       >
         {({ hasFinishedBootstrapping, waitingOnRouteScript }) => {
           return (
