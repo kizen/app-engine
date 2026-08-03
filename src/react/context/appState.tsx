@@ -33,11 +33,6 @@ export interface AppStateWrapperProps {
   business: PartialBusiness;
   clientObject?: PartialClientObject | undefined;
   appPath: string;
-  /*
-   * Persists a plugin's setup config and stamps the setup hash. Supplied once here rather than per
-   * surface so `this.completeSetup()` works from anywhere a script runs — a plugin can re-trigger
-   * its own setup flow from a block or toolbar item, not just from the setup assistant.
-   */
   onCompleteSetup?: HostCompleteSetupFn | undefined;
 }
 
