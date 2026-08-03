@@ -1,0 +1,18 @@
+{
+  "name": "kizen-plugin-docs-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static site generator for the Kizen plugin developer docs. Reads the markdown in docs/ and emits docs/site/dist/.",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "node serve.mjs",
+    "test": "node --test test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "marked": "^15.0.12"
+  }
+}

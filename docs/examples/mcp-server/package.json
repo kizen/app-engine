@@ -1,0 +1,20 @@
+{
+  "name": "kizen-plugin-reference-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing Kizen plugin reference docs (the generated .md reports) to agents.",
+  "bin": {
+    "kizen-plugin-reference-mcp": "server.mjs"
+  },
+  "scripts": {
+    "smoke-test": "node smoke-test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  }
+}
