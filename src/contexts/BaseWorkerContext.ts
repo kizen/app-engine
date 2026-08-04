@@ -492,10 +492,22 @@ export class BaseWorkerContext {
   }
 
   public async completeSetup(payload: UnknownJSON, options?: CompleteSetupOptions): Promise<void> {
+    if (!this.pluginApiName) {
+      throw new Error(
+        'completeSetup is not available for scripts not associated to a plugin',
+      );
+    }
+
     const candidate: unknown = payload;
 
     if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
       throw new Error('completeSetup requires a configuration object');
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(candidate);
+
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error('completeSetup requires a plain configuration object');
     }
 
     await this.completeSetupHandler(payload, options);
