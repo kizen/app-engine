@@ -49,6 +49,7 @@ export const useFloatingFrameCustomScript = ({
     business,
     clientObject,
     appPath,
+    onCompleteSetup,
   } = useAppState();
 
   const { showModal, showCreateRecordModal, showCreateRelatedRecordModal, closeCurrentModal } =
@@ -166,6 +167,10 @@ export const useFloatingFrameCustomScript = ({
 
           void executeScript(body, eventArgs);
         },
+        onCompleteSetup: onCompleteSetup
+          ? (payload, completeSetupOptions) =>
+              onCompleteSetup(plugin.plugin_api_name, payload, completeSetupOptions)
+          : undefined,
       });
     },
     [
@@ -197,6 +202,7 @@ export const useFloatingFrameCustomScript = ({
       invalidateCache,
       t,
       closeCurrentModal,
+      onCompleteSetup,
     ],
   );
 
