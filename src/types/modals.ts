@@ -146,6 +146,7 @@ export interface SetupAssistantConfig {
   fields?: SetupAssistantField[] | undefined;
   actions?: AssistantConfigAction[] | undefined;
   services?: ConfigService[] | undefined;
+  view?: string | undefined;
 }
 
 export interface AssistantConfigAction {

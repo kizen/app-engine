@@ -41,6 +41,7 @@ export const useGenericAppCustomScript = ({
     business,
     clientObject,
     appPath,
+    onCompleteSetup,
   } = useAppState();
 
   const { getRunnerState, getRunnerStateUpdater } = useRunnerState();
@@ -149,6 +150,14 @@ export const useGenericAppCustomScript = ({
 
           void executeScript(body, eventArgs, executionPlugin);
         },
+        onCompleteSetup: onCompleteSetup
+          ? (payload, completeSetupOptions) =>
+              onCompleteSetup(
+                plugin?.plugin_api_name ?? executionPlugin?.plugin_api_name ?? '',
+                payload,
+                completeSetupOptions,
+              )
+          : undefined,
       });
     },
     [
@@ -178,6 +187,7 @@ export const useGenericAppCustomScript = ({
       invalidateCache,
       t,
       closeCurrentModal,
+      onCompleteSetup,
     ],
   );
 

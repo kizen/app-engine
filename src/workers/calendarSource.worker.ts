@@ -66,6 +66,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       openCreateRelatedRecord: notAllowed('openCreateRelatedRecord'),
       showViewInModal: notAllowed('showViewInModal'),
       closeModal: notAllowedVoid('closeModal'),
+      completeSetup: notAllowed('completeSetup'),
       pluginApiName,
       location,
     });

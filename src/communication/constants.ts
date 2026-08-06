@@ -34,6 +34,7 @@ export const ACTIONS = {
   CLOSE_MODAL_REQUEST: 'closemodal:request',
   CONSOLE_LOG: 'consolelog',
   RUN_EVENT_SCRIPT: 'runeventscript',
+  COMPLETE_SETUP_REQUEST: 'completesetup:request',
 };
 
 export const RESPONSES = {
@@ -47,6 +48,7 @@ export const RESPONSES = {
   REFRESH_ENTITY_RESPONSE: 'refreshentity:response',
   CREATE_RECORD_RESPONSE: 'createrecord:response',
   CREATE_RELATED_RECORD_RESPONSE: 'createrelatedrecord:response',
+  COMPLETE_SETUP_RESPONSE: 'completesetup:response',
 };
 
 export const COMMUNICATIONS = {

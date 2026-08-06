@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import type {
+  CompleteSetupOptions,
   InternalSessionData,
   SetInternalSessionDataFn,
   ShowToastOptions,
@@ -49,6 +50,8 @@ import type {
   ShowViewInModalRequestEvent,
   CloseModalRequestEvent,
   OnRunEventScriptFn,
+  OnCompleteSetupFn,
+  CompleteSetupRequestEvent,
   RunEventScriptEvent,
 } from './types/run.js';
 import type {
@@ -128,6 +131,7 @@ export class WorkerManager {
   private appPath: string;
   private onConsoleLog?: OnConsoleLogFn | undefined;
   private onRunEventScript?: OnRunEventScriptFn | undefined;
+  private onCompleteSetup?: OnCompleteSetupFn | undefined;
   private isDebug: boolean;
 
   constructor(args: {
@@ -158,6 +162,7 @@ export class WorkerManager {
     appPath: string;
     onConsoleLog?: OnConsoleLogFn | undefined;
     onRunEventScript?: OnRunEventScriptFn | undefined;
+    onCompleteSetup?: OnCompleteSetupFn | undefined;
     isDebug?: boolean;
   }) {
     this.scriptUIRef = args.scriptUIRef;
@@ -186,6 +191,7 @@ export class WorkerManager {
     this.appPath = args.appPath;
     this.onConsoleLog = args.onConsoleLog;
     this.onRunEventScript = args.onRunEventScript;
+    this.onCompleteSetup = args.onCompleteSetup;
     this.isDebug = args.isDebug ?? false;
 
     if (this.plugin) {
@@ -231,6 +237,17 @@ export class WorkerManager {
         const consideredEvent = event as UIOutputEvent;
 
         this.handleUIOutput(consideredEvent.markup, consideredEvent.options);
+
+        return;
+      }
+      case ACTIONS.COMPLETE_SETUP_REQUEST: {
+        const consideredEvent = event as CompleteSetupRequestEvent;
+
+        await this.handleCompleteSetupRequest(
+          consideredEvent.id,
+          consideredEvent.payload,
+          consideredEvent.options,
+        );
 
         return;
       }
@@ -623,6 +640,34 @@ export class WorkerManager {
       const sanitizedMarkup = getPluginSafeHTML(markup, this.pluginApiName, options).html;
 
       this.scriptUIRef.current.innerHTML = sanitizedMarkup;
+    }
+  };
+
+  private handleCompleteSetupRequest = async (
+    id: string,
+    payload: UnknownJSON,
+    options?: CompleteSetupOptions,
+  ): Promise<void> => {
+    if (!this.onCompleteSetup) {
+      this.postMessage(RESPONSES.COMPLETE_SETUP_RESPONSE, {
+        id,
+        success: false,
+        error: 'Completing setup is not supported by this host',
+      });
+
+      return;
+    }
+
+    try {
+      await this.onCompleteSetup(payload, options);
+
+      this.postMessage(RESPONSES.COMPLETE_SETUP_RESPONSE, { id, success: true });
+    } catch (err) {
+      this.postMessage(RESPONSES.COMPLETE_SETUP_RESPONSE, {
+        id,
+        success: false,
+        error: err instanceof Error ? err.message : 'Setup configuration could not be saved',
+      });
     }
   };
 

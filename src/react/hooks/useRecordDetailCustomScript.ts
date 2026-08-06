@@ -41,6 +41,7 @@ export const useRecordDetailCustomScript = ({
     business,
     clientObject,
     appPath,
+    onCompleteSetup,
   } = useAppState();
 
   const { getRunnerState, getRunnerStateUpdater } = useRunnerState();
@@ -141,6 +142,10 @@ export const useRecordDetailCustomScript = ({
         performFileUpload,
         getPendingCacheCount,
         invalidateCache,
+        onCompleteSetup: onCompleteSetup
+          ? (payload, completeSetupOptions) =>
+              onCompleteSetup(executionPlugin?.plugin_api_name ?? '', payload, completeSetupOptions)
+          : undefined,
       });
     },
     [
@@ -173,6 +178,7 @@ export const useRecordDetailCustomScript = ({
       invalidateCache,
       t,
       closeCurrentModal,
+      onCompleteSetup,
     ],
   );
 
