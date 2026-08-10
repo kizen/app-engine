@@ -91,6 +91,7 @@
 | `this.closeModal(values?, canceled?)` | `this.*` method | [04](04-worker-runtime-api.md#thisclosemodalvalues-canceled) · [10](10-views-modals-forms.md#thisclosemodalvalues-canceled) |
 | `color` (data adornment) | adornment config field | [12](12-routes-calendars-adornments-settings.md#color) |
 | `this.config` | `this.*` data member | [04](04-worker-runtime-api.md#thisconfig) |
+| `this.completeSetup(payload, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thiscompletesetuppayload-options) · [13](13-setup-assistants.md#123-completing-setup) |
 | `config_template` | manifest field | [03](03-manifest-reference.md#config_template) · [glossary](glossary.md#config_template) |
 | `conflict_resolution` (outputs only) | step parameter field | [07](07-automation-steps.md#conflict_resolution-outputs-only) |
 | `connection_secret_tag` | input convention | [06](06-auth-secrets-services.md#the-connection_secret_tag-input-convention) |
@@ -145,7 +146,7 @@
 | `this.expand()` / `this.collapse()` (floating frame) | `this.*` method | [04](04-worker-runtime-api.md#thisexpand--thiscollapse) |
 | `GET /api/external-integrations/bootstrap` | REST endpoint | [05](05-platform-api.md#get-apiexternal-integrationsbootstrap) |
 | `GET /api/external-integrations/business-plugin-apps/{identifier}` | REST endpoint | [05](05-platform-api.md#get-apiexternal-integrationsbusiness-plugin-appsidentifier) |
-| `PATCH /api/external-integrations/business-plugin-apps/{identifier}` | REST endpoint | [05](05-platform-api.md#patch-apiexternal-integrationsbusiness-plugin-appsidentifier) · [13](13-setup-assistants.md#123-writing-business-config-from-a-script) |
+| `PATCH /api/external-integrations/business-plugin-apps/{identifier}` | REST endpoint | [05](05-platform-api.md#patch-apiexternal-integrationsbusiness-plugin-appsidentifier) · [13](13-setup-assistants.md#133-writing-business-config-from-a-script) |
 | `GET /api/external-integrations/business-plugin-apps/{identifier}/services/{service_name}/authorize` | REST endpoint | [06](06-auth-secrets-services.md#get-apiexternal-integrationsbusiness-plugin-appsidentifierservicesservice_nameauthorize) |
 | `POST /api/external-integrations/business-plugin-apps/{identifier}/services/{service_name}/logout` | REST endpoint | [06](06-auth-secrets-services.md#post-apiexternal-integrationsbusiness-plugin-appsidentifierservicesservice_namelogout) |
 | `GET /api/external-integrations/oauth/callback` | REST endpoint | [06](06-auth-secrets-services.md#get-apiexternal-integrationsoauthcallback) |
@@ -196,10 +197,11 @@
 | `kizen.json` | manifest (file) | [03](03-manifest-reference.md) · [02](02-getting-started.md#kizenjson) · [glossary](glossary.md#kizenjson) |
 | `KizenRequestError` | error class | [04](04-worker-runtime-api.md#kizenrequesterror) · [15](15-errors-and-observability.md#6-kizenrequesterror-proxy-vs-upstream-status) |
 | `__kizen_setup_assistant_values` | reserved config key | [13](13-setup-assistants.md#91-save-mechanics-both-scopes) · [05](05-platform-api.md#patch-apiexternal-integrationsbusiness-plugin-appsidentifier) |
-| `__kizen_user_config` | reserved config key | [04](04-worker-runtime-api.md#thisargs) · [13](13-setup-assistants.md#121-browser-surfaces-js) |
+| `__kizen_user_config` | reserved config key | [04](04-worker-runtime-api.md#thisargs) · [13](13-setup-assistants.md#131-browser-surfaces-js) |
 | `label` (step parameter / settings item) | artifact config field | [07](07-automation-steps.md#label) · [12](12-routes-calendars-adornments-settings.md#label) |
 | `link` (assistant field type) | assistant field type | [13](13-setup-assistants.md#512-link) |
 | `this.location` | `this.*` data member | [04](04-worker-runtime-api.md#thislocation) |
+| `manifest/setup-assistant-*` (validation rules) | validation rule | [13](13-setup-assistants.md#125-packaging-validation) · [03](03-manifest-reference.md) |
 | `match` / `ignore` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#match-ignore) |
 | `message_handler` (`message.js`) | artifact config field | [11](11-output-ui-iframes-frames.md#message_handler-routing) · [03](03-manifest-reference.md#floatingframesname) |
 | `minimized_style` / `minimized_config` | frame config field | [11](11-output-ui-iframes-frames.md#minimized_style-minimized_config) |
@@ -296,6 +298,7 @@
 | `this.setIndicator(indicator?)` | `this.*` method | [04](04-worker-runtime-api.md#thissetindicatorindicator) |
 | `this.setSessionData(update)` | `this.*` method | [04](04-worker-runtime-api.md#thissetsessiondataupdate) · [14](14-navigation-and-communication.md#thissessiondata--thissetsessiondataupdate--communication-semantics) |
 | `setup_assistant` | manifest field | [03](03-manifest-reference.md#setup_assistant--user_setup_assistant) · [13](13-setup-assistants.md#2-declaring-an-assistant) · [glossary](glossary.md#setup-assistant) |
+| `setup_assistant.view` / `user_setup_assistant.view` | manifest field | [03](03-manifest-reference.md#setup_assistant--user_setup_assistant) · [13](13-setup-assistants.md#121-declaring-one) |
 | Setup-assistant hash / re-prompt | concept | [13](13-setup-assistants.md#10-re-prompt-on-config-hash-change) · [glossary](glossary.md#setup-assistant-hash) |
 | `this.setUserConfig(config)` | `this.*` method | [04](04-worker-runtime-api.md#thissetuserconfigconfig) |
 | `this.show(config?)` (floating frame) | `this.*` method | [04](04-worker-runtime-api.md#thisshowconfig) |
@@ -322,6 +325,7 @@
 | `user_setup_assistant` | manifest field | [03](03-manifest-reference.md#setup_assistant--user_setup_assistant) · [13](13-setup-assistants.md#2-declaring-an-assistant) · [glossary](glossary.md#user-setup-assistant) |
 | `version` | manifest field | [03](03-manifest-reference.md#version) · [16](16-release-and-publish.md#how-big-a-bump) · [glossary](glossary.md#version) |
 | `views/<name>/` | artifact directory | [03](03-manifest-reference.md#viewsname) · [10](10-views-modals-forms.md#directory-layout-and-configjson) |
+| View-based setup assistant | concept | [13](13-setup-assistants.md#12-view-based-setup-assistants) · [glossary](glossary.md#view-based-setup-assistant) |
 | `this.wait(ms)` | `this.*` method | [04](04-worker-runtime-api.md#thiswaitms) |
 | `when` | artifact config field / gating clause | [03](03-manifest-reference.md#when-conditions) · [07](07-automation-steps.md#when) · [09](09-blocks.md#when) · [11](11-output-ui-iframes-frames.md#when) · [12](12-routes-calendars-adornments-settings.md#when-gating-on-these-surfaces) · [13](13-setup-assistants.md#6-when-inside-the-assistant) · [glossary](glossary.md#when-clause) |
 | `width` / `height` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#width-height) |

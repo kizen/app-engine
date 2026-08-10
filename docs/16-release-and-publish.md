@@ -170,8 +170,10 @@ Behaviorally, per push:
 1. **Validate.** The manifest and every artifact `config.json` are validated against the rule
    set in [manifest reference §10](03-manifest-reference.md#10-validation-rules). On a pull
    request this also compares against the base branch: each plugin's `version` must strictly
-   increase and no `api_name` may disappear or change. Script bodies and `assistant.json` are
-   not inspected here — malformed scripts fail at runtime, not in validation.
+   increase and no `api_name` may disappear or change. Script bodies are not inspected here —
+   malformed scripts fail at runtime, not in validation. `assistant.json` is parsed and
+   shape-checked (`manifest/setup-assistant-parse`, `manifest/setup-assistant-shape`), but its
+   field content is not.
 2. **Build.** JavaScript artifact scripts are minified; Python step scripts are shipped
    verbatim; CSS, HTML and icon assets are inlined (custom icon files become data URIs).
 3. **Package.** Manifest defaults are applied, the entry directory is walked, artifacts are
@@ -196,6 +198,12 @@ and a version that fails validation is never sent.
 `.kizenapp/` directory, so you can inspect the exact payload before pushing. Run it before
 every release commit. Its rule set can lag the pipeline's by a release, so a clean local build
 is a strong signal, not a guarantee.
+
+That lag matters for the setup-assistant `view` key: the six rules that validate a view-based
+assistant (`manifest/setup-assistant-view-conflict`, `-view-not-found`, `-shape`, `-parse`,
+`-orphaned-field-scripts` and `-disabled-keys-ignored`) require `@kizenapps/packager` 0.5.0, so
+a build on an older packager reports none of them. They are listed with their triggers in
+[manifest reference §10](03-manifest-reference.md#10-validation-rules).
 
 ---
 

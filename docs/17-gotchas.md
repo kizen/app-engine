@@ -15,7 +15,7 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 - **The manifest `engine` field must be exactly `"1.0.0"` — it is a fixed value, not a version choice.**
   The packager validates against an exact-match allowlist of `['1.0.0']`, and nothing at runtime
-  branches on it. The engine library itself is at 1.8.0; do not try to express engine requirements
+  branches on it. The engine library itself is at 1.9.1; do not try to express engine requirements
   through this field. → [03-manifest-reference.md](03-manifest-reference.md)
 
 - **`kizen.json` can be a top-level JSON array (multi-plugin repo) — parse and tool accordingly.**
@@ -256,7 +256,9 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   sibling key. → [05-platform-api.md](05-platform-api.md)
 
 - **Business plugin config cannot be created from a script — the row exists only after install.**
-  Before install (or in a sandbox without one), both GET and PATCH 404. → [05-platform-api.md](05-platform-api.md)
+  Before install (or in a sandbox without one), both GET and PATCH 404, and a business-level
+  `completeSetup` rejects for the same reason — there is no stored record to merge into.
+  → [05-platform-api.md](05-platform-api.md)
 
 - **Never hardcode your plugin's api_name in scripts — preview builds publish under a suffixed api_name.**
   Hardcoded literals 404 in preview deployments. Always build URLs from `this.pluginApiName`
@@ -384,6 +386,46 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   There is essentially zero packager validation of assistant fields; malformed assistants publish
   and fail at runtime. The valid types are: `custom_object, description, container, field, text,
   number, select, boolean, qr, image, link`. → [13-setup-assistants.md](13-setup-assistants.md)
+
+- **`completeSetup(payload)` REPLACES `__kizen_clean_config` wholesale — every key missing from the payload is gone.**
+  The host assigns it directly: `{ ...existingConfig, __kizen_clean_config: payload }`. A view that
+  edits one setting must still send every load-bearing key, including keys other surfaces of the
+  same plugin read. Build the full object — `await this.completeSetup({ ...this.config, apiKey: next })`
+  — remembering `this.config` is a load-time snapshot.
+  → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **Every `completeSetup` call stamps `__kizen_setup_assistant_hash`, and nothing checks which surface called it.**
+  The hash covers the assistant definition, so stamping it suppresses the install-time setup prompt
+  on the next enable — including after a version bump that changed the assistant. A plugin that
+  calls `completeSetup` from a block or toolbar item without actually running setup stops prompting
+  for setup. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **An unguarded form-submit handler can `completeSetup` a blank payload — wiping the config AND suppressing the prompt.**
+  Click-path dispatch supplies no `this.args.formData`, so a click landing on a
+  `<form data-script=…>` element's own padding or grid gaps runs the handler with `formData`
+  undefined. A setup view that reads the form data and passes it to `completeSetup` then writes an
+  empty clean config and stamps the hash: the plugin's config is wiped and it stops prompting for
+  setup. Every submit handler needs `const formData = this.args?.formData; if (!formData) return;`
+  before it builds a payload. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **`completeSetup` does not write `__kizen_setup_assistant_values` — the raw answer store the declarative renderer repopulates its form from.**
+  On a plugin that has both a declarative assistant and a `completeSetup` caller, the next
+  declarative save regenerates the clean config from that untouched values store and discards what
+  `completeSetup` wrote. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **A multi-step setup view must call `completeSetup` exactly once, at its terminal step.**
+  A successful call fires the host's completion callback, which closes the setup modal — a
+  mid-wizard call slams the modal shut on an unfinished user.
+  → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **`base_config.disabled_keys` has no effect on what a view-based assistant saves.**
+  It only filters the values a declarative field list writes. The packager emits a warning when the
+  two are combined. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **Views aren't feature-flag filtered and take no `when` clause — so a setup view can't be conditionally hidden.**
+  Most other artifact types declare `when`; views and pages do not. If setup needs to branch on
+  config or flags, branch inside the view.
+  → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
 
 ## UI output & sanitization
 
@@ -764,8 +806,9 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 - **The calendar worker blocks UI-ish APIs at CALL time, not parse time.**
   `uploadFile`, `installThirdPartyScript`, `refreshEntityForId`, `openCreateRecordModal`,
-  `openCreateRelatedRecordModal`, `showViewInModal`, `closeModal` all throw "not supported in
-  calendar source scripts" when invoked. `prompt`/`dynamicPrompt` remain available. → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md)
+  `openCreateRelatedRecordModal`, `showViewInModal`, `completeSetup` all **reject** with "not
+  supported in calendar source scripts" — so an un-awaited call fails silently. `closeModal` alone
+  throws synchronously. `prompt`/`dynamicPrompt` remain available. → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md)
 
 - **The query range (`range_start`/`range_end`) is day boundaries in the USER's timezone, with offsets.**
   Formatted `yyyy-MM-dd'T'HH:mm:ssXXX`. Pass them through to the provider encoded
