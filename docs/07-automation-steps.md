@@ -218,8 +218,8 @@ Same scoping rules as other artifact configs: `{{config.key}}` for business-leve
 values and `{{userConfig.key}}` for user-level ones. (Setup-assistant-internal `when` expressions
 use bare `{{key}}` — a different scope; see [setup assistants](13-setup-assistants.md).)
 
-Any `when` anywhere in the plugin makes the host load install config before evaluating
-visibility. That is expected, not a defect.
+A `when` on a step makes the host load install config before evaluating visibility (the packaged
+`block_loading_for_setup` flag). That is expected, not a defect.
 
 A missing config key resolves to null, so the expression evaluates false and the step silently
 disappears from the picker. Setup-assistant `default` values reach `when` evaluation but do **not**

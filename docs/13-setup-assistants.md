@@ -765,8 +765,10 @@ A key whose value did not clean successfully is simply absent. `this.config` is 
 
 ### 9.4 Gating artifacts with `when`
 
-Artifact `config.json` files (blocks, floating frames, toolbar items, data adornments, object settings
-items, calendar sources, Agentic Workflow steps) may carry a `when` expression referencing both scopes:
+Seven artifact types (blocks, floating frames, toolbar items, data adornments, object settings
+items, calendar sources, Agentic Workflow steps) may carry a `when` expression in `config.json`
+referencing both scopes. Actions, pages, route scripts and views cannot — a `when` on one of those
+is discarded at package time without a warning:
 
 ```json
 {
@@ -788,8 +790,9 @@ Mechanics:
 - An **absent** `when` means always enabled.
 - All `when` expressions across all enabled plugins are evaluated in parallel at bootstrap, and
   re-evaluated in the background when a plugin is enabled later.
-- Declaring `when` on any artifact automatically sets `block_loading_for_setup` on the published
-  manifest.
+- A `when` on a block, data adornment, toolbar item, calendar source or Agentic Workflow step
+  sets `block_loading_for_setup` on the published manifest; a `when` on a floating frame or an
+  object settings item does not.
 - A `false` result does not disable the artifact visibly — it is **filtered out of every collection**,
   so it simply is not there. Debug a "missing" surface by checking its `when` first.
 
@@ -895,8 +898,6 @@ see [§12.2](#122-what-the-host-provides--and-what-it-does-not).
 ---
 
 ## 12. View-based setup assistants
-
-*Requires `@kizenapps/engine` 1.9.0 and `@kizenapps/packager` 0.5.0.*
 
 Point an assistant slot at one of the plugin's own views and the declarative renderer steps aside
 entirely: the view draws the whole setup experience and persists it by calling

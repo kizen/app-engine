@@ -459,13 +459,15 @@ See [§6 `developer_business_id`](#6-developer_business_id).
 
 ### `block_loading_for_setup`
 
-Boolean, **computed by the packager — do not author it**. It is set to `true` automatically
-when any artifact `config.json` in the plugin carries a `when` condition, and tells the host to
-resolve install config before evaluating conditions, so conditional artifacts do not flicker
-or mis-evaluate at bootstrap.
+Boolean, **computed by the packager — do not author it.** A hand-set value is overwritten with
+the computed one, so writing `true` yourself does not make a plugin blocking. The flag tells the
+host to resolve install config before evaluating conditions, so conditional artifacts do not
+flicker or mis-evaluate at bootstrap.
 
-Conditional data adornments, Agentic Workflow steps, toolbar items and calendar sources are
-what make a plugin "blocking"; frames and object settings items are evaluated without blocking.
+A `when` on a **block, data adornment, Agentic Workflow step, toolbar item or calendar source**
+is what makes a plugin "blocking". A `when` on a floating frame or an object settings item is
+evaluated without blocking: frames appear after the app has loaded either way, and object
+settings items sit in a sub-menu where a late evaluation causes no layout shift.
 
 ---
 
@@ -788,8 +790,10 @@ match `/^[a-z_][a-z0-9_]+$/` and must be unique among siblings in the same direc
 
 ### `when` conditions
 
-Any artifact `config.json` may carry a `when` string: a JavaScript expression, evaluated in an
-isolated worker after `{{...}}` interpolation, that decides whether the artifact is available.
+Seven artifact types may carry a `when` string in `config.json`: a JavaScript expression,
+evaluated in an isolated worker after `{{...}}` interpolation, that decides whether the artifact
+is available. Those types are **blocks, data adornments, floating frames, object settings items,
+toolbar items, calendar sources and Agentic Workflow steps**.
 
 ```json
 { "when": "Boolean({{config.enableBlocks}}) && !{{userConfig.hideExtras}}" }
@@ -804,9 +808,16 @@ isolated worker after `{{...}}` interpolation, that decides whether the artifact
 - Setup-assistant `default` values reach `when` evaluation before an admin ever saves, but they
   do **not** reach `this.config` at script runtime — only saved values do.
 - An absent `when` means "always available".
-- Any `when` anywhere in the plugin sets `block_loading_for_setup: true` on the package.
+- A `when` on a block, data adornment, toolbar item, calendar source or Agentic Workflow step
+  sets `block_loading_for_setup: true` on the package. A `when` on a floating frame or an object
+  settings item does not — see [`block_loading_for_setup`](#block_loading_for_setup).
 
-Views cannot be `when`-gated.
+**On `actions/`, `pages/`, `routeScripts/` and `views/` a `when` key is silently discarded.** The
+packager reads a fixed set of keys from each of those `config.json` files and `when` is not among
+them, so it never reaches the package, the backend or the host — and nothing warns you. Scope
+those surfaces another way: an action through its install-time object association, a route script
+through its object binding and `routes` regexes, and a page or view by gating whatever navigates
+to it.
 
 ### `actions/<name>/`
 

@@ -15,7 +15,7 @@
 - `this.showViewInModal(id)` resolves `id` against the combined collection by `api_name` — it can open anything declared under `views/` **or** `pages/`.
 - `api_name`s must be unique across views *and* pages (duplicate names fail packaging with `structure/duplicate-api-name`).
 - Only entries authored under `pages/` get a route and can appear in the toolbar; entries under `views/` are reachable only through `showViewInModal`.
-- Views cannot be `when`-gated (views are not in the conditionally-flagged artifact list); pages can't either — conditional visibility at this level applies to toolbar items, blocks, frames, and adornments, not to the pages collection itself.
+- Neither views nor pages can be `when`-gated — a `when` in either `config.json` is discarded at package time, silently. Conditional visibility applies to blocks, data adornments, floating frames, object settings items, toolbar items, calendar sources and Agentic Workflow steps, never to the `routable_pages` collection. Gate whatever navigates to a page instead.
 
 ### Directory layout and `config.json`
 

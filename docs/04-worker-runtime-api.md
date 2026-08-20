@@ -687,7 +687,8 @@ Persists a plugin's setup configuration and stamps the setup-assistant hash. It 
 supported write path for setup config, and the method a view-based setup assistant calls to save
 its answers — see [setup assistants](13-setup-assistants.md#12-view-based-setup-assistants) for
 the authoring guide. Available in generic contexts (views, `pages/`, blocks, toolbar items),
-record-detail, and floating-frame scripts. Not available in calendar-source scripts (throws).
+record-detail, and floating-frame scripts. Not available in calendar-source scripts, where it
+**rejects** with `completeSetup is not supported in calendar source scripts` rather than throwing.
 
 Argument problems throw **synchronously** rather than rejecting the returned promise:
 

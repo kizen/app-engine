@@ -41,8 +41,10 @@ installed configuration. When it evaluates falsy, the artifact **silently disapp
 - Keys are the setup-assistant field keys, case-sensitive. Note this scoping differs from
   setup-assistant-internal `when` expressions, which use bare `{{key}}` — see
   [setup assistants](13-setup-assistants.md).
-- Declaring any `when` anywhere in the plugin makes the host load the plugin's config before
-  evaluating conditions (a packaged `block_loading_for_setup` flag) — expected behavior, not a bug.
+- A `when` on a data adornment or a calendar source makes the host load the plugin's config
+  before evaluating conditions (the packaged `block_loading_for_setup` flag) — expected behavior,
+  not a bug. A `when` on an object settings item does not: the item sits in a sub-menu, so
+  evaluating it after load causes no layout shift.
 
 **Route scripts are the exception: they have no `when` field.** The packager reads only `name`,
 `api_name`, `hint_object_name`, and `routes` from a route script's `config.json`, and the runtime

@@ -122,6 +122,20 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   render (adornments/frames can use `customIconFile` → inlined `data:image/` URI instead).
   → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md)
 
+- **A `when` on an action, page, route script or view is silently discarded at package time.**
+  Only blocks, data adornments, floating frames, object settings items, toolbar items, calendar
+  sources and Agentic Workflow steps support conditions. The packager reads a fixed key set from
+  the other four and drops `when` with no error and no warning, so the artifact ships
+  unconditionally enabled and looks exactly like an expression that evaluated true.
+  → [03-manifest-reference.md](03-manifest-reference.md#when-conditions)
+
+- **Two data adornments on the same `field_type` cannot be gated independently.** Because an
+  adornment's identity is its `field_type` rather than an `api_name`, the host keys evaluated
+  conditions by `field_type` too — so same-type adornments in one plugin share a single result and
+  the last one evaluated wins for all of them. Give them one shared `when`, or fold them into a
+  single adornment.
+  → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md#when-data-adornment)
+
 ## Workers & HTTP
 
 - **Every script execution is a brand-new worker — nothing on `this`, module scope, or closures survives.**

@@ -87,7 +87,7 @@ Constraints are **not stored** in the placed dashlet — the host re-derives the
 |---|---|---|---|
 | `when` | string (expression) | no | Conditional enablement. Evaluated against install config: `{{config.key}}` reads the business setup-assistant value, `{{userConfig.key}}` reads the user-level value (internally rewritten to `config__key` / `userConfig__key`). Both scopes compose: `"Boolean({{config.x}}) && !{{userConfig.y}}"`. |
 
-When the expression is false the block **silently disappears**: it's filtered out of pickers, and already-placed dashlets show "This block is no longer available…" (record-layout placements collapse to nothing). There is no error or author-visible signal — if your block vanished after an install-config change, check its `when` first. Declaring any `when` anywhere in the plugin sets the package's `block_loading_for_setup: true` (the host loads config before evaluating conditions) — expected, not a bug.
+When the expression is false the block **silently disappears**: it's filtered out of pickers, and already-placed dashlets show "This block is no longer available…" (record-layout placements collapse to nothing). There is no error or author-visible signal — if your block vanished after an install-config change, check its `when` first. Declaring a `when` on a block sets the package's `block_loading_for_setup: true` (the host loads config before evaluating conditions) — expected, not a bug.
 
 ---
 
