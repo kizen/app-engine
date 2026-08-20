@@ -107,6 +107,12 @@ Global credentials live in `~/.kizenappbuilder`; per-repo state in `.kizenapp/`.
 1. **Edit → `npx --yes @kizenapps/cli build`.** Local validation is the fast feedback: manifest errors,
    missing `config.json`, bad api_names, duplicate names all fail here with stable rule ids.
 2. **`npx --yes @kizenapps/cli dev`** to render and click through surfaces locally against the real engine.
+
+   The viewer has no install flow, so it never emulates the setup-assistant hash or the
+   re-prompt-on-enable behavior that
+   [view-based setup assistants](13-setup-assistants.md#12-view-based-setup-assistants) depend on.
+   Forgetting to call `completeSetup` therefore produces **no local symptom** — the published
+   plugin just re-prompts for setup forever.
 3. **Push a branch and open a PR → preview build.** Pushes to non-release branches run
    validation only. Opening a PR creates a **preview deployment** in each target environment:
    - version forced to `0.0.0` (never bump versions for preview pushes),

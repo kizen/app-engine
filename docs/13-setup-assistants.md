@@ -1,9 +1,15 @@
 # Setup Assistants
 
-What this covers: the two declarative configuration wizards a plugin can ship — `setup_assistant`
+What this covers: the two configuration wizards a plugin can ship — `setup_assistant`
 (business-level, answered once per business) and `user_setup_assistant` (answered by every user for
 themselves) — where each renders, every field type and prop, how answers land in install config, how
 that config reaches scripts and `when` clauses, and how to write config back from a script.
+
+Each slot can be authored two ways: as a **declarative field list**, which the host renders for you
+(§2–§11), or as a **view** the plugin ships, which draws its own UI and saves itself
+([§12](#12-view-based-setup-assistants)). The declarative form is the default and the right answer
+for most plugins; reach for a view when the setup flow needs something the field renderer cannot
+express.
 
 See also: [manifest reference](03-manifest-reference.md), [worker runtime API](04-worker-runtime-api.md),
 [platform API](05-platform-api.md), [auth, secrets & services](06-auth-secrets-services.md),
@@ -24,8 +30,9 @@ See also: [manifest reference](03-manifest-reference.md), [worker runtime API](0
 | Authored at | `src/setupAssistant/assistant.json` or inline `kizen.json` `setup_assistant` | `src/userSetupAssistant/assistant.json` or inline `kizen.json` `user_setup_assistant` |
 | Storage | Business plugin-app `config` | Per-user plugin config, under `config.user_config` |
 | Blocking install step | Yes — shown on enable when the config hash changed | No — never blocks install |
-| `actions` (record-action ↔ object mapping) | Supported | **Not supported** (see [Gotchas](#16-gotchas)) |
+| `actions` (record-action ↔ object mapping) | Supported | **Not supported** (see [Gotchas](#17-gotchas)) |
 | `services` prerequisite step | Supported | Supported |
+| `view` instead of `fields` ([§12](#12-view-based-setup-assistants)) | Supported | Supported |
 
 Both use the identical schema and the identical renderer. Everything in §5–§8 applies to both unless
 noted.
@@ -90,6 +97,7 @@ yourself.
 | `fields` | `AssistantField[]` | no | The form. Rendered top to bottom. §5 |
 | `actions` | `string[]` | no | Record-action api_names to expose as an object-mapping step. §4 |
 | `services` | `{api_name, required, prerequisite}[]` | no | OAuth prerequisite step. §3 |
+| `view` | string | no | A `views/` component's api_name to render **instead of** `fields`. Mutually exclusive with `fields`, `actions`, and a `prerequisite: true` service. [§12](#12-view-based-setup-assistants) |
 
 ---
 
@@ -135,7 +143,9 @@ point at.
 At package time each string is resolved to the packaged action object (`{api_name, name, hint_object_name?}`,
 plus the minified script) and embedded into `base_config.setup_assistant.actions`. **A name that does
 not resolve to a packaged action fails packaging** with `structure/setup-assistant-action-ref`. This
-is the only structural validation the entire setup-assistant pipeline performs.
+is the only structural validation performed against a **declarative** assistant's contents — nothing
+checks field types, prop names, or `services[].api_name`. The view-based form is validated more
+strictly ([§12.5](#125-packaging-validation)).
 
 The step renders, per action, a container labelled with the action's `name` containing:
 
@@ -389,7 +399,7 @@ Kizen object picker. Saved value: `{ objectId, objectName }`.
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
 | `match_hint` | string | engine + renderer | Object **api_name**. On first render the assistant looks the object up and pre-selects it when it exists. `client_client` resolves to the business's contact object without a lookup. |
-| `allow_multiple` | boolean | packager + engine + renderer | Renders a multi-picker — but see the [Gotchas](#16-gotchas): multi-select does not survive into `this.config`. |
+| `allow_multiple` | boolean | packager + engine + renderer | Renders a multi-picker — but see the [Gotchas](#17-gotchas): multi-select does not survive into `this.config`. |
 | `required`, `tooltip`, `placeholder`, `when` | | as above | |
 
 ```json
@@ -688,8 +698,8 @@ Rules:
 - Files are matched by directory name to field `key`, including keys **nested inside containers**.
 - Files in a directory that matches no field key are ignored silently.
 - These scripts run **in the browser page rendering the assistant, not in a worker**. There is no
-  `this`, no `this.getServiceUrl`, no worker API at all — so none of the `this.*` calls shown in §12
-  or §15 (which are ordinary artifact scripts) are available here, and conversely `state` exists only
+  `this`, no `this.getServiceUrl`, no worker API at all — so none of the `this.*` calls shown in §13
+  or §16 (which are ordinary artifact scripts) are available here, and conversely `state` exists only
   in these five files. Build proxy URLs by hand:
   `/external-integrations/proxy/${state.pluginApiName}/<service_name>/<path>` — byte-identical to what
   `this.getServiceUrl` produces in a worker.
@@ -755,8 +765,10 @@ A key whose value did not clean successfully is simply absent. `this.config` is 
 
 ### 9.4 Gating artifacts with `when`
 
-Artifact `config.json` files (blocks, floating frames, toolbar items, data adornments, object settings
-items, calendar sources, Agentic Workflow steps) may carry a `when` expression referencing both scopes:
+Seven artifact types (blocks, floating frames, toolbar items, data adornments, object settings
+items, calendar sources, Agentic Workflow steps) may carry a `when` expression in `config.json`
+referencing both scopes. Actions, pages, route scripts and views cannot — a `when` on one of those
+is discarded at package time without a warning:
 
 ```json
 {
@@ -778,8 +790,9 @@ Mechanics:
 - An **absent** `when` means always enabled.
 - All `when` expressions across all enabled plugins are evaluated in parallel at bootstrap, and
   re-evaluated in the background when a plugin is enabled later.
-- Declaring `when` on any artifact automatically sets `block_loading_for_setup` on the published
-  manifest.
+- A `when` on a block, data adornment, toolbar item, calendar source or Agentic Workflow step
+  sets `block_loading_for_setup` on the published manifest; a `when` on a floating frame or an
+  object settings item does not.
 - A `false` result does not disable the artifact visibly — it is **filtered out of every collection**,
   so it simply is not there. Debug a "missing" surface by checking its `when` first.
 
@@ -824,9 +837,14 @@ Behavioral consequences:
   answers are preserved; the user confirms and the new hash is stamped.
 - The user assistant has no such gate — it never blocks, and is reached from the plugin's User
   Settings panel.
-- If your plugin configures itself outside the declarative assistant (a view or an action that writes
-  business config directly), it must write a matching `__kizen_setup_assistant_hash` itself or the
-  install modal reappears on every enable.
+- A [view-based assistant](#12-view-based-setup-assistants) is gated by the same hash. Its definition
+  is the whole assistant object — for a view-only slot that is just `{"view": "..."}`, so the hash
+  changes when you point it at a different view, but *not* when you change what the view renders.
+  Shipping new questions inside an existing setup view does not re-prompt anyone.
+- `this.completeSetup()` stamps the hash for you ([§12.3](#123-completing-setup)). A plugin that
+  configures itself some other way — an action writing business config through a raw PATCH — must
+  write a matching `__kizen_setup_assistant_hash` itself, or the install modal reappears on every
+  enable.
 
 Uninstalling (disabling) a plugin does **not** clear its config — re-enabling with an unchanged
 assistant goes straight through with the old answers intact.
@@ -873,14 +891,195 @@ The same field renderer backs `dynamicPrompt` modals raised from scripts, which 
 types feel familiar there. That surface has its own value contract (plain values, not the array
 wrapping of view forms) — see [views, modals & forms](10-views-modals-forms.md).
 
-> View-based setup assistants (pointing `setup_assistant` at a view instead of `fields`) are not
-> available. Declarative assistants are the only shipped form.
+Everything in §11.1 and §11.2 describes where the *declarative* renderer appears. A view-based
+assistant occupies the same four surfaces, with different chrome —
+see [§12.2](#122-what-the-host-provides--and-what-it-does-not).
 
 ---
 
-## 12. How config reaches scripts
+## 12. View-based setup assistants
 
-### 12.1 Browser surfaces (JS)
+Point an assistant slot at one of the plugin's own views and the declarative renderer steps aside
+entirely: the view draws the whole setup experience and persists it by calling
+[`this.completeSetup()`](#123-completing-setup). Everything the field renderer gives you for free —
+layout, validation, the OAuth step, the object-mapping step, the Save button — becomes the view's
+job.
+
+Use it when setup genuinely does not fit a flat form: a multi-step wizard, a flow whose next question
+depends on a remote call, a live preview of what the plugin will do, an approval or connection-test
+gate. Prefer the declarative form otherwise. A view is materially more code, and it opts out of the
+one thing the declarative path is very good at — being impossible to get subtly wrong.
+
+### 12.1 Declaring one
+
+Set `view` to a view's api_name, in either authoring style:
+
+```json
+{
+  "setup_assistant": { "view": "plugin_setup_form" },
+  "user_setup_assistant": { "view": "plugin_user_setup_form" }
+}
+```
+
+The two slots are independent — a plugin may ship a view for one and a declarative field list for the
+other.
+
+| Rule | Detail |
+|---|---|
+| Value | The view's **resolved `api_name`**, from `src/views/<dir>/config.json` — not the directory name. `views/businessSettings/` declaring `api_name: business_settings_form` is referenced as `business_settings_form`. |
+| Must be a view | A `pages/` component is rejected, even though pages and views are otherwise near-identical. |
+| Mutually exclusive with | A non-empty `fields`, a non-empty `actions`, and any `services` entry with `prerequisite: true`. A `services` entry without `prerequisite` is inert either way and does not conflict. |
+| Treated as absent | `null` and `""`. Both fall through to the declarative path. |
+| Per-field scripts | Ignored. Field scripts are only injected into a declarative field list. |
+
+`view` passes through packaging verbatim into `base_config.setup_assistant.view`.
+
+### 12.2 What the host provides — and what it does not
+
+The view occupies the same four surfaces as the declarative renderer (§11), with almost no chrome
+around it:
+
+| | Declarative | View-based |
+|---|---|---|
+| Install/enable modal | Titled modal, host Save/Confirm footer | **Frameless** modal, fixed at 900px wide. No header, no footer, no close button. |
+| Configure / User Settings panels | Inline form with an inline Save | Rendered inline, bleeding to the card edges |
+| OAuth prerequisite step | Rendered from `services` | **Not rendered.** The view calls `this.authorize()` itself — after checking the service isn't already connected (a proxy call returning 503 means "not connected", see [06](06-auth-secrets-services.md#503--not-connected)). |
+| Action ↔ object mapping step | Rendered from `actions` | Not rendered. The view creates associations itself if it needs them — see [actions](08-actions.md). |
+| Save button | Supplied by the host | **Supplied by the view.** Its `completeSetup()` call is the save. |
+| Validation | Host-enforced per field | The view's own. |
+
+What the host still does:
+
+- Shows a loading indicator while the view's worker boots, and reserves a minimum height so the
+  modal does not collapse.
+- Closes the modal after a successful `completeSetup()` (§12.3).
+- Honors Escape and backdrop click, which is the **cancel path** — nothing is written and nothing is
+  stamped. There is no confirm-on-dirty guard, so a half-finished setup is discarded silently. If
+  that matters, keep the view's own state recoverable rather than trying to block the dismissal.
+- Still runs a blocking schema-import step **ahead** of the view, exactly as it does for a
+  declarative assistant (§11.1).
+
+The modal cannot choose its own width — unlike `showViewInModal`, the setup surface is always the
+900px size. Design for that.
+
+A view-based assistant also cannot be conditionally hidden. Views aren't feature-flag filtered and
+take no `when` clause — most other artifact types declare one, but views and pages do not — so
+nothing can gate the setup surface on config or flags. If setup needs to branch, branch inside the
+view.
+
+### 12.3 Completing setup
+
+```ts
+completeSetup(payload: Record<string, unknown>, options?: { level?: 'business' | 'user' }): Promise<void>
+```
+
+`payload` is the **clean config** — ordinary plugin-shaped keys, exactly what scripts will later read
+as `this.config.<key>` / `this.userConfig.<key>`. The host wraps it as `__kizen_clean_config`, stamps
+`__kizen_setup_assistant_hash`, and writes it to the business record or to the user's
+`config.user_config` depending on the level. You never write those reserved key names yourself.
+
+```js
+// src/views/pluginSetupForm/eventScripts/save.js
+const formData = this.args?.formData;
+
+// A click landing on the form's own padding runs this handler with no form data.
+// Without this guard the call below saves an empty config over a good one.
+if (!formData) {
+  return;
+}
+
+try {
+  await this.completeSetup({
+    accountSlug: formData.accountSlug?.[0] ?? '',
+    syncMode: formData.syncMode?.[0] ?? 'incremental',
+    enableReports: formData.enableReports?.[0] === 'true',
+  });
+} catch (error) {
+  // Scripts run in a worker with no DOM, so there is no inline error to render.
+  this.showToast('Could not save setup. Please try again.', { variant: 'failure' });
+}
+```
+
+Rules that follow from how the write works:
+
+- **The payload replaces `__kizen_clean_config` wholesale.** Any key that was there before and is
+  absent from the payload is gone. A view that edits one setting must still send every key the
+  plugin's other surfaces read — spread the current config and override:
+  `await this.completeSetup({ ...this.config, apiKey: next })`. Remember `this.config` is a
+  load-time snapshot, so a long-lived wizard should build the payload from its own state, not from a
+  stale proxy.
+- **Sibling `__kizen_*` keys survive.** The host re-reads the stored record and merges, so the
+  answer store, schema-import bookkeeping, and any `config_template` keys are preserved. This is what
+  makes it safer than the hand-rolled PATCH in [§13.3](#133-writing-business-config-from-a-script).
+- **Call it exactly once, at the end.** A successful call closes the setup modal. In a multi-step
+  view, calling it at step 2 of 5 shuts the modal on a user who is not finished. Persist intermediate
+  state some other way if you need to.
+- **`options.level` is for calls made off the setup surface.** While a setup surface is live the host
+  resolves the level from that surface and ignores what you pass, so a setup view never needs it —
+  and an author who hardcodes the wrong one cannot misroute the write. It defaults to `'business'`
+  everywhere else.
+- **The business-level write fails if the plugin has never been installed** for that business. There
+  is no record to merge into.
+- After a successful write the host refetches the plugin's artifacts and feature flags, so surfaces
+  gated by a `when` clause on the values just collected appear without a page reload (§9.4).
+
+Errors: the returned promise **rejects** if `payload` is not a plain object (`null`, an array, or a
+class instance are all rejected), and also if the write fails or the host wired no handler. Nothing
+throws synchronously, so an un-awaited call fails silently. Full signature
+notes, including which surfaces expose it, are in the
+[worker runtime API](04-worker-runtime-api.md).
+
+> `completeSetup` is not limited to setup views — it is available on ordinary surfaces too, which is
+> how a plugin re-opens its own configuration from a block or toolbar item. That reach has a sharp
+> edge: **every** call stamps the setup hash, so a stray call from a non-setup surface suppresses the
+> install-time prompt on the next enable (§10).
+
+### 12.4 Reading existing config in a setup view
+
+A setup view is an ordinary view. It receives the plugin's business config as args, so
+`this.config` and `this.userConfig` work normally and are the right way to prefill the form on a
+re-run.
+
+It receives nothing else: no level, no "this is setup" flag, no indication of which surface it is on.
+A view used both as a setup surface and as a toolbar item has to infer that itself — usually from
+whether `this.config` is already populated.
+
+### 12.5 Packaging validation
+
+Unlike the declarative form, the view-based form is checked at package time (§4). Six rules:
+
+| Rule | Severity | Fires when |
+|---|---|---|
+| `manifest/setup-assistant-view-conflict` | error | `view` set alongside a non-empty `fields`, a non-empty `actions`, or a `prerequisite: true` service |
+| `manifest/setup-assistant-view-not-found` | error | `view` matches no view in the plugin — with a distinct message when the name matches a `pages/` component |
+| `manifest/setup-assistant-shape` | error | An inline assistant is not a JSON object, or `view` is present but not a string |
+| `manifest/setup-assistant-parse` | error | `assistant.json` is not valid JSON, or parses to a non-object |
+| `manifest/setup-assistant-orphaned-field-scripts` | warning | `view` is set but the assistant directory still ships per-field scripts |
+| `manifest/setup-assistant-disabled-keys-ignored` | warning | `base_config.disabled_keys` is non-empty while any assistant on the plugin is view-based |
+
+Two of these are worth understanding rather than just fixing:
+
+- **`disabled_keys` is a warning, not an error.** It lives at `base_config.disabled_keys`, outside
+  either assistant, and the host applies the same array to both — so a plugin with one view-based
+  and one declarative assistant still legitimately needs it (§9.5). It simply has no effect on what a
+  view saves. Remove it once no assistant on the plugin is declarative.
+- **The view-versus-page rule is only enforceable here.** Views and pages compile into a single
+  `routable_pages` collection in the published payload, so nothing downstream can tell them apart.
+  If this check does not run, pointing `view` at a page fails at render time instead, with no useful
+  message.
+
+### 12.6 Local testing
+
+The local viewer has no install flow, so it does not emulate the setup hash or the
+re-prompt-on-enable behavior. A view that never calls `completeSetup` therefore looks fine locally
+and re-prompts forever once published. Check the published behavior before shipping — see
+[getting started](02-getting-started.md) for the current state of local setup-view support.
+
+---
+
+## 13. How config reaches scripts
+
+### 13.1 Browser surfaces (JS)
 
 Every browser artifact config is stamped at load time with `args = <the plugin's business config>`.
 That is the whole business config object, so:
@@ -904,22 +1103,25 @@ if (!objectId) {
 ```
 
 Both proxies are **read-only and snapshot-in-time**: a value written during this run does not appear
-until the next worker load. Prefill UI from a fresh read instead (§12.3).
+until the next worker load. Prefill UI from a fresh read instead (§13.3).
 
 `this.userConfig` (user-assistant answers) is a different store from
 `this.getUserConfig()` / `this.setUserConfig()` (per-component scratch state) — see
 [worker runtime API](04-worker-runtime-api.md).
 
-### 12.2 Python Agentic Workflow steps
+### 13.2 Python Agentic Workflow steps
 
 Python steps do not receive `this.config`. To read business config in a step, the workflow builder
 maps an input to the business-plugin-config source, which arrives as a JSON string under that input's
 name. See [Agentic Workflow steps](07-automation-steps.md).
 
-### 12.3 Writing business config from a script
+### 13.3 Writing business config from a script
 
-There is no `setBusinessConfig` on the worker context (only `getUserConfig`/`setUserConfig` for the
-per-user store). Business config is written with a plain platform call:
+For **setup** config, use [`this.completeSetup()`](#123-completing-setup) — it writes the same store
+the assistant does, preserves the sibling `__kizen_*` keys, and stamps the hash. Everything below is
+for the rest of the business config: arbitrary top-level keys a plugin maintains at runtime, which
+have no dedicated helper (there is no `setBusinessConfig`) and are written with a plain platform
+call:
 
 ```
 GET   /external-integrations/business-plugin-apps/{identifier}
@@ -973,7 +1175,7 @@ See [platform API](05-platform-api.md) for the endpoint shapes and the `*WithErr
 
 ---
 
-## 13. Which layer recognizes which prop
+## 14. Which layer recognizes which prop
 
 Three layers touch an assistant field, and they do not agree:
 
@@ -1016,7 +1218,7 @@ workflow builder offers `overwrite`, `update_if_blank`, `add_only`, `remove_only
 
 ---
 
-## 14. Complete example — business setup assistant
+## 15. Complete example — business setup assistant
 
 `src/setupAssistant/assistant.json`:
 
@@ -1265,7 +1467,7 @@ Gating an artifact on it, in `src/toolbarItems/reports/config.json`:
 
 ---
 
-## 15. Complete example — user setup assistant
+## 16. Complete example — user setup assistant
 
 `src/userSetupAssistant/assistant.json`:
 
@@ -1340,7 +1542,7 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
 
 ---
 
-## 16. Gotchas
+## 17. Gotchas
 
 - **`when` scoping is inconsistent by design.** Inside an assistant: bare `{{key}}`. On artifact
   configs: `{{config.key}}` / `{{userConfig.key}}`. Using the assistant form on an artifact makes the
@@ -1408,3 +1610,23 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
 - **Changing a field `key` is a breaking migration.** Existing businesses lose the answer, and every
   artifact `when` clause referencing the old key (case-sensitively) starts resolving to the field
   `default`.
+
+View-based assistants ([§12](#12-view-based-setup-assistants)) add their own:
+
+- **`completeSetup` replaces the clean config wholesale.** It preserves sibling `__kizen_*` keys but
+  not clean-config keys you omit, so a view that edits one setting still has to send every key the
+  plugin's other surfaces read.
+- **Every `completeSetup` call stamps the setup hash, from any surface.** A call from a block or
+  toolbar item suppresses the install-time prompt on the next enable just as effectively as a real
+  setup run.
+- **An unguarded submit handler can save a blank payload.** A click landing on a form's own padding
+  runs the handler with no `this.args.formData`; without a guard the view writes an empty config and
+  stamps the hash. Guard with `const formData = this.args?.formData; if (!formData) return;`.
+- **Calling `completeSetup` mid-wizard closes the modal.** The host treats a successful call as
+  completion. Call it once, at the end.
+- **`view` takes a view's api_name, not its directory name**, and a `pages/` component is rejected.
+- **A setup view can't be conditionally hidden.** Views aren't feature-flag filtered and take no
+  `when` clause, so there is no gating the setup surface on config or flags — branch inside the
+  view instead.
+- **Setup views get no host chrome and no host Save.** No header, no footer, no close button, no
+  OAuth step, fixed 900px width — and Escape or a backdrop click discards everything silently.

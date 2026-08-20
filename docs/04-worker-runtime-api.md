@@ -219,6 +219,11 @@ The already-loaded per-user config (user setup assistant values). Same value sha
 `this.config`. For read/write access to the per-component user config store, use
 [`getUserConfig`](#thisgetuserconfig) / [`setUserConfig`](#thissetuserconfigconfig).
 
+Three stores are easy to confuse. `this.userConfig` is the user setup-assistant answers, and is
+read-only. `getUserConfig()` / `setUserConfig()` are a per-component scratch bucket, unrelated to
+the assistant. [`completeSetup(payload, { level: 'user' })`](#thiscompletesetuppayload-options)
+writes the user setup-assistant store — that is, what `this.userConfig` reads.
+
 **`{}` is ambiguous, and you cannot disambiguate it.** The host fetches each plugin's per-user
 config separately from the main bootstrap, and when that fetch fails it catches the error and
 substitutes `{ config: {} }`. Your script then sees `this.userConfig === {}` — structurally
@@ -665,9 +670,77 @@ await this.setUserConfig({ ...current, collapsed: true });
 ```
 
 There is no ETag or locking on this write — it is read-modify-write, so two surfaces writing
-concurrently can lose one of the updates. There is no `setBusinessConfig`; business-level
-config is written with a wholesale-replace PATCH against the plugin's own business-config
-endpoint (see [platform API](05-platform-api.md)).
+concurrently can lose one of the updates. There is no `setBusinessConfig`. **Setup** config is
+written with [`completeSetup`](#thiscompletesetuppayload-options), which writes the setup store
+and preserves the sibling `__kizen_*` keys. Other business-level config — arbitrary top-level
+keys a plugin writes at runtime — still goes through a wholesale-replace PATCH against the
+plugin's own business-config endpoint (see [platform API](05-platform-api.md)), which remains
+the only way to write them.
+
+### `this.completeSetup(payload, options?)`
+
+```ts
+completeSetup(payload: Record<string, unknown>, options?: { level?: 'business' | 'user' }): Promise<void>
+```
+
+Persists a plugin's setup configuration and stamps the setup-assistant hash. It is the
+supported write path for setup config, and the method a view-based setup assistant calls to save
+its answers — see [setup assistants](13-setup-assistants.md#12-view-based-setup-assistants) for
+the authoring guide. Available in generic contexts (views, `pages/`, blocks, toolbar items),
+record-detail, and floating-frame scripts. Not available in calendar-source scripts, where it
+**rejects** with `completeSetup is not supported in calendar source scripts` rather than throwing.
+
+Argument problems **reject** the returned promise — the method is `async`, so these never
+throw synchronously at the call site, and an un-awaited call fails silently:
+
+| Condition | Message |
+|---|---|
+| the script is not associated with a plugin | `completeSetup is not available for scripts not associated to a plugin` |
+| `payload` is not an object, is `null`, or is an array | `completeSetup requires a configuration object` |
+| `payload` has an exotic prototype (a class instance, `new Foo()`) | `completeSetup requires a plain configuration object` |
+
+An object literal and `Object.create(null)` both pass. The promise rejects with `Completing
+setup is not supported by this host` when the host wired no handler, and otherwise with the
+host's own error message, falling back to `Setup configuration could not be saved`.
+
+**The payload replaces `__kizen_clean_config` wholesale.** The host assigns it directly —
+`{ ...existingConfig, __kizen_clean_config: payload }` — so any key present in the old clean
+config and absent from `payload` is gone. A caller updating one key must send the whole object:
+
+```js
+await this.completeSetup({ ...this.config, apiKey: nextApiKey });
+```
+
+`this.config` is a snapshot from worker load, so a view that has been editing its own state
+should build the payload from that state rather than from a stale `this.config`.
+
+Sibling `__kizen_*` keys survive: the host re-reads the stored record inside the handler and
+spreads it, so `__kizen_setup_assistant_values`, schema-import bookkeeping, and template-seeded
+keys are preserved. That is the difference from a hand-rolled wholesale-replace PATCH.
+
+It does **not** write `__kizen_setup_assistant_values` — the raw answer store the declarative
+renderer repopulates its form from. On a plugin that has both a declarative assistant and a
+`completeSetup` caller, the next declarative save regenerates `__kizen_clean_config` from that
+untouched values store and discards whatever `completeSetup` wrote.
+
+Every call stamps `__kizen_setup_assistant_hash` when the manifest declares an assistant for
+that level, and the hash covers the **assistant definition**, not the payload. Nothing checks
+which surface called: a call from a block or a toolbar item stamps the hash exactly like a call
+from a setup view, which suppresses the install-time setup prompt on the next enable.
+
+`options.level` picks the store — `'business'` (the default) writes the business plugin-app
+record, `'user'` writes the current user's plugin config under `config.user_config`. While a
+setup surface is live the host resolves the level from that surface and **ignores**
+`options.level`, so a setup view never passes it; it matters only when `completeSetup` runs from
+an ordinary surface. The business-level write rejects when the plugin has never been installed
+for the business — there is no record to merge into, and writing one would drop every sibling
+key.
+
+After a successful write the host refetches the plugin's artifacts and feature flags, so
+`when`-gated surfaces appear without a page reload, and then fires the active setup surface's
+completion callback — which is what closes the setup modal. **Call `completeSetup` exactly once,
+at the terminal step.** A multi-step setup view that calls it earlier closes the modal on a user
+who is not finished.
 
 ---
 
@@ -1381,13 +1454,14 @@ this.outputIframe("https://example.com/widget");
 ## 14. Calendar-source context
 
 Calendar `calendars` and `events` scripts run in a restricted context. These methods exist but
-**throw "not supported in calendar source scripts"** when called:
+fail with **"not supported in calendar source scripts"** when called:
 
 `uploadFile`, `installThirdPartyScript`, `refreshEntityForId`, `openCreateRecordModal`,
-`openCreateRelatedRecordModal`, `showViewInModal`, `closeModal`.
+`openCreateRelatedRecordModal`, `showViewInModal`, `completeSetup` all return a **rejected
+promise**, so an un-awaited call fails silently. `closeModal` alone throws synchronously.
 
-They throw at **call time**, not parse time — a calendar script that touches one of them
-compiles fine and fails mid-run. `prompt` and `dynamicPrompt` remain wired, but a calendar
+Either way it happens at **call time**, not parse time — a calendar script that touches one of
+them compiles fine and fails mid-run. `prompt` and `dynamicPrompt` remain wired, but a calendar
 source runs inside a data query, so blocking it on a modal is a bad idea in practice.
 
 Everything else — HTTP helpers, `getServiceUrl`, `console`, `formatDateForResponse`,
@@ -1429,6 +1503,10 @@ return schemas.
 - **`setSessionData` merges top-level keys only**, and hand-spreading nested maps races across
   overlapping workers. One top-level key per independent fact.
 - **`setUserConfig` is read-modify-write with no locking** — concurrent writers can lose data.
+- **`completeSetup` replaces `__kizen_clean_config` wholesale.** Sibling `__kizen_*` keys
+  survive, but a clean-config key you omit is deleted. Send the whole object.
+- **Every `completeSetup` call stamps the setup-assistant hash**, no matter which surface it came
+  from, suppressing the install-time setup prompt on the next enable.
 - **`openWindow` drops `context` for absolute or cross-origin URLs**, silently: navigation
   works, the payload does not arrive.
 - **`runEventScript` / `communicate.*` are fire-and-forget** — no result, no failure signal.

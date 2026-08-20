@@ -158,7 +158,7 @@ legacy [`prompt`](#prompt-legacy). Owner: [10-views-modals-forms.md](10-views-mo
 ### Engine
 
 `@kizenapps/engine` — the runtime that executes plugin scripts in web workers and bridges
-them to the host app. Currently 1.8.0; note the manifest `engine` field is the fixed value
+them to the host app. Currently 1.9.1; note the manifest `engine` field is the fixed value
 `"1.0.0"` and does not select an engine version. Owner:
 [04-worker-runtime-api.md](04-worker-runtime-api.md).
 
@@ -368,10 +368,13 @@ between isolated script runs. Owner: [04-worker-runtime-api.md](04-worker-runtim
 
 ### Setup assistant
 
-The declarative install/configuration wizard (`setup_assistant` in the manifest or
-`setupAssistant/assistant.json`): typed fields, `when` visibility expressions, async selects,
-service-authorization prerequisites, and action mapping. Its answers become the
-[business config](#business-config). Also "configuration assistant". Owner:
+The install/configuration wizard (`setup_assistant` in the manifest or
+`setupAssistant/assistant.json`). Usually declarative: typed fields, `when` visibility
+expressions, async selects, service-authorization prerequisites, and action mapping. Its answers
+become the
+[business config](#business-config). Also "configuration assistant". A plugin may instead point
+`setup_assistant.view` at a packaged view — see
+[view-based setup assistant](#view-based-setup-assistant). Owner:
 [13-setup-assistants.md](13-setup-assistants.md).
 
 ### Setup assistant hash
@@ -379,7 +382,8 @@ service-authorization prerequisites, and action mapping. Its answers become the
 `__kizen_setup_assistant_hash` — a hash of the assistant definition stored alongside the
 config. The install/enable flow re-prompts the assistant only when the current definition's
 hash differs, i.e. when the assistant changed. Custom config writers must preserve (or set)
-it. Owner: [13-setup-assistants.md](13-setup-assistants.md).
+it, and every `completeSetup` call stamps it regardless of which surface called.
+Owner: [13-setup-assistants.md](13-setup-assistants.md).
 
 ### Thumbnail
 
@@ -405,7 +409,8 @@ and [04-worker-runtime-api.md](04-worker-runtime-api.md).
 
 `user_setup_assistant` — same schema as the [setup assistant](#setup-assistant), but each
 user answers for themselves (User Settings tab); values land in [user config](#user-config).
-Commonly paired with user-level OAuth services. Owner:
+Commonly paired with user-level OAuth services. `user_setup_assistant.view` selects the
+[view-based](#view-based-setup-assistant) form instead. Owner:
 [13-setup-assistants.md](13-setup-assistants.md).
 
 ### Version
@@ -423,6 +428,15 @@ via `this.showViewInModal(viewApiName, {args, options})` — framed (host confir
 buttons collect form data, values array-wrapped) or frameless (the view owns its chrome and
 calls `this.closeModal`). Same artifact family as [pages](#page); names must be unique across
 both directories. Owner: [10-views-modals-forms.md](10-views-modals-forms.md).
+
+### View-based setup assistant
+
+A [setup assistant](#setup-assistant) rendered as a plugin [view](#view) instead of a
+declarative field list — `setup_assistant.view` / `user_setup_assistant.view` naming a
+`views/` component's api_name (engine ≥1.9.0, packager ≥0.5.0). The view saves its answers by
+calling `this.completeSetup(payload, options?)`, which replaces `__kizen_clean_config`
+wholesale and stamps the [setup assistant hash](#setup-assistant-hash). Owner:
+[13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants).
 
 ### when clause
 
@@ -456,9 +470,13 @@ preserved. Owner: [04-worker-runtime-api.md](04-worker-runtime-api.md).
   `object_settings_menu_items`, `actions/` as `js_action_templates`, `pages/`+`views/` as
   `routable_pages`. Search both spellings.
   ([03-manifest-reference.md](03-manifest-reference.md))
-- **Two different "user config" stores exist** — `this.userConfig` (user setup-assistant
-  values) vs `getUserConfig()`/`setUserConfig()` (a per-component read-write bucket). They
-  are not the same data. ([04-worker-runtime-api.md](04-worker-runtime-api.md))
+- **Three APIs sound like "user config" but they address only two stores** —
+  `this.userConfig` (user setup-assistant values) vs `getUserConfig()`/`setUserConfig()` (a
+  per-component read-write bucket); those two are not the same data.
+  `completeSetup(payload, { level: 'user' })` writes the setup-assistant store — the one
+  `this.userConfig` reads — and never the scratch bucket.
+  ([04-worker-runtime-api.md](04-worker-runtime-api.md),
+  [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants))
 - **`include_perform_action` and `action_override_create` are not manifest fields** — they
   live on install-time associations and object settings respectively.
   ([08-actions.md](08-actions.md))

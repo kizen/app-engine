@@ -1015,6 +1015,13 @@ Concurrency rules that follow from the wholesale-replace semantics:
   assistant regenerates `__kizen_clean_config` from its own values on its next save and will
   overwrite you. Use disjoint keys, or write both stores.
 
+Writing **setup** config from a script should go through
+[`this.completeSetup()`](04-worker-runtime-api.md#thiscompletesetuppayload-options) rather than
+this endpoint: it preserves the sibling `__kizen_*` keys automatically and stamps
+`__kizen_setup_assistant_hash` correctly. See
+[setup assistants](13-setup-assistants.md#12-view-based-setup-assistants). This `PATCH` remains
+the path for other business-config keys, and is still a wholesale replace.
+
 Also note that `this.config` in a worker is a read-only snapshot of the args injected at worker
 start. A value you just `PATCH`ed will not appear there until the next worker load — prefill UI
 from a fresh `GET`. See [setup assistants](13-setup-assistants.md) and
@@ -1024,8 +1031,9 @@ from a fresh `GET`. See [setup assistants](13-setup-assistants.md) and
 
 Per-employee, per-plugin configuration. In JavaScript prefer the runtime helpers
 [`getUserConfig()` / `setUserConfig()`](04-worker-runtime-api.md) — `setUserConfig` performs the
-read-merge-write for you. There is no `setBusinessConfig` equivalent; business config goes through
-the `PATCH` above.
+read-merge-write for you. There is no `setBusinessConfig` equivalent; setup config goes through
+[`completeSetup()`](04-worker-runtime-api.md#thiscompletesetuppayload-options) and other business
+config through the `PATCH` above.
 
 ---
 

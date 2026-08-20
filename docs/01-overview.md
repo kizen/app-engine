@@ -53,7 +53,7 @@ plugin publicly in the Marketplace; `published: false` publishes it unlisted
 ## Execution architecture: workers and the host bridge
 
 Plugin JavaScript never runs on the page's main thread and never touches the DOM. The engine
-(`@kizenapps/engine`, currently 1.8.0 — note the manifest `engine` field is a fixed `"1.0.0"`,
+(`@kizenapps/engine`, currently 1.9.1 — note the manifest `engine` field is a fixed `"1.0.0"`,
 see [03-manifest-reference.md](03-manifest-reference.md)) runs every script in a dedicated
 **web worker**:
 
@@ -207,11 +207,13 @@ route regexes). Can be installed as **blocking** — the page holds rendering un
 settles or calls `this.releaseBlockingScript()` — for fetch-and-merge-on-navigation patterns.
 
 ### Setup assistants — [13-setup-assistants.md](13-setup-assistants.md)
-Declarative configuration wizards, not runtime scripts: `setup_assistant` (business-level,
-shown at install) and `user_setup_assistant` (per-user). Field types include text, select
-(static or async-fetched), object and field pickers, booleans, images, QR codes, and links,
-with `when` visibility expressions, plus service-authorization prerequisite steps and
-action-to-object mapping.
+Configuration wizards: `setup_assistant` (business-level, shown at install) and
+`user_setup_assistant` (per-user). Usually **declarative** — a field list the host renders, with
+text, select (static or async-fetched), object and field pickers, booleans, images, QR codes and
+links, `when` visibility expressions, service-authorization prerequisite steps and action-to-object
+mapping. Either slot can instead name a **view** the plugin ships, which draws its own setup UI and
+saves it with `this.completeSetup()`; the host then renders no chrome, no OAuth step and no Save
+button.
 
 ---
 
@@ -276,8 +278,10 @@ user_setup_assistant fields ──(each user answers)────▶ user config
 - Scripts can read/write the business config directly via
   `GET|PATCH /external-integrations/business-plugin-apps/{identifier}` — but the PATCH is a
   **wholesale replacement** (read-modify-write required, or sibling keys including the setup
-  assistant's values are dropped). The setup assistant is re-shown on enable only when its
-  definition hash differs from the stored one. See
+  assistant's values are dropped). To write *setup* config specifically, prefer
+  `this.completeSetup(payload)`, which preserves the sibling keys and stamps the hash for you. The
+  setup assistant is re-shown on enable only when its definition hash differs from the stored one.
+  See
   [13-setup-assistants.md](13-setup-assistants.md) and
   [05-platform-api.md](05-platform-api.md).
 - Agentic Workflow steps don't see `this.config`; the workflow builder can wire a

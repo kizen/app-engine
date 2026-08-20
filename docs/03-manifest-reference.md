@@ -172,7 +172,7 @@ Must be exactly `"1.0.0"`. The allowed-value list has a single entry; any other 
 with `manifest/engine-version`.
 
 This is a **frozen constant, not a capability selector.** The engine library itself is
-versioned independently (currently 1.8.0) and nothing at runtime branches on this field. New
+versioned independently (currently 1.9.1) and nothing at runtime branches on this field. New
 manifest or runtime capabilities never require an engine bump.
 
 ### `entry`
@@ -197,8 +197,8 @@ Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but n
 | `release_environments` | string[] | pipeline default | Environments to publish to; accepts aliases. |
 | `config_template` | object | `{}` | Seed install config not sourced from a setup assistant. |
 | `base_config` | object | `{}` | Baseline install config: secrets, service accounts, host flags. |
-| `setup_assistant` | object | none | Business-level install wizard (inline form). |
-| `user_setup_assistant` | object | none | Per-user setup wizard (inline form). |
+| `setup_assistant` | object | none | Business-level install wizard: a declarative form, or a plugin view. |
+| `user_setup_assistant` | object | none | Per-user setup wizard: a declarative form, or a plugin view. |
 | `services` | object[] | `[]` | External service declarations for the request proxy. |
 | `developer_business_id` | string \| object | none | Business that owns dev/preview builds. |
 | `block_loading_for_setup` | boolean | computed | Set by the packager; do not author. |
@@ -368,7 +368,7 @@ by hand.
 
 ### `setup_assistant` / `user_setup_assistant`
 
-Declarative install wizards. `setup_assistant` runs once per business (values become
+Install wizards. `setup_assistant` runs once per business (values become
 `this.config.<key>`); `user_setup_assistant` runs per user (values become
 `this.userConfig.<key>`).
 
@@ -376,6 +376,7 @@ Both accept the same shape:
 
 ```ts
 interface SetupAssistantConfig {
+  view?: string;                       // a views/ api_name — replaces the declarative form
   fields?: SetupAssistantField[];      // the form
   actions?: string[];                  // action api_names surfaced as buttons
   services?: { api_name: string; required: boolean; prerequisite: boolean }[];
@@ -384,9 +385,13 @@ interface SetupAssistantConfig {
 
 Each may be written **inline in `kizen.json`** or as a file at
 `<entry>/setupAssistant/assistant.json` / `<entry>/userSetupAssistant/assistant.json`. When
-both exist the **inline manifest field wins** and the file is ignored. The directory form is
-the more capable one: only it supports per-field async-select scripts
-(`setupAssistant/<fieldKey>/getFetchUrl.js` and friends).
+both exist the **inline manifest field wins whole-object**: nothing is merged, and the file's
+contents — including the per-field scripts its directory would otherwise contribute — are not
+used. The directory itself is still scanned by validation, so leftover per-field scripts can
+still raise `manifest/setup-assistant-orphaned-field-scripts`. An inline `null`, or no inline
+key, falls through to the file; an empty or whitespace-only `assistant.json` is treated as
+absent. The directory form is the more capable one: only it supports per-field async-select
+scripts (`setupAssistant/<fieldKey>/getFetchUrl.js` and friends).
 
 ```json
 {
@@ -400,6 +405,35 @@ the more capable one: only it supports per-field async-select scripts
   }
 }
 ```
+
+**`view`** — set it to a view's api_name and that view becomes the assistant; the declarative
+form is not rendered at all.
+
+```json
+{
+  "setup_assistant": { "view": "plugin_setup_form" }
+}
+```
+
+- The value is a view's **resolved `api_name`** — the `api_name` from
+  `<entry>/views/<dir>/config.json`, not the directory name. `views/businessSettings/` with
+  `"api_name": "business_settings_form"` is referenced as `business_settings_form`.
+- It must name a `views/` component. A `pages/` component fails with
+  `manifest/setup-assistant-view-not-found` (which carries a distinct message for that case).
+  The distinction is enforceable only at package time: views and pages compile into the same
+  `routable_pages` collection, so nothing downstream can tell them apart.
+- `view` is mutually exclusive with the declarative keys. A non-empty `fields`, a non-empty
+  `actions`, or any `services` entry with `prerequisite: true` alongside it fails with
+  `manifest/setup-assistant-view-conflict`. A `services` entry without `prerequisite: true` is
+  already inert in either mode and does not conflict.
+- Nothing renders the OAuth authorization step in view mode, which is why `prerequisite`
+  conflicts: the view calls `this.authorize()` itself.
+- `view: null` and `view: ""` are treated as absent and fall through to the declarative path.
+- The packager passes the value through verbatim into `base_config.setup_assistant.view` /
+  `base_config.user_setup_assistant.view`. There is no transform.
+
+The view saves by calling `this.completeSetup()`. Writing one is covered in
+[setup assistants](13-setup-assistants.md#12-view-based-setup-assistants).
 
 Manifest-level facts worth knowing here:
 
@@ -425,13 +459,15 @@ See [§6 `developer_business_id`](#6-developer_business_id).
 
 ### `block_loading_for_setup`
 
-Boolean, **computed by the packager — do not author it**. It is set to `true` automatically
-when any artifact `config.json` in the plugin carries a `when` condition, and tells the host to
-resolve install config before evaluating conditions, so conditional artifacts do not flicker
-or mis-evaluate at bootstrap.
+Boolean, **computed by the packager — do not author it.** A hand-set value is overwritten with
+the computed one, so writing `true` yourself does not make a plugin blocking. The flag tells the
+host to resolve install config before evaluating conditions, so conditional artifacts do not
+flicker or mis-evaluate at bootstrap.
 
-Conditional data adornments, Agentic Workflow steps, toolbar items and calendar sources are
-what make a plugin "blocking"; frames and object settings items are evaluated without blocking.
+A `when` on a **block, data adornment, Agentic Workflow step, toolbar item or calendar source**
+is what makes a plugin "blocking". A `when` on a floating frame or an object settings item is
+evaluated without blocking: frames appear after the app has loaded either way, and object
+settings items sit in a sub-menu where a late evaluation causes no layout shift.
 
 ---
 
@@ -754,8 +790,10 @@ match `/^[a-z_][a-z0-9_]+$/` and must be unique among siblings in the same direc
 
 ### `when` conditions
 
-Any artifact `config.json` may carry a `when` string: a JavaScript expression, evaluated in an
-isolated worker after `{{...}}` interpolation, that decides whether the artifact is available.
+Seven artifact types may carry a `when` string in `config.json`: a JavaScript expression,
+evaluated in an isolated worker after `{{...}}` interpolation, that decides whether the artifact
+is available. Those types are **blocks, data adornments, floating frames, object settings items,
+toolbar items, calendar sources and Agentic Workflow steps**.
 
 ```json
 { "when": "Boolean({{config.enableBlocks}}) && !{{userConfig.hideExtras}}" }
@@ -770,9 +808,16 @@ isolated worker after `{{...}}` interpolation, that decides whether the artifact
 - Setup-assistant `default` values reach `when` evaluation before an admin ever saves, but they
   do **not** reach `this.config` at script runtime — only saved values do.
 - An absent `when` means "always available".
-- Any `when` anywhere in the plugin sets `block_loading_for_setup: true` on the package.
+- A `when` on a block, data adornment, toolbar item, calendar source or Agentic Workflow step
+  sets `block_loading_for_setup: true` on the package. A `when` on a floating frame or an object
+  settings item does not — see [`block_loading_for_setup`](#block_loading_for_setup).
 
-Views cannot be `when`-gated.
+**On `actions/`, `pages/`, `routeScripts/` and `views/` a `when` key is silently discarded.** The
+packager reads a fixed set of keys from each of those `config.json` files and `when` is not among
+them, so it never reaches the package, the backend or the host — and nothing warns you. Scope
+those surfaces another way: an action through its install-time object association, a route script
+through its object binding and `routes` regexes, and a page or view by gating whatever navigates
+to it.
 
 ### `actions/<name>/`
 
@@ -1217,6 +1262,12 @@ backend's publish validation. Warnings never fail a build.
 | `manifest/developer-business-id` | error | Wrong shape, alias keys in the object form, or an empty id. |
 | `manifest/developer-business-id-environments` | **warning** | Flat string id with two or more resolved release environments. |
 | `manifest/duplicate-api-name` | error | Two entries in a multi-plugin manifest share an `api_name`. |
+| `manifest/setup-assistant-shape` | error | An inline `setup_assistant` / `user_setup_assistant` is not a JSON object, or its `view` is present and not a string. |
+| `manifest/setup-assistant-parse` | error | `assistant.json` is not valid JSON, or parses to something that is not an object. |
+| `manifest/setup-assistant-view-conflict` | error | `view` is set alongside a non-empty `fields`, a non-empty `actions`, or a service with `prerequisite: true`. |
+| `manifest/setup-assistant-view-not-found` | error | `view` matches no view in the plugin; a distinct message when the name matches a `pages/` component instead. |
+| `manifest/setup-assistant-orphaned-field-scripts` | **warning** | `view` is set but the assistant directory still ships per-field scripts, which are silently ignored. |
+| `manifest/setup-assistant-disabled-keys-ignored` | **warning** | `base_config.disabled_keys` is non-empty while at least one assistant on the plugin is view-based. |
 | `structure/missing-config` | error | An artifact directory has no `config.json` (all types except `views/`). |
 | `structure/config-content` | error | `config.json` is empty. |
 | `structure/config-parse` | error | `config.json` is not valid JSON. |
@@ -1228,6 +1279,11 @@ backend's publish validation. Warnings never fail a build.
 | `structure/duplicate-kzn` | error | More than one `import.kzn` under `entry`. |
 | `structure/duplicate-thumbnail` | error | More than one `thumbnail.png` under `entry`. |
 | `structure/setup-assistant-action-ref` | error | `setup_assistant.actions` names an action that is not packaged. |
+
+`manifest/setup-assistant-disabled-keys-ignored` is a warning rather than an error because
+[`disabled_keys`](13-setup-assistants.md#95-base_configdisabled_keys) lives at
+`base_config.disabled_keys` — outside either assistant — and the host applies the same array to both. A plugin with one view-based and one declarative assistant
+still legitimately needs it; remove it only once no assistant on the plugin is declarative.
 
 Run these locally with `npx --yes @kizenapps/cli build` before pushing. The local CLI can lag the pipeline's
 rule set by a release, so a clean local build is a strong signal but not a guarantee.
@@ -1304,8 +1360,18 @@ error as a build failure:
 - **A flat `developer_business_id` with multiple environments is a warning, not an error.** The
   build passes and the publish half-works: the id is valid in one environment and meaningless
   in the others. Use the per-environment object form.
-- **`setup_assistant` in `kizen.json` beats `assistant.json` on disk.** If you add the
-  directory form to a manifest that still has an inline block, your file is ignored.
+- **`setup_assistant` in `kizen.json` beats `assistant.json` on disk, whole-object.** Nothing
+  is merged: if you add the directory form to a manifest that still has an inline block, the
+  file's contents are unused, per-field scripts included. Only an inline `null` or an absent
+  key falls through to the file.
+- **A setup-assistant `view` names an api_name, not a directory.** `views/businessSettings/`
+  whose `config.json` sets `"api_name": "business_settings_form"` must be referenced as
+  `business_settings_form`; the directory name fails with
+  `manifest/setup-assistant-view-not-found`.
+- **`disabled_keys` has no effect on what a view-based assistant saves.** It lives at
+  `base_config.disabled_keys`, outside either assistant, and a view-based assistant ignores it.
+  Leaving it non-empty warns with `manifest/setup-assistant-disabled-keys-ignored`; drop it
+  once no assistant on the plugin is declarative.
 - **`services[].api_name` referenced from a setup assistant is unvalidated.** A typo silently
   drops the authorization prerequisite instead of failing the build.
 - **Setup-assistant `default` values are visible to `when` conditions but not to
