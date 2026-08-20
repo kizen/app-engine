@@ -1023,8 +1023,9 @@ Rules that follow from how the write works:
 - After a successful write the host refetches the plugin's artifacts and feature flags, so surfaces
   gated by a `when` clause on the values just collected appear without a page reload (§9.4).
 
-Errors: it throws synchronously if `payload` is not a plain object (`null`, an array, or a class
-instance are all rejected) and rejects if the write fails or the host wired no handler. Full signature
+Errors: the returned promise **rejects** if `payload` is not a plain object (`null`, an array, or a
+class instance are all rejected), and also if the write fails or the host wired no handler. Nothing
+throws synchronously, so an un-awaited call fails silently. Full signature
 notes, including which surfaces expose it, are in the
 [worker runtime API](04-worker-runtime-api.md).
 

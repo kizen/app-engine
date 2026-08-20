@@ -690,7 +690,8 @@ the authoring guide. Available in generic contexts (views, `pages/`, blocks, too
 record-detail, and floating-frame scripts. Not available in calendar-source scripts, where it
 **rejects** with `completeSetup is not supported in calendar source scripts` rather than throwing.
 
-Argument problems throw **synchronously** rather than rejecting the returned promise:
+Argument problems **reject** the returned promise — the method is `async`, so these never
+throw synchronously at the call site, and an un-awaited call fails silently:
 
 | Condition | Message |
 |---|---|
