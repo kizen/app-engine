@@ -493,9 +493,7 @@ export class BaseWorkerContext {
 
   public async completeSetup(payload: UnknownJSON, options?: CompleteSetupOptions): Promise<void> {
     if (!this.pluginApiName) {
-      throw new Error(
-        'completeSetup is not available for scripts not associated to a plugin',
-      );
+      throw new Error('completeSetup is not available for scripts not associated to a plugin');
     }
 
     const candidate: unknown = payload;

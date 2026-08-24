@@ -3,6 +3,19 @@
   "version": "1.9.1",
   "description": "Run JavaScript plugin apps inside Web Workers with host ↔ worker messaging",
   "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kizen/app-engine.git"
+  },
+  "homepage": "https://kizen.github.io/app-engine/",
+  "bugs": "https://github.com/kizen/app-engine/issues",
+  "keywords": [
+    "kizen",
+    "plugin",
+    "web-worker",
+    "sandbox",
+    "plugin-runtime"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -58,13 +71,15 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "version:prerelease": "node scripts/version-prerelease.js",
     "version:check": "node scripts/version-release.js",
-    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run build",
+    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "publish:prerelease": "pnpm run version:prerelease && pnpm publish --no-git-checks --access public --tag next",
-    "merge-translations": "node dist/merge-translations.js",
     "copy:translations": "cp locales/en/translation.json dist/translation.json",
     "copy:scripts": "cp -r src/scripts/ dist/scripts/"
   },
@@ -80,16 +95,19 @@
     "@types/node": "^25.5.2",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "i18next-parser": "^9.4.0",
+    "jsdom": "^30.0.1",
     "json-stable-stringify": "^1.3.0",
     "prettier": "^3.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "tsup": "^8.0.0",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.11"
   },
   "publishConfig": {
     "provenance": false
