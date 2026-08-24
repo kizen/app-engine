@@ -65,17 +65,17 @@ describe('getStableHash', () => {
   });
 
   it('returns a fresh random hash when the value cannot be stringified', () => {
-    // A cycle makes json-stable-stringify throw. The fallback is deliberately random so that
-    // an unhashable value always compares as changed — so this must never be snapshotted.
-    const results = new Set<number>();
+    // A cycle makes json-stable-stringify throw. The fallback is deliberately random so that an
+    // unhashable value always compares as changed. Math.random is stubbed to two fixed values so
+    // the assertion is deterministic without pinning the hash arithmetic itself — the contract is
+    // "a different hash each time", not any particular number.
+    const random = vi.spyOn(Math, 'random').mockReturnValueOnce(0.1).mockReturnValueOnce(0.2);
 
-    expect(() => {
-      for (let i = 0; i < 5; i += 1) {
-        results.add(getStableHash(cyclic()));
-      }
-    }).not.toThrow();
+    const first = getStableHash(cyclic());
+    const second = getStableHash(cyclic());
 
-    expect(results.size).toBeGreaterThan(1);
+    expect(random).toHaveBeenCalledTimes(2);
+    expect(first).not.toBe(second);
   });
 
   it('warns on an unstringifiable value only when the debug flag is on', () => {
