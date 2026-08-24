@@ -275,3 +275,11 @@ if (context?.unsavedFilter) {
   applyUnsavedFilter(context.unsavedFilter);
 }
 ```
+
+### License
+
+Licensed under the GNU General Public License, version 3. See [LICENSE.md](LICENSE.md) for the full
+text.
+
+This matches the other published Kizen developer platform packages, `@kizenapps/cli` and
+`@kizenapps/packager`. Note that the plugins themselves are licensed separately, under GPL 2.0.
