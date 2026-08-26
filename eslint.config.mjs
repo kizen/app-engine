@@ -40,4 +40,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['src/**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 );
