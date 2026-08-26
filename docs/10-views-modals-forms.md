@@ -69,15 +69,17 @@ A file named `callback.js` next to a page's `script.js` declares a **callback ha
 
 At load time the host stamps `args: plugin.business_config` onto every declared surface — a view's or page's baseline args **are the plugin's business config**, which is why `this.config` (a Proxy over `args.__kizen_clean_config`) works inside view scripts.
 
-**Gotcha — modal args replace the business config.** When a view is opened with `showViewInModal(id, {args})`, the passed args **replace** the injected business config rather than merging with it: inside that view, `this.config` is `{}`. The view's event scripts inherit the same limitation. Workaround: forward the config by hand from the opener:
+**Args passed to a modal merge over that baseline.** Opening a view with `showViewInModal(id, {args})` merges the passed args on top of the injected business config, so inside the view — and inside its event scripts — `this.config` stays populated while `this.args` carries what the opener sent:
 
 ```js
 await this.showViewInModal("myview", {
-  args: { config: this.config, invoice: invoiceId },
+  args: { invoice: invoiceId },
   options: { frameless: true, size: "medium" },
 });
-// inside the view: this.args.config.<key>, this.args.invoice
+// inside the view: this.config.<key> for plugin config, this.args.invoice for the passed value
 ```
+
+Passed args win on a key collision, so the only way to lose the business config is to send a reserved `__kizen_*` key yourself. Don't.
 
 ---
 
@@ -101,7 +103,7 @@ Shows a packaged view (or page) in the host modal.
 showViewInModal(
   id: string,                       // the view's api_name
   config?: {
-    args?: Record<string, unknown>; // becomes the view script's this.args (REPLACES business config — see above)
+    args?: Record<string, unknown>; // becomes the view script's this.args (merged over the business config — see above)
     options?: {
       title?: string;
       confirmButton?: { label: string; variant?: 'text' | 'standard'; color?: string };
@@ -488,7 +490,6 @@ The engine defines `outputView` (render a packaged view inline into the output r
 ## Gotchas
 
 - **Args placed beside `options` are silently dropped** — opener data must nest under `config.args`: `showViewInModal(id, { args: {...}, options: {...} })`.
-- **Passing `args` wipes the view's `this.config`** — the modal args replace the injected business config; forward `config: this.config` by hand if the view needs it. Event scripts inherit the limitation.
 - **`showViewInModal`'s TS return type is stale** — runtime resolves `{canceled, values, eventSource}`; framed form data is at `result.values.formData`, not `result.result`.
 - **Form values are array-wrapped everywhere forms are collected** (`showViewInModal` confirm and `data-script` submits); **`dynamicPrompt` values are plain** — the two APIs are opposites. Don't index `[0]` on multi-value fields, and don't expect arrays from prompts.
 - **DOMPurify name-clobbering**: form fields named `name`, `title`, `action`, `submit`, `method`, `target`, `id`, `style`, … silently lose the attribute and vanish from formData. Hyphenate (`contact-name`). ([11](11-output-ui-iframes-frames.md))

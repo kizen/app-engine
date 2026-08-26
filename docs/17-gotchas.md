@@ -403,8 +403,8 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 - **`completeSetup(payload)` REPLACES `__kizen_clean_config` wholesale — every key missing from the payload is gone.**
   The host assigns it directly: `{ ...existingConfig, __kizen_clean_config: payload }`. A view that
-  edits one setting must still send every load-bearing key, including keys other surfaces of the
-  same plugin read. Build the full object — `await this.completeSetup({ ...this.config, apiKey: next })`
+  edits one setting must still send every key the plugin depends on, including keys other surfaces of
+  the same plugin read. Build the full object — `await this.completeSetup({ ...this.config, apiKey: next })`
   — remembering `this.config` is a load-time snapshot.
   → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
 
@@ -413,6 +413,13 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   on the next enable — including after a version bump that changed the assistant. A plugin that
   calls `completeSetup` from a block or toolbar item without actually running setup stops prompting
   for setup. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+
+- **`options.level` is only ignored while a setup surface is live — off-surface the caller's value wins.**
+  The host resolves the level from the live setup surface, which is why a setup view can't misroute
+  its own write. That protection doesn't extend to a block or toolbar item: there the passed level is
+  honored (defaulting to `'business'` when absent), so a stray call can write the wrong scope on top
+  of suppressing the setup prompt.
+  → [13-setup-assistants.md](13-setup-assistants.md#127-best-practices)
 
 - **An unguarded form-submit handler can `completeSetup` a blank payload — wiping the config AND suppressing the prompt.**
   Click-path dispatch supplies no `this.args.formData`, so a click landing on a
@@ -425,7 +432,9 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 - **`completeSetup` does not write `__kizen_setup_assistant_values` — the raw answer store the declarative renderer repopulates its form from.**
   On a plugin that has both a declarative assistant and a `completeSetup` caller, the next
   declarative save regenerates the clean config from that untouched values store and discards what
-  `completeSetup` wrote. → [13-setup-assistants.md](13-setup-assistants.md#12-view-based-setup-assistants)
+  `completeSetup` wrote. This isn't a supported combination: whichever style owns a level owns that
+  level's config, so keep to one writer per level.
+  → [13-setup-assistants.md](13-setup-assistants.md#127-best-practices)
 
 - **A multi-step setup view must call `completeSetup` exactly once, at its terminal step.**
   A successful call fires the host's completion callback, which closes the setup modal — a
@@ -558,11 +567,6 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 - **`showViewInModal` args must nest under `config.args` — top-level args are silently dropped.**
   `this.showViewInModal("myview", { args: {...}, options: {...} })`, never
   `showViewInModal("myview", {...args})`. → [10-views-modals-forms.md](10-views-modals-forms.md#thisshowviewinmodalid-config)
-
-- **A view opened WITH args loses its config — `this.config` is `{}` inside that view.**
-  Passed args replace the injected business config wholesale. Workaround: forward it by hand —
-  `args: { config: this.config, ... }` — and read `this.args.config` in the view. Event scripts in
-  the view inherit the same limitation. → [10-views-modals-forms.md](10-views-modals-forms.md)
 
 - **`showViewInModal` resolves `{canceled, values, eventSource}` at runtime — the TypeScript type (`{canceled, result?, error?}`) is stale.**
   Read `result.values`, and always guard `result.canceled` first. → [10-views-modals-forms.md](10-views-modals-forms.md)

@@ -137,7 +137,7 @@ is the context class, the args, and whether the return value is read.
 |---|---|---|---|
 | Page script (`pages/<name>/script.js`) | base | URL query params merged with the page's configured `args` | discarded |
 | Page callback (`pages/<name>/callback.js`) | base | the callback query object posted by the iframe | discarded |
-| View script (`views/<name>/script.js`) | base | `config.args` passed to `showViewInModal` — **these replace the injected business config**, so `this.config` is `{}` unless you forward it yourself | discarded |
+| View script (`views/<name>/script.js`) | base | `config.args` passed to `showViewInModal`, merged over the injected business config (so `this.config` still resolves) | discarded |
 | Block script (`blocks/<name>/script.js`) | base (`worker_key` = block instance id) | block config `args` merged under host-supplied instance args (dashboards pass filters/object id) | discarded |
 | Event script (`eventScripts/<name>.js`) | same class as its owning surface | caller args merged over the surface's own args; form submits add `formData` | discarded |
 | Toolbar item script | base | none beyond the injected keys | discarded |
@@ -205,9 +205,9 @@ const mode = this.config?.mode?.value ?? "default";
 `this.config` is a snapshot taken when the worker started. A value you just wrote to business
 config will not appear until the next run — re-read it over HTTP if you need it fresh.
 
-> A view opened through `showViewInModal` with `config.args` gets those args **in place of**
-> the injected business config, so `this.config` is `{}` inside the view and its event
-> scripts. Forward it explicitly: `showViewInModal("myview", { args: { config: this.config } })`.
+> A view opened through `showViewInModal` with `config.args` receives those args **merged over**
+> the injected business config, so `this.config` resolves normally inside the view and its event
+> scripts. Passed keys win on collision; avoid sending reserved `__kizen_*` keys.
 
 ### `this.userConfig`
 
@@ -1487,8 +1487,6 @@ return schemas.
   cache's life indefinitely.
 - **`this.config` and `this.userConfig` are run-start snapshots.** A value you just wrote will
   not appear until the next run; re-read it over HTTP.
-- **A view opened with `config.args` loses `this.config`** — the args replace the injected
-  business config. Forward `config: this.config` through args if the view needs it.
 - **`showViewInModal` args must nest under `config.args`**; args placed beside `options` are
   silently dropped.
 - **`dynamicPrompt` values are plain scalars; `showViewInModal` form values are array-wrapped.**
