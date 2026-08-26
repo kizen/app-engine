@@ -1075,6 +1075,140 @@ re-prompt-on-enable behavior. A view that never calls `completeSetup` therefore 
 and re-prompts forever once published. Check the published behavior before shipping — see
 [getting started](02-getting-started.md) for the current state of local setup-view support.
 
+### 12.7 Best practices
+
+The sections above are the contract. This one is how to not get hurt by it.
+
+#### Do you want a view at all?
+
+The cheapest fix for everything below is not writing a view. Reach for the declarative form when setup
+is really "map these fields, pick these objects, paste this key" - you get layout, per-field
+validation, [`when` conditions](#6-when-inside-the-assistant), the OAuth prerequisite step, the
+action mapping step, and Save without writing any of them.
+
+A view is worthwhile when:
+
+- the flow is multi-step in a way the declarative form can't express - more than the progressive
+  disclosure it already gives you through [`when`](#6-when-inside-the-assistant) and
+  [`dependencies`](#7-dependencies--cascading-fields)
+- remote calls are needed for more than populating a dropdown, which
+  [async `select` options](#57-select-dynamic--async-options) already cover
+- the author needs a live preview, a connection test, or a reconciliation summary before committing
+- setup does real work, like importing a schema or creating records, rather than collecting answers
+- the flow has to match the look of the system being connected
+
+What you give up: automatic validation, the OAuth step, the action mapping step, and Save. The
+declarative path is also much harder to write subtle bugs into.
+
+The two slots are independent, so a declarative business assistant with a view-based user assistant is
+a legitimate and common mix. Pick per slot, not per plugin.
+
+#### The five ways a setup view fails silently
+
+Every one of these ships without an error, and four of the five look fine in local testing. Check a new
+setup view against this list before anything else.
+
+1. **The view never calls `completeSetup`.** The admin is re-prompted every single time they enable the
+   app, forever. There is no local symptom at all, because the local viewer has no install flow
+   ([§12.6](#126-local-testing)). The setup itself will look like it worked.
+2. **The payload is partial.** `completeSetup` replaces the clean config wholesale, so any key the
+   plugin's other surfaces read and this payload omits is gone. That is how you remove a key
+   deliberately, so spread the current config whenever you mean to keep one:
+   `await this.completeSetup({ ...this.config, apiKey: next })`. In a multi-step view, build the payload
+   from the view's own state instead - `this.config` is a load-time snapshot.
+3. **The submit handler isn't guarded.** A click landing on the form's own padding runs the handler with
+   no form data, and an unguarded handler writes a blank config over a good one. Start every submit
+   handler with `if (!formData) { return; }`.
+4. **A stray `completeSetup` from somewhere else in the plugin.** Every surface that exposes it may
+   call it - calendar-source scripts are the one exception, and they reject it outright
+   ([04](04-worker-runtime-api.md#thiscompletesetuppayload-options)). So a block or toolbar item that
+   calls it stamps the setup hash for whichever level the call
+   resolves to and suppresses that level's install-time prompt exactly as a real setup run would
+   ([§10](#10-re-prompt-on-config-hash-change)). The stamp is conditional on that level actually having
+   a declared assistant; the config write is not, so a call resolving to a level with no assistant
+   still replaces its clean config and just stamps nothing. Off a setup surface the caller's
+   `options.level` is honored too, so a stray call can pick the wrong level as well - the "you cannot
+   misroute this" guarantee in [§12.3](#123-completing-setup) holds only while a setup surface is live.
+5. **`completeSetup` aimed at a level a declarative assistant owns.** Whichever style owns a level owns
+   that level's config, and reaching across is not supported. A declarative save regenerates its
+   level's clean config from the assistant's own value store, so it cannot preserve a key it did not
+   author - anything `completeSetup` wrote outside the assistant's field set disappears on the next
+   save, at either level. This is the same rule as "don't co-write assistant keys from a script" in
+   [§17](#17-gotchas), and `completeSetup` is a co-writer. One writer per level.
+
+#### Writing configuration well
+
+Signature and semantics are in [§12.3](#123-completing-setup). The judgment part:
+
+- Read-modify-write, always. See failure 2 above.
+- Call it once, at the end. A successful call closes the setup modal, so calling it at step 2 of 5
+  shuts the door on a user who isn't finished.
+- Don't reach for the raw `PATCH` in [§13.3](#133-writing-business-config-from-a-script) to write setup
+  config. It still exists for business-config keys that aren't setup config, it's still a wholesale
+  replace, and it has none of the sibling-key protection.
+- A business-level write fails when the plugin has never been installed for that business. There is no
+  record to merge into.
+
+#### Prefilling on reopen
+
+A setup surface passes no args of its own, so `this.config` and `this.userConfig` arrive populated and
+are the right way to prefill a re-run ([§12.4](#124-reading-existing-config-in-a-setup-view)). Two
+things to hold in mind: the values are a load-time snapshot, and a view used both as a setup surface
+and as an ordinary view gets no "this is setup" flag, so it has to infer which it is - usually from
+whether config is already populated.
+
+#### Service auth and action associations are yours
+
+Nothing renders the OAuth prerequisite step in view mode, so the view calls `this.authorize()` itself.
+**Check whether the service is already connected first** - a proxy call returning 503 means not
+connected, see [auth & services](06-auth-secrets-services.md#503--not-connected). Skipping that check
+makes an admin redo a handshake they already completed, which is the one failure in this section a user
+actually sees.
+
+If the plugin's actions need to appear anywhere, the view creates the association itself - see
+[wiring an association from a script](08-actions.md#wiring-an-association-from-a-script), which has the
+read-then-create pattern and the ordering rule. Without the association the action appears nowhere and
+any create-override is inert. This step is manual on purpose for now and may get a first-class worker
+method later, so keep it thin rather than building an abstraction around it.
+
+#### The UX bar
+
+Setup views shouldn't each feel like a different product. Hold to these:
+
+| | |
+|---|---|
+| Save | The view provides its own Save or Finish. The host wraps nothing around it. |
+| Validation | Validate before writing, and show a real error when the write fails instead of closing as though it worked. |
+| Cancel | Has to be reachable, and has to leave the plugin un-setup. Escape and backdrop already do this; nothing is written and nothing is stamped, so an abandoned setup prompts again next time. That is the intended behavior - don't add a confirm-on-dirty guard to fight it. |
+| Conditional display | None that you control. Views take no `when` clause and aren't feature-flag filtered, so you can't gate a setup view on config or a flag - branch inside it instead. The host can still preempt it: a pending schema import renders ahead of the view ([§12.2](#122-what-the-host-provides--and-what-it-does-not)), so on that first enable your view doesn't appear at all. |
+| Width | Fixed at 900px, frameless. You don't get to choose, so design for it. |
+
+#### Check before you ship
+
+**None of the re-prompt behavior is checkable locally** - the local viewer has no install flow, so this
+list only runs against a published build.
+
+- [ ] Reopening setup shows the values you saved
+- [ ] Cancelling leaves the plugin un-setup, and the next enable prompts again
+- [ ] Finishing does not prompt again on the next enable
+- [ ] Running setup a second time doesn't drop config the first run wrote
+- [ ] Clicking the form's own padding does nothing
+- [ ] A failed write shows an error and leaves the modal open
+- [ ] A service that's already connected doesn't ask for OAuth again
+- [ ] Content taller than the modal scrolls
+- [ ] Exactly one writer per level - no `completeSetup` aimed at a declaratively-configured level
+
+#### A worked example
+
+The Salesforce plugin's field-mapping setup is built this way -
+[`src/views/fieldMapping`](https://github.com/kizen/plugin-salesforce/tree/main/src/views/fieldMapping).
+It maps Salesforce objects and fields onto Kizen ones, which is the case that doesn't fit a flat form:
+the second half of the form depends on what the first half selected, and the options come from a remote
+schema.
+
+For a smaller starting point, the snippet in [§12.3](#123-completing-setup) covers the guard, the
+spread, the single terminal call, and the error path, which is most of what a setup view does.
+
 ---
 
 ## 13. How config reaches scripts
@@ -1591,9 +1725,6 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
   disjoint.
 - **`this.config` is stale within a run.** It is a snapshot of the args the worker loaded with; a value
   you just PATCHed will not appear until the next load. Prefill UI from a fresh GET.
-- **`this.config` is empty inside a view opened with args**, because passed args replace the injected
-  business config. Pass `config: this.config` through the args by hand. Event scripts inherit the same
-  limitation — see [views, modals & forms](10-views-modals-forms.md).
 - **Per-field scripts run in the browser, not a worker.** No `this`, no `this.getServiceUrl`. Build
   `/external-integrations/proxy/${state.pluginApiName}/<service>/<path>` by hand, and always use
   `state.pluginApiName` — preview builds suffix the api_name and a hardcoded literal 404s.

@@ -300,6 +300,7 @@
 | `setup_assistant` | manifest field | [03](03-manifest-reference.md#setup_assistant--user_setup_assistant) · [13](13-setup-assistants.md#2-declaring-an-assistant) · [glossary](glossary.md#setup-assistant) |
 | `setup_assistant.view` / `user_setup_assistant.view` | manifest field | [03](03-manifest-reference.md#setup_assistant--user_setup_assistant) · [13](13-setup-assistants.md#121-declaring-one) |
 | Setup-assistant hash / re-prompt | concept | [13](13-setup-assistants.md#10-re-prompt-on-config-hash-change) · [glossary](glossary.md#setup-assistant-hash) |
+| Setup view best practices / the five silent failures | concept | [13](13-setup-assistants.md#127-best-practices) |
 | `this.setUserConfig(config)` | `this.*` method | [04](04-worker-runtime-api.md#thissetuserconfigconfig) |
 | `this.show(config?)` (floating frame) | `this.*` method | [04](04-worker-runtime-api.md#thisshowconfig) |
 | `this.showToast(message, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thisshowtoastmessage-options) · [15](15-errors-and-observability.md#4-thisshowtoast--the-channel-for-expected-failures) |

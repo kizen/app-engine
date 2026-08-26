@@ -897,11 +897,10 @@ this.setSessionData({ lastSignupId: result.values.recordId });
 this.showToast(`Signup ${result.values.recordId} created.`, { variant: "success" });
 
 // Sequential chaining is fine — the first modal has closed. Args must nest under
-// config.args (top-level keys beside options are silently dropped), and passed args
-// REPLACE the view's injected business config: forward this.config by hand if the
-// view needs it.
+// config.args (top-level keys beside options are silently dropped); they merge over
+// the view's injected business config, so this.config still resolves inside the view.
 await this.showViewInModal("summaryview", {
-  args: { config: this.config, recordId: result.values.recordId },
+  args: { recordId: result.values.recordId },
   options: { title: "What you created", confirmButton: { label: "Done" }, size: "small" },
 });
 
@@ -927,7 +926,7 @@ and use [`this.dynamicPrompt`](10-views-modals-forms.md#thisdynamicpromptconfig)
 
 ### What can go wrong
 
-- Dropped top-level args, wiped `this.config`, modal deadlock, the missing submitter button,
+- Dropped top-level args, modal deadlock, the missing submitter button,
   DOMPurify name-clobbering, array-vs-plain value confusion:
   [17-gotchas.md — Modals, prompts & forms](17-gotchas.md#modals-prompts--forms); full contract
   in [10-views-modals-forms.md](10-views-modals-forms.md#gotchas).
