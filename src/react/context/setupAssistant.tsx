@@ -38,7 +38,7 @@ interface SetupAssistantContextValue {
   ) => void;
   interpolateValue: (accessor: string) => unknown;
   getNestedFields: () => AssistantField[];
-  reInferFieldsForObject: (objectKey: string) => Promise<void>;
+  reInferFieldsForObject: (objectKey: string, forceObjectId?: string) => Promise<void>;
   inferencePending: boolean;
   evaluateExpression: (expression: string, key: string) => Promise<unknown>;
   shouldHideField: (key: string) => boolean;
@@ -451,16 +451,16 @@ export const SetupAssistantController = ({
           continue;
         }
 
+        if (objectIdFilter && getStateAccessorKey(inferrableField.object_id) !== objectIdFilter) {
+          continue;
+        }
+
         const objectId = resolveInferredObjectId({
           objectIdAccessor: inferrableField.object_id,
           forceObjectId,
           resolvedObjects,
           state: inferenceState.current,
         });
-
-        if (objectIdFilter && !inferrableField.object_id.includes(objectIdFilter)) {
-          continue;
-        }
 
         if (!objectId) {
           continue;
@@ -513,7 +513,14 @@ export const SetupAssistantController = ({
 
       if (matchingObject?.match_hint) {
         let matchedObjectId = '';
-        const potentialMatch = await getPotentialMatch(matchingObject.match_hint);
+        let potentialMatch;
+
+        try {
+          potentialMatch = await getPotentialMatch(matchingObject.match_hint);
+        } catch (ex) {
+          console.warn('Failed to re-infer object for key:', key, ex);
+          return;
+        }
 
         const match = potentialMatch?.[0];
 
@@ -536,7 +543,7 @@ export const SetupAssistantController = ({
           });
 
           if (matchedObjectId) {
-            void handleInferFields(undefined, matchedObjectId);
+            void handleInferFields(key, matchedObjectId);
           }
         }
       }
@@ -545,10 +552,17 @@ export const SetupAssistantController = ({
   );
 
   const handleConfigInference = useCallback(async () => {
-    // Objects have to complete first, then fields, since the fields need the object metadata
-    const inferredObjects = await handleInferObjects();
-    await handleInferFields(undefined, undefined, inferredObjects);
-    setInferencePending(false);
+    try {
+      const inferredObjects = await handleInferObjects();
+
+      await handleInferFields(undefined, undefined, inferredObjects);
+    } catch (ex) {
+      // Swallow errors looking up the matches, since the user can recover by picking manually.
+      console.warn('Failed to infer setup assistant config:', ex);
+    } finally {
+      // Must always clear, otherwise the host keeps the assistant behind its blocking loader.
+      setInferencePending(false);
+    }
   }, [handleInferObjects, handleInferFields]);
 
   const getNestedFields = useCallback(() => {
@@ -556,8 +570,8 @@ export const SetupAssistantController = ({
   }, [config]);
 
   const reInferFieldsForObject = useCallback(
-    (objectKey: string) => {
-      return handleInferFields(objectKey);
+    (objectKey: string, forceObjectId?: string) => {
+      return handleInferFields(objectKey, forceObjectId);
     },
     [handleInferFields],
   );
