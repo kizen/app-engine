@@ -63,8 +63,44 @@ const SetupAssistantProvider = SetupAssistantContext.Provider;
 
 const getUsableValue = (type: string, value?: UnknownJSON): unknown => {
   if (type === 'custom_object') {
+    // allow_multiple objects hold an array of matches in state
+    if (Array.isArray(value)) {
+      return (value as UnknownJSON[])[0]?.id;
+    }
+
     return value?.id;
   }
+};
+
+/*
+ * Returns the state key referenced by an accessor like "{{some_key}}", or undefined when the
+ * value is a literal.
+ */
+export const getStateAccessorKey = (accessor: string): string | undefined => {
+  if (accessor.startsWith('{{') && accessor.endsWith('}}')) {
+    return accessor.slice(2, -2).trim();
+  }
+
+  return undefined;
+};
+
+/*
+ * Take values like "{{some_key}}" and replace in the actual value from state
+ */
+const interpolateValueFromState = (
+  accessor: string,
+  consideredState: Record<string, UnknownJSON>,
+): unknown => {
+  const stateKey = getStateAccessorKey(accessor);
+
+  if (stateKey !== undefined) {
+    return getUsableValue(
+      consideredState[stateKey]?.type as string,
+      consideredState[stateKey]?.value as UnknownJSON,
+    );
+  }
+
+  return accessor;
 };
 
 const doesValueExist = (field: AssistantField, value?: { value?: UnknownJSON }): boolean => {
@@ -146,6 +182,39 @@ interface CustomObjectDetails {
   objectName: string;
   fields: { id: string; name: string; displayName: string }[];
 }
+
+interface InferredObjectMatch {
+  id: string;
+  objectName: string;
+}
+
+export const resolveInferredObjectId = ({
+  objectIdAccessor,
+  forceObjectId,
+  resolvedObjects,
+  state,
+}: {
+  objectIdAccessor: string;
+  forceObjectId?: string | undefined;
+  resolvedObjects?: Record<string, InferredObjectMatch> | undefined;
+  state: Record<string, UnknownJSON>;
+}): string | undefined => {
+  if (forceObjectId !== undefined) {
+    return forceObjectId;
+  }
+
+  const accessorKey = getStateAccessorKey(objectIdAccessor);
+
+  if (accessorKey !== undefined) {
+    const resolvedObjectId = resolvedObjects?.[accessorKey]?.id;
+
+    if (resolvedObjectId !== undefined) {
+      return resolvedObjectId;
+    }
+  }
+
+  return interpolateValueFromState(objectIdAccessor, state) as string | undefined;
+};
 
 export const SetupAssistantController = ({
   children,
@@ -266,7 +335,8 @@ export const SetupAssistantController = ({
 
   /*
    * We need to maintain a copy of the state outside the render cycle for inferring fields choices based on
-   * the hint name.
+   * the hint name. For functional updates the ref is only assigned when React runs the updater, so a
+   * value just queued may not be readable here yet - pass it forward explicitly instead.
    */
   const setState = useCallback(
     (stateUpdate: SetStateAction<Record<string, UnknownJSON>> | Record<string, UnknownJSON>) => {
@@ -290,30 +360,11 @@ export const SetupAssistantController = ({
     [onStateChange],
   );
 
-  /*
-   * Take values like "{{some_key}}" and replace in the actual value from state
-   */
-  const interpolateValueFromState = useCallback(
-    (accessor: string, consideredState: Record<string, UnknownJSON>) => {
-      if (accessor.startsWith('{{') && accessor.endsWith('}}')) {
-        const stateKey = accessor.slice(2, -2).trim();
-
-        return getUsableValue(
-          consideredState[stateKey]?.type as string,
-          consideredState[stateKey]?.value as UnknownJSON,
-        );
-      }
-
-      return accessor;
-    },
-    [],
-  );
-
   const interpolateValue = useCallback(
     (accessor: string) => {
       return interpolateValueFromState(accessor, state);
     },
-    [state, interpolateValueFromState],
+    [state],
   );
 
   const { clientObject } = useAppState();
@@ -338,10 +389,11 @@ export const SetupAssistantController = ({
 
   /*
    * If there is a match_hint for an object, we can try to infer the object by its API name
-   * and set it automatically.
+   * and set it automatically. Returns the matches keyed by assistant field key.
    */
-  const handleInferObjects = useCallback(async () => {
+  const handleInferObjects = useCallback(async (): Promise<Record<string, InferredObjectMatch>> => {
     const objectsToInfer = getNestedObjectsFromConfig(config);
+    const matchedObjects: Record<string, InferredObjectMatch> = {};
 
     for (const inferrableObject of objectsToInfer) {
       if (!inferrableObject.match_hint) {
@@ -356,6 +408,8 @@ export const SetupAssistantController = ({
           objectName: potentialMatch[0].object_name,
         };
 
+        matchedObjects[inferrableObject.key] = value;
+
         setState((prev) => {
           const result = {
             ...prev,
@@ -369,6 +423,8 @@ export const SetupAssistantController = ({
         });
       }
     }
+
+    return matchedObjects;
   }, [config, setState, getPotentialMatch]);
 
   const getInferrableFields = useCallback(() => {
@@ -378,10 +434,15 @@ export const SetupAssistantController = ({
   /*
    * Similar to handleInferObjects, but for fields. Can either take an objectId as forceObjectId, or
    * look it up in the state based on additional references. objectIdFilter can be used to only
-   * run the inference on fields for a particular object key.
+   * run the inference on fields for a particular object key. resolvedObjects carries object matches
+   * from the same inference pass, keyed by assistant field key.
    */
   const handleInferFields = useCallback(
-    async (objectIdFilter?: string, forceObjectId?: string) => {
+    async (
+      objectIdFilter?: string,
+      forceObjectId?: string,
+      resolvedObjects?: Record<string, InferredObjectMatch>,
+    ) => {
       const fieldsToInfer = getInferrableFields();
 
       const objectResults: Record<string, CustomObjectDetails> = {};
@@ -390,15 +451,22 @@ export const SetupAssistantController = ({
           continue;
         }
 
-        const objectId =
-          forceObjectId ??
-          (interpolateValueFromState(inferrableField.object_id, inferenceState.current) as string);
+        const objectId = resolveInferredObjectId({
+          objectIdAccessor: inferrableField.object_id,
+          forceObjectId,
+          resolvedObjects,
+          state: inferenceState.current,
+        });
 
         if (objectIdFilter && !inferrableField.object_id.includes(objectIdFilter)) {
           continue;
         }
 
-        if (!objectResults[objectId] && objectId) {
+        if (!objectId) {
+          continue;
+        }
+
+        if (!objectResults[objectId]) {
           try {
             objectResults[objectId] = await getCustomObjectDetails(objectId);
           } catch {
@@ -434,7 +502,7 @@ export const SetupAssistantController = ({
         }
       }
     },
-    [interpolateValueFromState, getInferrableFields, setState, getCustomObjectDetails],
+    [getInferrableFields, setState, getCustomObjectDetails],
   );
 
   const handleReinferObjectByKey = useCallback(
@@ -478,8 +546,8 @@ export const SetupAssistantController = ({
 
   const handleConfigInference = useCallback(async () => {
     // Objects have to complete first, then fields, since the fields need the object metadata
-    await handleInferObjects();
-    await handleInferFields();
+    const inferredObjects = await handleInferObjects();
+    await handleInferFields(undefined, undefined, inferredObjects);
     setInferencePending(false);
   }, [handleInferObjects, handleInferFields]);
 
