@@ -282,12 +282,9 @@ similar) or if the worker chunks exceed their size budget.
 
 The plugin developer documentation lives in [`docs/`](docs/README.md) and publishes to GitHub Pages
 on merge to `main`. Its static-site generator is a standalone project under `docs/site`, with its
-own lockfile and tests.
+own lockfile and tests. These docs are largely intended to be agent-focused and are generated, not human-written.
 
 ### License
 
 Licensed under the GNU General Public License, version 3. See [LICENSE.md](LICENSE.md) for the full
 text.
-
-This matches the other published Kizen developer platform packages, `@kizenapps/cli` and
-`@kizenapps/packager`. Note that the plugins themselves are licensed separately, under GPL 2.0.
