@@ -851,8 +851,8 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   publish without error, render a broken field dropdown ("No Options"), and fail at Agentic
   Workflow save with `"X" is not a valid choice`. Use `number` for numerics; `files` is genuinely
   unsupported as a step param. **`file` (singular) is not a Kizen type either** — it publishes and
-  fails identically, despite appearing to work in a local step runner. Of the ten, `email` saves
-  fine but is missing from the builder's type matrix, so its dropdown is empty. → [07-automation-steps.md](07-automation-steps.md)
+  fails identically, despite appearing to work in a local step runner.
+  → [07-automation-steps.md](07-automation-steps.md)
 
 - **`allowed_values` on static inputs is stripped server-side at publish and never reaches the builder.**
   The workflow author sees a free-text control, not a picker, and nothing validates their input

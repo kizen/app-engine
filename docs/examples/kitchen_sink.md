@@ -1488,10 +1488,6 @@ return newRecordId;
 # Exercises every `data_type` an automation-step input/output supports (10 in total):
 #     string | boolean | number | date | datetime | email | phone_number | employee | entity | uuid
 #
-# Caveat on `email`: it is a valid enum member and saves fine, but it is missing from the builder's
-# type matrix, so its field dropdown renders empty. It works here only because `hint_field_name`
-# pre-selects the field. Prefer `string` for email parameters real authors will map by hand.
-#
 # For each input the script:
 #   1. reads the value
 #   2. logs the Python type it deserialized to via outputs.log() — run the step once and read
