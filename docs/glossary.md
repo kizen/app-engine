@@ -385,14 +385,6 @@ hash differs, i.e. when the assistant changed. Custom config writers must preser
 it, and every `completeSetup` call stamps it regardless of which surface called.
 Owner: [13-setup-assistants.md](13-setup-assistants.md).
 
-### Shared file
-
-A plain `.js` file under `entry`, outside any [artifact](#artifact) directory (convention:
-`src/lib/`), holding named exports that scripts import with relative ESM `import`. Also "shared
-module". The packager folds it into each importing script at build time — the published script is
-still one self-contained body, and a shared file's top-level state is NOT shared: each importer
-gets its own copy. Owner: [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).
-
 ### Thumbnail
 
 `thumbnail.png` at the entry root — the plugin's marketplace image. PNG only, exactly one,

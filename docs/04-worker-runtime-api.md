@@ -32,13 +32,11 @@ Consequences that shape how plugin code must be written:
 - **Nothing on `this` survives between runs.** The main script and its event scripts do not
   share a context. Two invocations of the same event script do not share a context.
   `this.myCache = …` in one script is invisible everywhere else.
-- **There is no module system at runtime.** The body the engine runs is still compiled as a
-  single function, so `require` is unavailable and there is no runtime file the scripts share —
-  a helper has to actually be present in the compiled body to run. At authoring time, though, a
-  script can `import { a, b } from './relative/path.js'` from a plain `.js` file placed under
-  `entry` outside any artifact directory; the packager resolves and folds that code into the
-  script at build time, so what the engine executes is still one self-contained function with no
-  import left in it. See [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).
+- **There is no module system.** The body is compiled as a function, so `import` and
+  `require` are unavailable, and there is no file the scripts can share. Helper functions
+  must be defined inside each script that uses them; duplicating a small `esc()` or
+  `describeError()` helper across scripts is the correct, intended pattern — not a smell to
+  refactor away.
 - **What does persist:** the painted DOM from the last [`this.outputUI()`](#thisoutputuimarkup-options)
   (a repaint swaps it in place), `this.sessionData` (per browser session, per plugin), the
   per-user config store behind [`getUserConfig`/`setUserConfig`](#thisgetuserconfig), business

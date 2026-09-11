@@ -7,8 +7,7 @@ net — scan the relevant section before and after building any surface.
 
 See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 [04-worker-runtime-api.md](04-worker-runtime-api.md) for `this.*` contracts,
-[15-errors-and-observability.md](15-errors-and-observability.md) for the error-handling doctrine,
-[19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) for import/export rules.
+[15-errors-and-observability.md](15-errors-and-observability.md) for the error-handling doctrine.
 
 ---
 
@@ -137,66 +136,17 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   single adornment.
   → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md#when-data-adornment)
 
-## Sharing code
-
-- **`export`, dynamic `import()`, and `import.meta` are build errors in EVERY plugin script now,
-  not just ones using shared code** (`imports/script-export`, `imports/unsupported-import`,
-  packager 0.7.0+). The packager parses every script to check for these regardless of whether it
-  opts into shared code. Neither construct ever worked at runtime — the engine compiles a script
-  body with `new Function`, which can't parse a top-level `export` and has no module to resolve
-  `import()` against — so this moves an existing failure from runtime to build time, it doesn't
-  introduce a new restriction.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#what-changes-for-existing-plugins)
-
-- **The whole shared file's top-level code runs in every importer, not just the parts behind the
-  names you imported.** Only imported *names* enter the importer's scope, but every top-level
-  statement in the shared file still executes there — a costly or throwing statement at module
-  scope hits every importer even if it imported one unrelated export. Keep shared-file top level
-  pure and cheap; do real work inside the exported functions.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#import-and-export-rules)
-
-- **A shared file's `let`/`const` is per script, not shared state.** The packager folds the shared
-  file into each importing script independently, so every importer gets its own copy of its module
-  scope, and every script run still starts fresh — a `let count = 0` never accumulates across
-  scripts or across runs. Use `sessionData` or config for anything that must actually persist or be
-  visible elsewhere. → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#shared-state-is-per-script-not-shared)
-
-- **An exported binding is captured once at fold time, not a live reference.** `export let count`
-  is destructured into the importer's scope when the wrapper runs, so a later mutation inside the
-  shared file (e.g. from an exported `bump()`) doesn't change the importer's already-read `count`.
-  Export functions/getters instead of mutable `let` values.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#shared-state-is-per-script-not-shared)
-
-- **Top-level `await` in a shared file is a build error**, even though it's fine in a script body
-  itself. Put the async work inside an exported function instead.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#import-and-export-rules)
-
-- **Any `import` makes that script strict-mode-parsed (`imports/script-parse`).** A script that
-  imports something and also uses sloppy-only syntax (a legacy octal literal, `with`, duplicate
-  function parameter names) fails to build; a script with no imports is unaffected. The same rule
-  rejects importing `val` while also declaring `const val` in the same script — a duplicate
-  binding.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#strict-mode-parsing)
-
-- **`checkJs`/`@ts-check` flags a script's top-level `return` as `TS1108`.** Every script body is
-  executed as a function, so `return` at the top level is intentional and expected — that's the
-  checker enforcing normal module semantics on a file the engine doesn't treat as one, not a
-  plugin bug. Plain `allowJs` with no `checkJs` produces no such diagnostic.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#ide-support-and-the-top-level-return-caveat)
-
-- **Importing another artifact's `script.js`, or a helper file placed inside a component
-  directory (`blocks/<name>/`, `actions/<name>/`, etc.), is a build error.** Shared code has to
-  live outside every artifact directory — `src/lib/` is the convention.
-  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#where-shared-code-can-live)
-
 ## Workers & HTTP
 
 - **Every script execution is a brand-new worker — nothing on `this`, module scope, or closures survives.**
   Not between a main script and its event scripts, not between two event-script runs, not across
   `runEventScript`. What persists: the painted DOM from the last `outputUI`, `sessionData`,
-  user config, and the backend. Importing a shared file doesn't change this — the packager inlines
-  the shared code into each script, it doesn't give scripts a shared module scope.
-  → [04-worker-runtime-api.md](04-worker-runtime-api.md), [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)
+  user config, and the backend. → [04-worker-runtime-api.md](04-worker-runtime-api.md)
+
+- **Event scripts are isolated units — there are no shared helper modules, and there is no `import`/`require`.**
+  Script bodies are compiled with `AsyncFunction`; duplicating small helpers (an `esc()` or
+  `describeError()`) across scripts is the correct, unavoidable pattern, not a smell.
+  → [04-worker-runtime-api.md](04-worker-runtime-api.md)
 
 - **Relative GETs are cached forever within a worker — there is no TTL.**
   `this.get`/`getWithErrors` memoize per-URL for the worker's lifetime; with `this.preserve = true`
