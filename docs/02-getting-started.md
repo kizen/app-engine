@@ -7,14 +7,18 @@ plugin (manifest + one block + one action), and the first-release checklist.
 **See also:** [01-overview.md](01-overview.md) (mental model) ·
 [03-manifest-reference.md](03-manifest-reference.md) (every manifest field) ·
 [16-release-and-publish.md](16-release-and-publish.md) (publish pipeline & versioning) ·
-[18-recipes.md](18-recipes.md) (larger worked examples)
+[18-recipes.md](18-recipes.md) (larger worked examples) ·
+[19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) (importing shared helpers)
 
 ---
 
 ## Repo anatomy
 
-A plugin repo has no build tooling — no `package.json`, no bundler, no imports. The publish
-pipeline reads raw files; the directory layout *is* the declaration:
+A plugin repo has no build tooling — no `package.json`, no bundler. The publish pipeline reads raw
+files; the directory layout *is* the declaration. Scripts can `import` plain JS from shared files
+elsewhere under `entry` ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md));
+the packager folds those imports away at build time, so what ships is still one self-contained
+script per artifact.
 
 ```
 plugin-example/
@@ -26,6 +30,7 @@ plugin-example/
 └── src/                        # = manifest "entry"; the directory name is your choice
     ├── thumbnail.png           # required to publish; PNG, at the entry root
     ├── import.kzn              # optional Kizen schema bundle installed with the plugin
+    ├── lib/                    # optional: shared .js helpers, imported by scripts (see below)
     ├── actions/<name>/         #   each artifact = a directory with config.json + scripts
     │   ├── config.json
     │   └── script.js
@@ -63,6 +68,9 @@ Rules that matter:
 - `.kizenapp/` holds local CLI state (packaged bundle, credential profile, a Python venv for
   running steps locally, a local browser profile). The CLI adds it to `.gitignore`
   automatically — keep it ignored.
+- Any folder under `entry` that isn't one of the artifact directories above can hold shared `.js`
+  helpers imported by scripts with relative ESM `import` — convention is `src/lib/`. Fully covered
+  in [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).
 
 **Multi-plugin repos:** `kizen.json` may be a top-level JSON *array* of manifest objects,
 each with a unique `api_name` and its own `entry` directory — one repo publishing several
@@ -321,9 +329,11 @@ Full pipeline detail: [16-release-and-publish.md](16-release-and-publish.md).
   root. ([16-release-and-publish.md](16-release-and-publish.md))
 - **Don't bump versions on preview/PR pushes** — previews always deploy as `0.0.0`; version
   bumps belong to release merges. ([16-release-and-publish.md](16-release-and-publish.md))
-- **No shared helper modules** — each script (including every event script) is an isolated
-  body; copy small helpers per script rather than trying to import.
-  ([04-worker-runtime-api.md](04-worker-runtime-api.md))
+- **Shared helpers live in a plain `.js` file outside any artifact directory** (convention
+  `src/lib/`), imported with relative ESM `import` — the packager folds it into each script at
+  build time, so the runtime still only ever sees one isolated body per script, and shared
+  `let`/`const` state is NOT shared (each importer gets its own copy).
+  ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md))
 - **Never commit `.kizenapp/`** — it contains local credential/profile state; verify it stays
   gitignored before a repo is made public.
 - **A stray `release_branch` (singular) key is silently ignored** — the field is

@@ -470,14 +470,18 @@ is missing its source declaration.
 
 ## `data_type` reference
 
-`data_type` names a **variable** type, not a custom-field type. The authoritative publishable enum
-is ten values:
+`data_type` names a **variable** type, not a custom-field type. The publishable enum is ten values:
 
 ```
 string | boolean | number | date | datetime | email | phone_number | employee | entity | uuid
 ```
 
-Plus `file`, used in production for document-processing steps (see below).
+Nine of those are fully usable. `email` is accepted when you publish and when an author saves, but
+it is missing from the builder's type matrix, so an `email` parameter's picker renders
+empty — see [Types that publish but break](#types-that-publish-but-break).
+
+**There is no `file` value.** Files reach a step from a *files* field, never from a declared type —
+see [Receiving files](#receiving-files).
 
 ### Wire encoding
 
@@ -492,15 +496,19 @@ directly, but the type codes explain what you receive:
 | `number` | `n` | `int` or `float` | Numeric; use this for integer, decimal, and money fields alike. |
 | `date` | `d` | `datetime.date` | A `date`, or `"YYYY-MM-DD"`. |
 | `datetime` | `dt` | `datetime.datetime` | A `datetime`, or an ISO 8601 string. |
-| `email` | `em` | `str` | Re-validated as an email on write. |
+| `email` | `em` | `str` | Re-validated as an email on write. Builder dropdown is empty — see below. |
 | `phone_number` | `p` | `str`, E.164 (`"+13125550142"`) | Re-validated on write; an invalid number fails the write, not the script. |
 | `employee` | `e` | `uuid.UUID` | A team-member id. |
 | `entity` | `e<object_id>` | `uuid.UUID` (the record id) | A valid record id **for the target field's object**. |
 | `uuid` | `u` | `uuid.UUID` | A UUID. |
-| `file` | `f` | `KizenFile` (see below) | Uploaded-file id(s). |
 | *typed array* | `a[...]` | `list` of the element type | Multi-value fields. |
 | *untyped list* | `l` | `list` | — |
 | *field option* | `o<object_id,field_id>` | `FieldOption` (see below) | Option id or name. |
+| *file* | `f` | `KizenFile` (see below) | Not declarable. Arrives from a *files* field as `a[f]`. |
+
+The italicised rows are **not** `data_type` values you can write in `config.json` — they are codes
+the platform derives from the field or variable an author maps. Only the ten named values above are
+publishable.
 
 Note the near-collision between `employee` and `entity`: `employee` is the bare code `e`, while
 `entity` is the *parameterized* `e<object_id>`. They are distinguished by the angle brackets, not
@@ -525,9 +533,15 @@ resp.raise_for_status()
 owner_email = resp.json().get("email")
 ```
 
-### `file` and `KizenFile`
+### Receiving files
 
-`data_type: "file"` binds to a file field. Field values arrive as `KizenFile` objects with:
+There is no `file` `data_type`, and a packaged parameter cannot declare itself a list, so **a step
+cannot currently declare a files parameter at all** — see [Types that publish but
+break](#types-that-publish-but-break). What follows describes the values themselves, for when that
+gap is closed and for native (non-packaged) code steps, which take a files field today.
+
+A *files* field crosses the wire as `a[f]` — always an array, even when the author uploaded one
+file — and each element is a `KizenFile`:
 
 | Attribute | Meaning |
 |---|---|
@@ -536,7 +550,7 @@ owner_email = resp.json().get("email")
 | `size` | Size in bytes. |
 | `content_type` | MIME type. |
 
-A multi-value file field arrives as a list; index it, or iterate.
+The value is a list even for a single file: index it, or iterate.
 
 Behavior and limits to design around:
 
@@ -550,16 +564,16 @@ Behavior and limits to design around:
   multi-megabyte PDFs held simultaneously is how these steps hit an out-of-memory kill, which
   surfaces as a step error with no traceback.
 - **Writing a file output** means writing uploaded-file id(s), not bytes — the value format for a
-  file field is a list of file UUIDs.
-- `data_type: "files"` (plural) is a **custom-field** type name, not a variable type. It does not
-  work — see below.
+  files field is a list of file UUIDs.
+- **Neither `file` nor `files` is a valid `data_type`.** `files` is a custom-**field** type name;
+  `file` is not a Kizen type at all. Both publish without error and then fail — see below.
 
 ```python
 import io
 import requests
 import pypdf
 
-source = inputs.document          # KizenFile
+source = inputs.document[0]       # KizenFile — the value is always a list
 outputs.log(f"Downloading {source.name} ({source.size} bytes, {source.content_type})")
 
 resp = requests.get(source.url, timeout=30)
@@ -594,22 +608,36 @@ Pipeline stage values deserialize to a `Stage` object:
 
 ### Types that publish but break
 
-Custom-**field** type names are the single most common `data_type` mistake. `files`, `integer`,
-`decimal`, `money`, and `text` all publish without error — the value is stored as free text — and
-then fail in one of two ways:
+Nothing checks `data_type` before an author tries to use the step. The packager treats it as a free
+string and the publish endpoint stores it in an unconstrained text column, so a wrong value survives
+packaging *and* publishing and surfaces only in the builder.
 
-1. The builder's field dropdown for that parameter shows **"No Options"**, because no variable type
-   matches.
-2. Saving the workflow fails with `"X" is not a valid choice`.
+Custom-**field** type names are the most common mistake. `files`, `integer`, `decimal`, `money`, and
+`text` all publish without error and then fail in one or both of these ways:
+
+1. The builder's field dropdown for that parameter shows **"No Options"**, because the builder
+   matches against variable types and no variable type matches.
+2. Saving the workflow fails with `"X" is not a valid choice` — the *saved step's* `data_type` is
+   enum-validated even though the *published parameter's* was not.
 
 Use `number` for integer, decimal, and money; `string` for text.
 
-`files` is genuinely blocked rather than merely mis-typed: a parameter cannot express "is a list",
-so a multi-value file field needs a string-array variable rather than a `files` parameter.
+Two more values fail in less obvious ways:
 
-There is effectively **no client-side validation** of step configs — a bad `data_type` survives
-packaging and publishing and surfaces only when a workflow author tries to save. Test every new
-step by wiring it into a workflow and saving, not just by publishing.
+- **`file`** is not a Kizen type at all — neither a variable type nor a field type. It publishes,
+  then fails both ways above. It can look correct in a local step runner, which maps `file` straight
+  to the `f` wire code and exercises neither the builder nor the save-time enum.
+- **`email`** *is* a valid enum member and saves without complaint, but it is absent from the
+  builder's type matrix, so its picker is empty — failure 1 without failure 2. This hits both
+  `object_field` and `variable` parameters: there is no email entry in either compatibility matrix,
+  and the variable wizard cannot create an email variable to pick in the first place. Prefer
+  `string` for an email parameter unless authors will only ever map it via `hint_field_name`.
+
+`files` is genuinely blocked rather than merely mis-typed: a parameter cannot express "is a list",
+so a multi-value files field has no valid `data_type` today. Declaring it needs a platform change,
+not a config tweak.
+
+Test every new step by wiring it into a workflow and **saving** it, not just by publishing.
 
 ---
 
@@ -1436,7 +1464,8 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
   `AttributeError`. Use `getattr(inputs, "optional_thing", None)` for every non-required input.
 - **`data_type` takes variable type names, not field type names.** `files`, `integer`, `decimal`,
   `money`, and `text` publish without error, then show "No Options" in the builder's field dropdown
-  and fail at workflow save with `"X" is not a valid choice`. Use `number` and `string`.
+  and fail at workflow save with `"X" is not a valid choice`. Use `number` and `string`. `file` is
+  not a type at all and fails the same way; `email` is valid but its dropdown is empty.
 - **`hint_field_name` prefills with no type check.** A wrong `data_type` looks correct when the
   hint happens to match a field name and only breaks at save time — which is why the same step can
   work when mapped by hand and fail when auto-mapped.

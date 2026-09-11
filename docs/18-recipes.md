@@ -514,7 +514,7 @@ target production in one workflow and staging in another with one install and on
 ```
 
 Config rules that bite: `data_type` takes **variable** type names (`number`, `string` — never
-`integer`/`decimal`/`text`, which publish cleanly and then fail at workflow save); the step's
+`integer`/`decimal`/`text`/`file`, which publish cleanly and then fail at workflow save); the step's
 `secrets` array lists the **bare** name and must be a subset of `base_config.secrets`;
 `plugin_description` is shown once plugin-wide, so keep it identical across both steps and put
 step detail in `action_description`.

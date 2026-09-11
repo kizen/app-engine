@@ -24,11 +24,12 @@
 | Release a version | [16-release-and-publish.md](16-release-and-publish.md) |
 | Debug something weird | [17-gotchas.md](17-gotchas.md) |
 | Copy a working end-to-end build | [18-recipes.md](18-recipes.md) |
+| Share a helper between scripts | [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) |
 | Read a whole real plugin / find live call sites | [examples/](examples/README.md) — [kitchen_sink.md](examples/kitchen_sink.md) (every surface) · [google_calendar.md](examples/google_calendar.md) (production OAuth + calendar source) |
 
 ## Link legend
 
-01 [overview](01-overview.md) · 02 [getting started](02-getting-started.md) · 03 [manifest](03-manifest-reference.md) · 04 [worker runtime](04-worker-runtime-api.md) · 05 [platform API](05-platform-api.md) · 06 [auth & services](06-auth-secrets-services.md) · 07 [workflow steps](07-automation-steps.md) · 08 [actions](08-actions.md) · 09 [blocks](09-blocks.md) · 10 [views & modals](10-views-modals-forms.md) · 11 [output UI & frames](11-output-ui-iframes-frames.md) · 12 [routes/calendars/adornments/settings](12-routes-calendars-adornments-settings.md) · 13 [setup assistants](13-setup-assistants.md) · 14 [navigation & communication](14-navigation-and-communication.md) · 15 [errors](15-errors-and-observability.md) · 16 [release](16-release-and-publish.md) · glossary [glossary.md](glossary.md)
+01 [overview](01-overview.md) · 02 [getting started](02-getting-started.md) · 03 [manifest](03-manifest-reference.md) · 04 [worker runtime](04-worker-runtime-api.md) · 05 [platform API](05-platform-api.md) · 06 [auth & services](06-auth-secrets-services.md) · 07 [workflow steps](07-automation-steps.md) · 08 [actions](08-actions.md) · 09 [blocks](09-blocks.md) · 10 [views & modals](10-views-modals-forms.md) · 11 [output UI & frames](11-output-ui-iframes-frames.md) · 12 [routes/calendars/adornments/settings](12-routes-calendars-adornments-settings.md) · 13 [setup assistants](13-setup-assistants.md) · 14 [navigation & communication](14-navigation-and-communication.md) · 15 [errors](15-errors-and-observability.md) · 16 [release](16-release-and-publish.md) · 19 [sharing code](19-sharing-code-between-scripts.md) · glossary [glossary.md](glossary.md)
 
 ## A–Z index
 
@@ -155,7 +156,7 @@
 | `field` (assistant field type) | assistant field type | [13](13-setup-assistants.md#59-field) |
 | `FieldOption` | step data type | [07](07-automation-steps.md#fieldoption) |
 | `field_type` (data adornment) | adornment config field | [12](12-routes-calendars-adornments-settings.md#field_type) |
-| `file` / `KizenFile` | step data type | [07](07-automation-steps.md#file-and-kizenfile) |
+| `KizenFile` | step value type | [07](07-automation-steps.md#receiving-files) |
 | `floatingFrames/<name>/` | artifact directory | [03](03-manifest-reference.md#floatingframesname) · [11](11-output-ui-iframes-frames.md#declaring-a-floating-frame) |
 | `this.formatDateForResponse(date)` | `this.*` method | [04](04-worker-runtime-api.md#thisformatdateforresponsedate) |
 | `frameless` (modal option) | modal option | [10](10-views-modals-forms.md#frameless-views-frameless-true) · [10](10-views-modals-forms.md#thisshowviewinmodalid-config) |
@@ -182,6 +183,7 @@
 | `import.kzn` | file convention | [03](03-manifest-reference.md#importkzn) |
 | `include` (identity params on `qr` / `image.link` / `link`) | assistant field prop | [13](13-setup-assistants.md#513-include--identity-params-on-qr-imagelink-and-link) |
 | `include_perform_action` | install-time association setting | [08](08-actions.md#include_perform_action) · [glossary](glossary.md#include_perform_action) |
+| `import`/`export` (shared code between scripts) | concept | [19](19-sharing-code-between-scripts.md) · [glossary](glossary.md#shared-file) |
 | `input_source` | step parameter field | [07](07-automation-steps.md#input_source) |
 | `inputs` (Python step global) | Python step global | [07](07-automation-steps.md#inputs) |
 | `this.installThirdPartyScript(scriptUrl)` | `this.*` method | [04](04-worker-runtime-api.md#thisinstallthirdpartyscriptscripturl) |
