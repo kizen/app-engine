@@ -155,7 +155,6 @@
 | `field` (assistant field type) | assistant field type | [13](13-setup-assistants.md#59-field) |
 | `FieldOption` | step data type | [07](07-automation-steps.md#fieldoption) |
 | `field_type` (data adornment) | adornment config field | [12](12-routes-calendars-adornments-settings.md#field_type) |
-| `file` / `KizenFile` | step data type | [07](07-automation-steps.md#file-and-kizenfile) |
 | `floatingFrames/<name>/` | artifact directory | [03](03-manifest-reference.md#floatingframesname) · [11](11-output-ui-iframes-frames.md#declaring-a-floating-frame) |
 | `this.formatDateForResponse(date)` | `this.*` method | [04](04-worker-runtime-api.md#thisformatdateforresponsedate) |
 | `frameless` (modal option) | modal option | [10](10-views-modals-forms.md#frameless-views-frameless-true) · [10](10-views-modals-forms.md#thisshowviewinmodalid-config) |

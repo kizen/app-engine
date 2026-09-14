@@ -846,11 +846,12 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   Always `getattr(inputs, "name", None)` for optional inputs. → [07-automation-steps.md](07-automation-steps.md)
 
 - **`data_type` must be a VARIABLE type, not a field type — wrong values publish fine and then break the builder.**
-  The valid enum (10 values): `string, boolean, number, date, datetime, email, phone_number,
-  employee, entity, uuid`. Field-type names (`text`, `integer`, `decimal`, `money`, `files`)
+  The valid enum (9 values): `string, boolean, number, date, datetime, phone_number, employee,
+  entity, uuid`. Field-type names (`text`, `integer`, `decimal`, `money`, `files`, `file`)
   publish without error, render a broken field dropdown ("No Options"), and fail at Agentic
-  Workflow save with `"X" is not a valid choice`. Use `number` for numerics; `files` is genuinely
-  unsupported as a step param. → [07-automation-steps.md](07-automation-steps.md)
+  Workflow save with `"X" is not a valid choice`. Use `number` for numerics and `string` for text
+  and files fields. `email` isn't valid either - use `string`.
+  → [07-automation-steps.md](07-automation-steps.md)
 
 - **`allowed_values` on static inputs is stripped server-side at publish and never reaches the builder.**
   The workflow author sees a free-text control, not a picker, and nothing validates their input
