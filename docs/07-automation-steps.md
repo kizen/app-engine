@@ -262,20 +262,20 @@ API, which all use the packaged names.
 
 The packaged collection itself is `automation_action_configs`.
 
-### Load-bearing vs inert authored fields
+### Which authored fields are read, and where
 
 | Field | Status |
 |---|---|
-| `api_name` | **Load-bearing.** The unique key; everything resolves through it. |
-| `name`, `action_description` | **Load-bearing** for the builder UI. |
-| `plugin_description` | Load-bearing, but plugin-scoped in effect — see above. |
-| `runtime` | **Load-bearing.** Selects the interpreter. |
-| `secrets` | **Load-bearing.** Gates what the `secrets` dict contains. |
-| `inputs[].name`, `outputs[].name` | **Load-bearing.** These are the runtime accessors. |
-| `data_type` | **Load-bearing.** Drives serialization and the builder's field/variable dropdown. |
-| `required` | **Load-bearing.** Pre-execution validation refuses to run with a required input unmapped or null. |
-| `input_source`, `hint_field_name` | Load-bearing for builder ergonomics only; not for runtime. |
-| `conflict_resolution`, `create_field_options` | **Load-bearing** on outputs at write-back time. |
+| `api_name` | **Runtime.** The unique key; everything resolves through it. |
+| `name`, `action_description` | **Builder.** Rendered in the builder UI. |
+| `plugin_description` | **Builder.** Plugin-scoped in effect - see above. |
+| `runtime` | **Runtime.** Selects the interpreter. |
+| `secrets` | **Runtime.** Gates what the `secrets` dict contains. |
+| `inputs[].name`, `outputs[].name` | **Runtime.** These are the runtime accessors. |
+| `data_type` | **Runtime.** Drives the builder's field/variable dropdown, and serialization for static and variable inputs. A field-mapped input takes its type from the field. |
+| `required` | **Runtime.** Pre-execution validation refuses to run with a required input unmapped or null. |
+| `input_source`, `hint_field_name` | Builder only. Not read at runtime. |
+| `conflict_resolution`, `create_field_options` | **Runtime.** Read on outputs at write-back time. |
 | `action_type` | **Inert.** Stored, never read. |
 | `script_alias` | **Inert.** A fossil of an abandoned design; the runtime binds by `name`. |
 | `allowed_values` | **Inert as enforcement.** Documentation only — see below. |
@@ -470,13 +470,13 @@ is missing its source declaration.
 
 ## `data_type` reference
 
-`data_type` names a **variable** type, not a custom-field type. The publishable enum is ten values:
+`data_type` names a **variable** type, not a custom-field type. The publishable enum is nine values:
 
 ```
-string | boolean | number | date | datetime | email | phone_number | employee | entity | uuid
+string | boolean | number | date | datetime | phone_number | employee | entity | uuid
 ```
 
-**There is no `file` value**, and no way to declare a files parameter — see
+There's no `file` value. A parameter that will be mapped to a files field is declared as `string` - see
 [Types that publish but break](#types-that-publish-but-break).
 
 ### Wire encoding
@@ -492,7 +492,6 @@ directly, but the type codes explain what you receive:
 | `number` | `n` | `int` or `float` | Numeric; use this for integer, decimal, and money fields alike. |
 | `date` | `d` | `datetime.date` | A `date`, or `"YYYY-MM-DD"`. |
 | `datetime` | `dt` | `datetime.datetime` | A `datetime`, or an ISO 8601 string. |
-| `email` | `em` | `str` | Re-validated as an email on write. |
 | `phone_number` | `p` | `str`, E.164 (`"+13125550142"`) | Re-validated on write; an invalid number fails the write, not the script. |
 | `employee` | `e` | `uuid.UUID` | A team-member id. |
 | `entity` | `e<object_id>` | `uuid.UUID` (the record id) | A valid record id **for the target field's object**. |
@@ -557,25 +556,20 @@ Nothing checks `data_type` before an author tries to use the step. The packager 
 string and the publish endpoint stores it in an unconstrained text column, so a wrong value survives
 packaging *and* publishing and surfaces only in the builder.
 
-Custom-**field** type names are the most common mistake. `files`, `integer`, `decimal`, `money`, and
-`text` all publish without error and then fail in one or both of these ways:
+Custom-**field** type names are the most common mistake. `files`, `file`, `integer`, `decimal`,
+`money`, and `text` all publish without error and then fail in one or both of these ways:
 
 1. The builder's field dropdown for that parameter shows **"No Options"**, because the builder
    matches against variable types and no variable type matches.
 2. Saving the workflow fails with `"X" is not a valid choice` — the *saved step's* `data_type` is
    enum-validated even though the *published parameter's* was not.
 
-Use `number` for integer, decimal, and money; `string` for text.
+Use `number` for integer, decimal, and money; `string` for text and for files.
 
-One more value fails in a less obvious way:
+A files field is declared as `string`. A `string` input mapped to a files field arrives as a list
+of file objects rather than a `str`.
 
-- **`file`** is not a Kizen type at all — neither a variable type nor a field type. It publishes,
-  then fails both ways above. It can look correct in a local step runner, which maps `file` straight
-  to the `f` wire code and exercises neither the builder nor the save-time enum.
-
-`files` is genuinely blocked rather than merely mis-typed: a parameter cannot express "is a list",
-so a multi-value files field has no valid `data_type` today. Declaring it needs a platform change,
-not a config tweak.
+`email` isn't a valid `data_type`. Use `string`.
 
 Test every new step by wiring it into a workflow and **saving** it, not just by publishing.
 
@@ -1402,10 +1396,10 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
 
 - **An unmapped optional input is absent, not `None`.** `inputs.optional_thing` raises
   `AttributeError`. Use `getattr(inputs, "optional_thing", None)` for every non-required input.
-- **`data_type` takes variable type names, not field type names.** `files`, `integer`, `decimal`,
-  `money`, and `text` publish without error, then show "No Options" in the builder's field dropdown
-  and fail at workflow save with `"X" is not a valid choice`. Use `number` and `string`. `file` is
-  not a type at all and fails the same way.
+- **`data_type` takes variable type names, not field type names.** `files`, `file`, `integer`,
+  `decimal`, `money`, and `text` publish without error, then show "No Options" in the builder's
+  field dropdown and fail at workflow save with `"X" is not a valid choice`. Use `number` and
+  `string`; files fields take `string`. `email` isn't valid either - use `string`.
 - **`hint_field_name` prefills with no type check.** A wrong `data_type` looks correct when the
   hint happens to match a field name and only breaks at save time — which is why the same step can
   work when mapped by hand and fail when auto-mapped.
