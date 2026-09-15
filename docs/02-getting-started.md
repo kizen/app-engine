@@ -13,8 +13,11 @@ plugin (manifest + one block + one action), and the first-release checklist.
 
 ## Repo anatomy
 
-A plugin repo has no build tooling — no `package.json`, no bundler, no imports. The publish
-pipeline reads raw files; the directory layout *is* the declaration:
+A plugin repo has no build tooling — no `package.json`, no bundler. The publish pipeline reads
+raw files; the directory layout *is* the declaration. Scripts can `import` plain JS from shared
+files elsewhere under `entry` ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md));
+the packager folds those imports away at build time, so what ships is still one self-contained
+script per artifact.
 
 ```
 plugin-example/
@@ -26,6 +29,7 @@ plugin-example/
 └── src/                        # = manifest "entry"; the directory name is your choice
     ├── thumbnail.png           # required to publish; PNG, at the entry root
     ├── import.kzn              # optional Kizen schema bundle installed with the plugin
+    ├── lib/                    # optional: shared .js helpers, imported by scripts (see below)
     ├── actions/<name>/         #   each artifact = a directory with config.json + scripts
     │   ├── config.json
     │   └── script.js
@@ -57,6 +61,11 @@ Rules that matter:
   markup you paint with `outputUI` ([11-output-ui-iframes-frames.md](11-output-ui-iframes-frames.md)).
 - `styles.css` is scoped by the engine to the artifact's own markup — plain selectors are
   safe.
+- Any folder under `entry` that isn't one of the artifact directories above can hold shared
+  `.js` helpers, imported by scripts with relative ESM `import { name } from '../../lib/x.js'`
+  — convention is `src/lib/`. Named imports and exports only; the packager inlines the file
+  into each importer, so shared state is not shared. Fully covered in
+  [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).
 - `src/thumbnail.png` must sit at the first path level under `entry` (a nested
   `src/images/thumbnail.png` is silently ignored). Build succeeds without it; **publish
   fails** without it.
@@ -94,7 +103,7 @@ Global credentials live in `~/.kizenappbuilder`; per-repo state in `.kizenapp/`.
 | Command | What it does for you |
 |---|---|
 | `npx --yes @kizenapps/cli create` | **Interactive — needs a TTY.** Scaffolds a new plugin: `kizen.json` (version `1.0.0`, `entry: "src/"`, `releaseNotes/` wired), an empty `src/`, and `releaseNotes/`. No artifact templates — add directories yourself. |
-| `npx --yes @kizenapps/cli build` | Validates and packages the repo locally with `@kizenapps/packager` — the same rules CI runs — and writes the packaged result to `.kizenapp/bundle.json` (exactly what would be published). Run it before every push to catch `manifest/*` and `structure/*` errors early. |
+| `npx --yes @kizenapps/cli build` | Validates and packages the repo locally with `@kizenapps/packager` — the same rules CI runs — and writes the packaged result to `.kizenapp/bundle.json` (exactly what would be published). Run it before every push to catch `manifest/*`, `structure/*`, `imports/*`, `runtime/*` and `security/*` errors early. |
 | `npx --yes @kizenapps/cli dev` | Local dev runner: renders your artifacts against the real engine without publishing, so you can exercise blocks, views, frames, prompts, and run Python Agentic Workflow steps locally (it provisions a venv under `.kizenapp/`). |
 | `npx --yes @kizenapps/cli encrypt` | Produces the `{"encrypted": true, "value": "<base64>"}` envelope for a secret value (OAuth `client_secret`, etc.) to paste into `kizen.json`. Defaults to production keys; pass `--stage dev` when targeting dev environments. See [06-auth-secrets-services.md](06-auth-secrets-services.md). |
 | `npx --yes @kizenapps/cli icons` | Prints the platform icon set — the authoritative list of valid `icon` values for toolbar items, adornments, and minimized frame triggers. |
@@ -105,7 +114,8 @@ Global credentials live in `~/.kizenappbuilder`; per-repo state in `.kizenapp/`.
 ## The dev loop
 
 1. **Edit → `npx --yes @kizenapps/cli build`.** Local validation is the fast feedback: manifest errors,
-   missing `config.json`, bad api_names, duplicate names all fail here with stable rule ids.
+   missing `config.json`, bad api_names, duplicate names, a broken `import`, a reference to
+   `window` — all fail here with stable rule ids.
 2. **`npx --yes @kizenapps/cli dev`** to render and click through surfaces locally against the real engine.
 
    The viewer has no install flow, so it never emulates the setup-assistant hash or the
@@ -321,9 +331,11 @@ Full pipeline detail: [16-release-and-publish.md](16-release-and-publish.md).
   root. ([16-release-and-publish.md](16-release-and-publish.md))
 - **Don't bump versions on preview/PR pushes** — previews always deploy as `0.0.0`; version
   bumps belong to release merges. ([16-release-and-publish.md](16-release-and-publish.md))
-- **No shared helper modules** — each script (including every event script) is an isolated
-  body; copy small helpers per script rather than trying to import.
-  ([04-worker-runtime-api.md](04-worker-runtime-api.md))
+- **Shared helpers live in a plain `.js` file outside any artifact directory** (convention
+  `src/lib/`), imported with relative ESM `import` — the packager folds it into each script at
+  build time, so the runtime still only ever sees one isolated body per script, and shared
+  `let`/`const` state is NOT shared (each importer gets its own copy).
+  ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md))
 - **Never commit `.kizenapp/`** — it contains local credential/profile state; verify it stays
   gitignored before a repo is made public.
 - **A stray `release_branch` (singular) key is silently ignored** — the field is

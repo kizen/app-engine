@@ -124,7 +124,7 @@ What must be true for the payload to arrive: the URL starts with `/`; the payloa
 
 ### What persists between scripts
 
-Every script execution — main scripts, event scripts, `runEventScript` targets, `runBlockScript` targets — runs in a **brand-new worker** with a fresh context. Nothing on `this`, and no module/closure scope, survives between the main script and its event scripts, between two event-script runs, or across dispatch calls. There are also **no shared helper modules** — each script file is compiled in isolation; duplicating small helpers (`esc()`, error describers) across event scripts is the correct pattern.
+Every script execution — main scripts, event scripts, `runEventScript` targets, `runBlockScript` targets — runs in a **brand-new worker** with a fresh context. Nothing on `this`, and no module/closure scope, survives between the main script and its event scripts, between two event-script runs, or across dispatch calls. Importing a shared file does not change this — the packager copies the shared code into each script at build time ([19](19-sharing-code-between-scripts.md)); it does not give scripts a shared module scope, so a shared file's `let` is never a communication channel.
 
 What *does* persist, and where:
 
@@ -291,5 +291,5 @@ Upward messages from proxied iframes arrive wrapped in a `FrameProxyEnvelope` (`
 - **Same page, same plugin only** — there is no cross-plugin dispatch, and an unmounted target is a silent no-op (nothing queues).
 - **`communicate.*` args are typed as scalar maps but JSON round-trips arbitrary objects** — objects/arrays work; shape-check on receipt.
 - **`sessionData` writes ARE visible to the writing run** (the local snapshot updates synchronously) but writes from *other* workers are not — the snapshot is fixed at construction. Merge is **top-level-only** — one top-level key per independent fact; never hand-spread nested maps across overlapping workers.
-- **No shared helper modules exist between scripts** — duplicate small helpers per event script; coordinate through messages and args, not imports.
+- **Imports share code, not state** — a shared file's variables are per script and per run ([19](19-sharing-code-between-scripts.md)); coordinate through messages, args and `sessionData`, never through a shared file's `let`.
 - **Never gate live broadcasts on completeness** — broadcast what the sender renders; gate only persistence.

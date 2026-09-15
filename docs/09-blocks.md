@@ -181,7 +181,7 @@ Blocks are worker-rendered DOM, the same model as pages and floating frames:
 
 - `script.js` runs in a Web Worker when the block mounts. There is no `document`, no `addEventListener`, no DOM API. UI is painted with `this.outputUI(markup)` (sanitized HTML — full contract in [11](11-output-ui-iframes-frames.md#thisoutputuimarkup-options)); interactivity is wired exclusively through `data-script="<name>"` attributes dispatching to `eventScripts/<name>.js`.
 - **Every script run is a fresh worker.** Nothing on `this` (or closure scope) survives between the mount script and its event scripts, or between two event-script runs. What persists: the painted DOM from the last `outputUI` (repaints swap in place) and state explicitly written to `sessionData`.
-- **Event scripts are isolated units** — there are no shared helper modules. Duplicating a small helper (`esc()`, `describeError()`) across event scripts is the correct pattern, not a smell.
+- **Event scripts are isolated units at runtime.** Share a helper (`esc()`, `describeError()`) by putting it in `src/lib/` and importing it into each script ([19](19-sharing-code-between-scripts.md)); the packager copies it into every importer at build time, so this shares code, not state.
 - Each **placed instance** of a block gets its own worker identity (the instance id is the worker key), so two copies of the same block on one page run independently. The mount script is deduped by a stable hash of plugin + block + script + args, so React re-renders don't re-execute it; args changes do.
 - `this.setSessionData(update)` shallow-merges **top-level keys only** into a plugin-scoped, memory-only bucket shared by every surface of your plugin on the page; `this.sessionData` is a construction-time snapshot (a script never sees its own write within the same run). Use one top-level key per independent fact so concurrent writers compose. Full semantics in [14](14-navigation-and-communication.md).
 - Loading affordances: `this.setIndicator("spinner" | "block" | "button" | "none")` drives the host loading chrome; the engine resets it to `"none"` when the script finishes. See [04](04-worker-runtime-api.md).
@@ -336,8 +336,8 @@ this.runEventScript("render", { reason: "mount" });
 `src/blocks/teamPulse/eventScripts/render.js`
 
 ```js
-// Single painter. Event scripts are isolated — helpers like esc() are duplicated
-// per script by design.
+// Single painter. Inline here for a self-contained example; a real plugin would
+// `import { esc } from '../../../lib/html.js'` (see 19-sharing-code-between-scripts.md).
 const esc = (text) =>
   String(text).replace(
     /[&<>"']/g,
