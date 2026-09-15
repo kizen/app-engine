@@ -339,12 +339,16 @@ same helpers. A migration that went smoothly on a 50-file plugin:
 
 ### A prompt for handing the migration to an agent
 
-Paste this into a coding agent opened at the plugin repo root. It encodes the steps above and the
-two checkpoints that matter: the inventory review before anything moves, and the bundle diff as
-proof that nothing else changed.
+Paste this into a coding agent opened at the plugin repo root. It runs the migration in two waves:
+a behavior-neutral consolidation the agent completes on its own, then behavior-changing refactors
+(unifying drifted variants, parameterizing helpers that close over per-file constants, untangling
+stateful helpers) that the agent may only perform for items you approve by number from its Wave 1
+report. The bundle diff proves neutrality in Wave 1 and fences scope in Wave 2.
 
 ````markdown
 Refactor this Kizen plugin to share code between scripts using the packager's import/export support.
+Work in two waves. Wave 1 is behavior-neutral and you run it end to end. Wave 2 changes behavior
+and you do only the items I explicitly approve from your Wave 1 report — never on your own initiative.
 
 ## Context you need first
 
@@ -365,56 +369,89 @@ anything. The short version:
   runs in every importer, so keep it to constants and function/class definitions.
 - `this` inside a shared file is the importing script's worker context.
 - Setup-assistant per-field scripts (`setupAssistant/<key>/*.js`) and Python steps
-  (`automationSteps/*/script.py`) cannot import. Leave them alone.
+  (`automationSteps/*/script.py`) cannot import. Leave them alone in both waves.
 - Requires `@kizenapps/packager` 0.7.0+, which `npx --yes @kizenapps/cli build` bundles.
+- Do not create branches or commit in either wave.
 
-## Procedure
+## Wave 1 — byte-identical consolidation (run to completion)
 
 1. **Baseline.** Run `npx --yes @kizenapps/cli build` and copy `.kizenapp/bundle.json` to
    `/tmp/bundle-before.json`. If the build fails, stop and report — do not refactor a broken build.
 
-2. **Inventory duplicated code.** Search every `.js` under `entry` for functions and constants
-   defined in more than one file (helpers like `esc`, `describeError`, `fmtDate`, endpoint
-   constants, header builders). For each name, group the copies by exact body text. Produce a
-   table: name, number of copies, number of distinct variants, files. Show me this table and wait
-   for my go-ahead before moving anything.
+2. **Inventory.** Search every `.js` under `entry` for functions and constants defined in more
+   than one file (helpers like `esc`, `describeError`, `fmtDate`, endpoint constants, header
+   builders). Group each name's copies by exact body text and classify every name as one of:
+   - **IDENTICAL** — every copy is byte-for-byte the same.
+   - **DIVERGENT** — two or more distinct bodies. Record each variant and which files use it.
+   - **CLOSURE** — identical bodies, but the helper reads a per-file constant or variable from
+     its enclosing script (e.g. `paintWorking()` reading a file-local `TITLE`).
+   - **STATEFUL** — the helper reads or writes a top-level `let`/`var` in its file.
 
-3. **Consolidate only byte-identical copies.** For each name whose copies are all identical:
+3. **Consolidate IDENTICAL names only.**
    - Create or extend a shared file under `src/lib/`, one file per concern (`html.js` for
      escaping/markup helpers, `kizen.js` for endpoint constants and response helpers, `format.js`
      for dates/money/strings, etc.). Export with `export const` / `export function`.
    - Replace every copy with `import { name } from '<relative path>/lib/<file>.js'` at the top of
      the script, and delete the local definition.
-   - Do not touch names whose copies differ, even trivially (`String(s)` vs `String(s ?? "")`).
-     Divergent copies are different behavior; list them in your report as follow-ups instead.
-   - Do not move a helper that reads a per-file constant or variable from its enclosing script
-     (e.g. `paintWorking()` using a file-local `TITLE`). Turning it into a parameterized function
-     is a separate refactor.
-   - Do not move a helper that keeps state in a top-level `let` unless you also convert readers to
-     an exported getter. A reassigned exported `let` produces `imports/mutable-export`.
+   - Keep shared files pure: no I/O, `throw`, `await`, `return`, or `this` at the top level. If a
+     constant needs `this` (an endpoint built from `this.pluginApiName`), export a function that
+     builds it.
+   - Do not touch DIVERGENT, CLOSURE, or STATEFUL names in this wave, however small the
+     difference looks. `String(s)` vs `String(s ?? "")` is different behavior.
 
-4. **Keep shared files pure.** Nothing in a shared file's top level may do I/O, throw, `await`,
-   `return`, or read `this` outside a function body. If a constant needs `this` (for example an
-   endpoint built from `this.pluginApiName`), export a function that builds it.
-
-5. **Verify.**
-   - `npx --yes @kizenapps/cli build` must pass with zero errors.
+4. **Verify.**
+   - `npx --yes @kizenapps/cli build` passes with zero errors.
    - Diff `.kizenapp/bundle.json` against `/tmp/bundle-before.json`. Every script whose source you
-     did NOT edit must be byte-identical. Scripts you did edit should differ only by the inlined
-     helper. Any other difference is a bug — investigate before continuing.
-   - Ensure no `.js` file under `src/lib/` (or any other shared location) is left unimported.
-   - If the plugin has `npx --yes @kizenapps/cli dev` surfaces you can render, render one block or
-     view that imports a helper and confirm it paints.
+     did NOT edit must be byte-identical. Edited scripts should differ only by the inlined helper.
+     Any other difference is a bug — investigate before continuing.
+   - No file under `src/lib/` is left unimported.
+   - If `npx --yes @kizenapps/cli dev` can render a surface that imports a helper, render it and
+     confirm it paints.
 
-6. **Do not** bump `version` or add release notes unless I ask; this refactor is behavior-neutral.
-   Do not create branches or commit.
+5. **Wave 1 report.** Give me:
+   - The inventory table (name, classification, copies, variants, files).
+   - Shared files created and what each exports; files changed and copies removed.
+   - The bundle diff summary (N scripts changed, all others identical).
+   - Any `imports/*` warnings the PR check will raise (the CLI prints errors only).
+   - **A numbered Wave 2 menu**: one entry per DIVERGENT, CLOSURE, or STATEFUL name, each with
+     your recommended treatment (below), the behavior change it implies, and the files affected.
+     Then stop and wait. Do nothing from the menu until I reply with the numbers I want done.
 
-## Report
+## Wave 2 — behavior-changing refactors (only items I approve by number)
 
-When finished, give me: the inventory table; the shared files created and what each exports;
-files changed count and copies removed; the divergent-variant names you deliberately left with
-their file lists; the bundle diff summary (N scripts changed, all others identical); and any
-`imports/*` warnings the PR check will raise (the CLI prints errors only, so call these out).
+Treatments, and what each must include:
+
+- **DIVERGENT → unify.** Propose one canonical body (prefer the variant that handles the most
+  cases — usually the one with null/undefined guards — and say why). For each file switching
+  variants, state the observable difference in one line (e.g. "`null` now renders as empty string
+  instead of `"null"`"). If variants differ in behavior a user can see, I may decline; that is the
+  point of asking.
+- **CLOSURE → parameterize.** Turn the per-file constant into a parameter or an options object
+  with the current file-local value passed at each call site. The refactored call must produce the
+  same output as before in every file; show one before/after call site per file.
+- **STATEFUL → getter or argument.** Keep the mutable binding private to the shared file and
+  export a function that reads it — or, if the state is genuinely per script (a per-run cache),
+  leave the state in the script and share only the pure logic, passing the state in. Never export
+  a reassigned `let`; that produces `imports/mutable-export` and importers read a stale snapshot.
+
+Rules for the wave:
+
+- Do exactly the approved numbers. If an approved item turns out to depend on an unapproved one,
+  stop and ask rather than expanding scope.
+- One shared-file change and its call-site updates per item; keep items separable so I can
+  revert one without the others.
+- The bundle diff will now legitimately change edited scripts. For each approved item, list every
+  script whose packaged output changed and confirm it is in that item's expected file list. Any
+  script outside the union of expected lists is a bug.
+- Build must pass with zero errors after each item, not just at the end.
+- Where `npx --yes @kizenapps/cli dev` can render an affected surface, render it before and after
+  and describe any visible difference.
+
+**Wave 2 report**, per item: what changed, the behavior difference (or "none — output identical
+on every current call site" with how you established that), the files touched, and any new
+warnings. Then a final consolidated list of anything still duplicated and why. If any approved item
+changed user-visible behavior, say so plainly at the top so I can decide whether this release needs
+a `version` bump and release notes — do not bump or write them yourself.
 ````
 
 ## Diagnostics
