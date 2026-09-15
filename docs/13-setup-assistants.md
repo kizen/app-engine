@@ -697,12 +697,17 @@ Rules:
   scripts and `utils` is an empty object.
 - Files are matched by directory name to field `key`, including keys **nested inside containers**.
 - Files in a directory that matches no field key are ignored silently.
-- These scripts run **in the browser page rendering the assistant, not in a worker**. There is no
-  `this`, no `this.getServiceUrl`, no worker API at all — so none of the `this.*` calls shown in §13
+- **No `import`.** These files are single expressions, not script bodies, so the shared-code
+  mechanism in [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) does not
+  apply; an `import` here is a build error (`imports/assistant-script`). Inline what they need.
+- Each script is evaluated inside an **isolated expression worker** — the same one-shot module worker
+  that runs `when` (§6), spawned and terminated per evaluation. The usual worker global constraints
+  therefore apply (no `window`, `document`, DOM, or `localStorage`), and there is no `this`, no
+  `this.getServiceUrl`, no runtime-context API at all — so none of the `this.*` calls shown in §13
   or §16 (which are ordinary artifact scripts) are available here, and conversely `state` exists only
   in these five files. Build proxy URLs by hand:
   `/external-integrations/proxy/${state.pluginApiName}/<service_name>/<path>` — byte-identical to what
-  `this.getServiceUrl` produces in a worker.
+  `this.getServiceUrl` produces in a worker. The page, not the worker, performs the resulting fetch.
 - A URL starting with `/` goes through the app's authenticated client (session cookies, business
   headers, and — for proxy paths — server-side token injection). Any other URL is a plain browser
   `fetch`, subject to CORS, with no Kizen credentials.
@@ -1725,7 +1730,8 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
   disjoint.
 - **`this.config` is stale within a run.** It is a snapshot of the args the worker loaded with; a value
   you just PATCHed will not appear until the next load. Prefill UI from a fresh GET.
-- **Per-field scripts run in the browser, not a worker.** No `this`, no `this.getServiceUrl`. Build
+- **Per-field scripts run in the isolated expression worker.** No `this`, no `this.getServiceUrl`, and
+  no `window`/`document` either. Build
   `/external-integrations/proxy/${state.pluginApiName}/<service>/<path>` by hand, and always use
   `state.pluginApiName` — preview builds suffix the api_name and a hardcoded literal 404s.
 - **Per-field script files must be arrow-function expressions.** Statements, function declarations, or

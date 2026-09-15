@@ -966,7 +966,8 @@ def parse_retry_after(value):
 Steps are isolated units. There is no shared module, no import path between steps, and no way to
 factor a helper out of one `script.py` into another. **Copying `request_with_retry` into every step
 in a plugin is the correct pattern**, not a smell — the only factoring available is local functions
-inside one file.
+inside one file. (This is specific to Python steps; the plugin's JavaScript scripts *can* share
+code — [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).)
 
 ---
 
@@ -1437,8 +1438,9 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
   usable error.
 - **File presigned URLs expire in about 10 minutes** and reject an added `Authorization` header.
   Download at the top of the step, with plain `requests`.
-- **No shared helpers between steps.** Each `script.py` is an isolated unit; duplicating a retry
-  helper into every step is the correct pattern, not a smell.
+- **No shared helpers between Python steps.** Each `script.py` is an isolated unit; duplicating a
+  retry helper into every step is the correct pattern, not a smell. (JavaScript scripts can share
+  code via `import` — [19](19-sharing-code-between-scripts.md); `script.py` cannot.)
 - **Uninstalling a plugin invalidates every workflow step that used it** ("The Plugin is no longer
   available"), and a removed or renamed step api_name hard-fails at run time with a
   config-not-found error. Additive changes are safe; removals and renames are breaking.

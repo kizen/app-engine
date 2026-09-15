@@ -36,9 +36,11 @@ A Kizen plugin ("plugin app") is a git repo that packages three kinds of things:
    `pages/`, `views/`, `toolbarItems/`, `dataAdornments/`, `objectSettingsItems/`,
    `routeScripts/`, `calendarSources/`, `setupAssistant/`, `userSetupAssistant/`.
 3. **Scripts** — bare script bodies (JavaScript for browser surfaces, Python for
-   Agentic Workflow steps). There is no module system, no bundler, no `package.json`: each
-   script file is a self-contained body that the platform wraps and executes. JavaScript
-   scripts are minified at package time; Python step scripts ship verbatim.
+   Agentic Workflow steps). There is no runtime module system, no bundler, no `package.json`:
+   each script file ships as a self-contained body that the platform wraps and executes.
+   JavaScript scripts may `import` helpers from shared `.js` files elsewhere under `entry`
+   ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)); the packager
+   folds those imports away at build time, then minifies. Python step scripts ship verbatim.
 
 Publishing packages the repo (`@kizenapps/packager` does validation + packaging; the publish
 pipeline runs on every push — see [16-release-and-publish.md](16-release-and-publish.md)) and
@@ -82,8 +84,10 @@ The load-bearing consequences:
 - **Every execution is a fresh worker.** Nothing on `this`, and no closure/module state,
   survives between a script and its event scripts, or between two runs. State persists only
   in the painted DOM, `this.sessionData` (in-memory, per plugin, per browser session), user
-  config, or the backend. Event scripts are isolated units — there are no shared helper
-  modules; duplicating small helpers per script is the correct pattern.
+  config, or the backend. Event scripts are isolated units at runtime; share helpers between
+  them by importing from a shared file, which the packager copies into each script at build
+  time ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)) — that
+  shares *code*, never state.
 - **All I/O goes through the bridge.** `this.*` methods (`getWithErrors`, `showToast`,
   `dynamicPrompt`, `openWindow`, …) are JSON `postMessage` calls the host executes.
   Relative-URL HTTP calls are authenticated Kizen API requests made by the host as the
@@ -339,6 +343,7 @@ Details: [06-auth-secrets-services.md](06-auth-secrets-services.md) and
 | [15-errors-and-observability.md](15-errors-and-observability.md) | error doctrine (toast vs onError vs throw) |
 | [16-release-and-publish.md](16-release-and-publish.md) | versioning, preview builds, publish pipeline |
 | [17-gotchas.md](17-gotchas.md) / [18-recipes.md](18-recipes.md) | aggregated gotchas; end-to-end recipes |
+| [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) | `import`/`export` between plugin scripts: shared files, rules, diagnostics |
 | [glossary.md](glossary.md) / [method-index.md](method-index.md) | vocabulary; method → doc anchor map |
 
 ---

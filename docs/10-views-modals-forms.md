@@ -248,7 +248,7 @@ Rules that make this work:
 
 - Every step is a `<form data-script="...">`; form values (including hidden inputs) arrive on the event script's `this.args.formData`, array-wrapped.
 - The clicked submit button's own `name`/`value` is **never** captured (`new FormData(form)` runs without the submitter) — you cannot encode "which button" on the submit button. Give **Back its own `<form data-script>`** carrying the same hidden inputs; a bare button click would lose all state.
-- Escape every interpolated value (`esc()` below). Event scripts are isolated workers with no shared modules — duplicate the helper into each script; that is the correct pattern, not a smell.
+- Escape every interpolated value (`esc()` below). Put the helper in a shared file and `import { esc }` into each step script ([19](19-sharing-code-between-scripts.md)); the packager copies it into every importer, so each event script still ships self-contained.
 - DOMPurify drops a `value` attribute whose decoded content contains a complete tag (`<script>…</script>`), even correctly escaped — don't round-trip tag-tolerant free text through hidden inputs; carry those values in `this.sessionData` instead.
 - On a failed final write, **don't close** — repaint the previous step with the same formData so the user can retry.
 

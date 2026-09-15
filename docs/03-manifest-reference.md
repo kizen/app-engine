@@ -179,8 +179,9 @@ manifest or runtime capabilities never require an engine bump.
 
 Directory containing every artifact, the thumbnail, and the optional schema bundle.
 Convention is `"src/"`, but any path matching
-`/^[a-zA-Z][a-zA-Z0-9_\-/]*$/` works — nested entries such as `"src/exampleApp/"` are
-supported and are how one repo ships several plugins.
+`/^[a-zA-Z][a-zA-Z0-9_\-/]*$/` works — multi-segment paths such as `"src/exampleApp/"` are
+supported and are how one repo ships several plugins as siblings. One entry may not sit
+*inside* another's directory (`manifest/nested-entry`); two entries may name the same directory.
 
 Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but never
 `src-legacy/...`.
@@ -733,8 +734,10 @@ A wrong-but-well-formed id fails at publish time, not at build time.
 
 Artifacts are discovered by directory name. Each artifact is one subdirectory holding a
 `config.json` (required for every type except `views/`) plus reserved script filenames.
-Filenames are the contract — `kizen.json` never names a script file, and scripts are never
-imported or bundled: each file is a standalone script body.
+Filenames are the contract — `kizen.json` never names a script file, and no config declares a
+dependency between files. A script may `import` from a shared `.js` file outside the artifact
+directories ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)); the
+packager inlines it at build time, so each packaged script is still a standalone body.
 
 ```
 src/                                  # = entry
@@ -1262,6 +1265,7 @@ backend's publish validation. Warnings never fail a build.
 | `manifest/developer-business-id` | error | Wrong shape, alias keys in the object form, or an empty id. |
 | `manifest/developer-business-id-environments` | **warning** | Flat string id with two or more resolved release environments. |
 | `manifest/duplicate-api-name` | error | Two entries in a multi-plugin manifest share an `api_name`. |
+| `manifest/nested-entry` | error | One entry's `entry` directory is inside another entry's directory (reported on the inner entry). Identical entries are allowed; nested ones are not. |
 | `manifest/setup-assistant-shape` | error | An inline `setup_assistant` / `user_setup_assistant` is not a JSON object, or its `view` is present and not a string. |
 | `manifest/setup-assistant-parse` | error | `assistant.json` is not valid JSON, or parses to something that is not an object. |
 | `manifest/setup-assistant-view-conflict` | error | `view` is set alongside a non-empty `fields`, a non-empty `actions`, or a service with `prerequisite: true`. |
@@ -1285,8 +1289,42 @@ backend's publish validation. Warnings never fail a build.
 `base_config.disabled_keys` — outside either assistant — and the host applies the same array to both. A plugin with one view-based and one declarative assistant
 still legitimately needs it; remove it only once no assistant on the plugin is declarative.
 
+### Script rules
+
+These parse every `.js` file under `entry`. The message carries the file and 1-based
+`line:column`. The `imports/*` rules are explained in
+[19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#diagnostics); the
+`security/*` rules in [06-auth-secrets-services.md](06-auth-secrets-services.md).
+
+| Rule | Severity | Trigger |
+|---|---|---|
+| `imports/bad-specifier` | error | An import specifier that is not a relative path ending in `.js`. |
+| `imports/unsupported-import` | error | Default, namespace, side-effect or string-named import; `import { default as x }`; dynamic `import()`; `import.meta`. |
+| `imports/outside-entry` | error | An import resolves outside the plugin's `entry` directory. |
+| `imports/missing-file` | error | An import resolves to a file that is not in the plugin. |
+| `imports/component-script` | error | An import targets a file inside an artifact directory. |
+| `imports/missing-export` | error | The imported name is not exported by the target file. |
+| `imports/unsupported-export` | error | `export default`, `export { x as default }`, a re-export, `export *`, a string export name, or `__proto__` as an export name. |
+| `imports/top-level-await` | error | `await` at the top level of a shared file. |
+| `imports/top-level-return` | error | `return` at the top level of a shared file. |
+| `imports/mutable-export` | **warning** | An exported `let`/`var`/`function`/`class` is reassigned after initialization, so importers read a stale snapshot. |
+| `imports/script-export` | error | `export` in a component script. |
+| `imports/assistant-script` | error | `import` in a setup-assistant per-field script. |
+| `imports/module-parse` | error | An imported shared file fails to parse. |
+| `imports/script-parse` | error | A script that imports fails to parse as an ES module (strict mode). |
+| `imports/cycle` | error | Shared files reached by a script import each other in a cycle. |
+| `imports/unused-module` | **warning** | A shared file that no script imports. |
+| `runtime/unavailable-global` | error | A free reference to a browser-page or Node.js global that does not exist in the Web Worker runtime — `window`, `document`, `localStorage`, `alert`, `requestIdleCallback`, `MutationObserver`, `importScripts`, `require`, `process`, `Buffer`, … `typeof window` feature checks are exempt; a locally declared binding of the same name is not a reference. |
+| `security/plaintext-credential` | error | `services[].auth_credentials.{token,password,client_secret}` holds a plaintext value instead of an encrypted envelope or a `{{secret.KEY}}` reference. |
+| `security/malformed-envelope` | error | An `{"encrypted": true, "value": …}` envelope that cannot be deserialized. |
+| `security/dynamic-code` | error | `eval(...)`, `Function(...)`, `new Function(...)`, or `setTimeout`/`setInterval` with a string argument. |
+| `security/dangerously-skip-proxy` | **warning** | A script uses `__dangerouslySkipProxy`, so its requests leave the browser directly. |
+| `security/script-parse` | **warning** | A script could not be parsed, so the dynamic-code scan did not run on it. |
+
 Run these locally with `npx --yes @kizenapps/cli build` before pushing. The local CLI can lag the pipeline's
-rule set by a release, so a clean local build is a strong signal but not a guarantee.
+rule set by a release, so a clean local build is a strong signal but not a guarantee. The CLI
+prints errors only — warnings (`imports/mutable-export`, `imports/unused-module`,
+`manifest/developer-business-id-environments`, …) surface on the pull-request check.
 
 ### Version-discipline rules (pull requests)
 

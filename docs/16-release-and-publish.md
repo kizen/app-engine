@@ -170,12 +170,18 @@ Behaviorally, per push:
 1. **Validate.** The manifest and every artifact `config.json` are validated against the rule
    set in [manifest reference §10](03-manifest-reference.md#10-validation-rules). On a pull
    request this also compares against the base branch: each plugin's `version` must strictly
-   increase and no `api_name` may disappear or change. Script bodies are not inspected here —
-   malformed scripts fail at runtime, not in validation. `assistant.json` is parsed and
+   increase and no `api_name` may disappear or change. Every `.js` under `entry` is parsed:
+   imports are resolved (`imports/*`), references to globals the worker lacks are rejected
+   (`runtime/unavailable-global`), and dynamic code and plaintext credentials are flagged
+   (`security/*`) — see [manifest reference §10](03-manifest-reference.md#10-validation-rules).
+   Other runtime errors in a script body still surface only at runtime. `assistant.json` is parsed and
    shape-checked (`manifest/setup-assistant-parse`, `manifest/setup-assistant-shape`), but its
    field content is not.
-2. **Build.** JavaScript artifact scripts are minified; Python step scripts are shipped
-   verbatim; CSS, HTML and icon assets are inlined (custom icon files become data URIs).
+2. **Build.** JavaScript artifact scripts have their imports compiled away — each shared file
+   is inlined into every script that imports it
+   ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)) — and are then
+   minified; a script with no imports is minified exactly as before. Python step scripts are
+   shipped verbatim; CSS, HTML and icon assets are inlined (custom icon files become data URIs).
 3. **Package.** Manifest defaults are applied, the entry directory is walked, artifacts are
    collected by directory convention, `<release_notes_directory>/<version>.md` is attached,
    and the thumbnail (plus optional `import.kzn`) is prepared for upload. Manifest entries
@@ -202,8 +208,11 @@ is a strong signal, not a guarantee.
 That lag matters for the setup-assistant `view` key: the six rules that validate a view-based
 assistant (`manifest/setup-assistant-view-conflict`, `-view-not-found`, `-shape`, `-parse`,
 `-orphaned-field-scripts` and `-disabled-keys-ignored`) require `@kizenapps/packager` 0.5.0, so
-a build on an older packager reports none of them. They are listed with their triggers in
-[manifest reference §10](03-manifest-reference.md#10-validation-rules).
+a build on an older packager reports none of them. Likewise the `imports/*` and
+`runtime/unavailable-global` rules — and import support itself — require 0.7.0: a plugin that
+imports shared code must not be deployed by a pipeline on an older packager, which would ship the
+`import` statements verbatim and only warn (`security/script-parse`). All rules are listed with
+their triggers in [manifest reference §10](03-manifest-reference.md#10-validation-rules).
 
 ---
 
