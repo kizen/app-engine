@@ -641,10 +641,6 @@ describe('validateForm — radio and api_key', () => {
 });
 
 describe('reserved `plan.*` / `entitlement.*` namespaces in `when` expressions', () => {
-  // The real evaluator runs the expression in a Web Worker, which jsdom doesn't provide. This
-  // reimplements its substitution semantics in-process (substitute {{key}} with the state's
-  // JSON-stringified value, or the literal null) so these tests exercise the actual rewritten
-  // expression and merged state that `evaluateExpression` produces, without needing a Worker.
   const fakeWorkerEval = (
     expression: string,
     values: Record<string, unknown>,

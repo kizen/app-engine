@@ -249,14 +249,11 @@ export const SetupAssistantController = ({
     apiName: string,
   ) => Promise<{ id: string; object_name: string }[] | undefined>;
   getCustomObjectDetails: (objectId: string) => Promise<CustomObjectDetails>;
-  /* Read-only in `when`/`disabled` as `{{plan.<type>.<key>}}`. */
   plan?: Record<string, Record<string, unknown>>;
-  /* Read-only in `when`/`disabled` as `{{entitlement.<key>}}`. */
   entitlements?: Record<string, unknown>;
 }): ReactNode => {
   const [_rawState, _setState] = useState(value ?? {});
 
-  /* Flattened `plan.*` / `entitlement.*` state, merged in last wherever expressions are evaluated. */
   const reservedState = useMemo(() => {
     const flattened: Record<string, UnknownJSON> = {};
 
