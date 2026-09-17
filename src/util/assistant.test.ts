@@ -14,8 +14,6 @@ describe('getProcessedAssistantConfig — api_key sanitization', () => {
     const { partialNewConfig } = getProcessedAssistantConfig(
       {
         billingMode: { type: 'radio', value: { label: 'Kizen', value: 'kizen' } } as ValueStore,
-        // A fresh value is reported via `secretsToCreate` (see the dedicated describe block
-        // below) — it must still never leak into the stores this function hands back directly.
         apiKey: { value: 'plaintext-secret' } as unknown as ValueStore,
       },
       configWithApiKey,
@@ -180,7 +178,7 @@ describe('saveAssistantSecrets', () => {
       configWithApiKey,
       'my_plugin',
       saveSecret,
-      ['billingMode'], // apiKey is currently hidden by `when` — not in the visible set
+      ['billingMode'],
     );
 
     expect(saveSecret).not.toHaveBeenCalled();
