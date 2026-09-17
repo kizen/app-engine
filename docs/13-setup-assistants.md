@@ -533,6 +533,83 @@ the right user without a separate pairing step.
 
 ---
 
+### 5.14 `radio`
+
+Segmented control over a fixed set of options, all shown at once — unlike `select`, never a dropdown.
+Saved value: the whole `{label, value}` option object, same shape as `select`.
+
+| Prop | Type | Recognized by | Meaning |
+|---|---|---|---|
+| `options` | `{label, value, disabled?}[]` | packager + engine + renderer | The options rendered as one joined segmented control. Any number is legal; the control wraps rather than overflowing. |
+| `default` | string | packager + engine + renderer | The **initially-selected** option's value — unlike `select`'s `default`, which is only a validation-time fallback, this is what actually renders selected before the user touches the field. |
+| `required` | boolean | engine + renderer | |
+| `tooltip` | string | engine + renderer | |
+
+An option's own `disabled` is a `when`-style expression (§6). When it evaluates true:
+
+- That option renders greyed and cannot be selected. The rest of the control behaves normally.
+- If the currently-saved value names that option, the field falls back to `default` — or, if `default`
+  is itself disabled, clears entirely. A disabled option is never a legal saved value.
+
+```json
+{
+  "type": "radio",
+  "label": "Billing Mode",
+  "key": "billingMode",
+  "default": "kizen",
+  "options": [
+    { "label": "Bill through Kizen", "value": "kizen" },
+    { "label": "Use my own key", "value": "own_key", "disabled": "{{entitlement.allow_external_keys}} !== true" }
+  ]
+}
+```
+
+Read it as `this.config.billingMode?.value`, same as `select`.
+
+---
+
+### 5.15 `api_key`
+
+Writes to that plugin's **Integration Secrets**, never to plugin config, in any form, at any point.
+Renders a masked, read-only field once the secret has a value.
+
+| Prop | Type | Recognized by | Meaning |
+|---|---|---|---|
+| `secret` | string | packager + engine + renderer | Must name an entry already declared in `base_config.secrets` (§9.5). Install pre-creates an empty Integration Secret row for it; this field fills that row, it never creates one. |
+| `required` | boolean | engine + renderer | Satisfied once the secret already has a value — reopening a finished setup never demands a key the user can't read back. |
+| `tooltip` | string | engine + renderer | |
+
+Stored/in-assistant shape is deliberately not the plaintext:
+
+| Field | Meaning |
+|---|---|
+| `value` | A freshly-typed value pending save. Only ever present between typing and saving — never populated from the secret's existing value. |
+| `hasValue` | Host-supplied: whether the backing secret already has a value. Masks the field when true. |
+| `maskedValue` | Host-supplied, display-only partial reveal (e.g. `AA****jo94`), matching what Integration Secrets itself shows. Never round-trips back to the host. |
+
+```json
+{
+  "type": "api_key",
+  "label": "Your AI Provider API Key",
+  "key": "aiProviderApiKey",
+  "secret": "ai_provider_api_key",
+  "required": true,
+  "when": "{{billingMode}}?.value === 'own_key'"
+}
+```
+
+Behavior worth knowing:
+
+- A fresh value never lands in `__kizen_clean_config` (§9.3) or `__kizen_setup_assistant_values` as
+  plaintext — `getProcessedAssistantConfig` extracts it into `secretsToCreate` for the host to write
+  itself, sanitizing the stored copy down to `{ hasValue }` in the same pass.
+- A field hidden by `when` at save time (per the host's `includedKeys`, from `validateForm()`) is left
+  completely alone — its secret is neither read nor overwritten.
+- A user without permission to manage Integration Secrets gets a read-only explanation instead of an
+  editable — or worse, silently non-functional — input.
+
+---
+
 ## 6. `when` inside the assistant
 
 `when` is a JavaScript expression string with `{{key}}` placeholders referring to **other fields in
@@ -559,6 +636,19 @@ repeat the parent condition on every child.
 > Inside the assistant, keys are bare: `{{enableReports}}`. On artifact configs, the same values are
 > addressed with a scope prefix: `{{config.enableReports}}` / `{{userConfig.enableReports}}`. Mixing
 > them up is the single most common setup-assistant mistake.
+
+Two more namespaces are always prefixed, in **both** the assistant's own `when`/option-`disabled` and
+artifact `when` clauses — there is no bare form:
+
+| Accessor | Reads |
+|---|---|
+| `{{plan.<type>.<key>}}` | The business's active general plan config. Can nest arbitrarily deep. |
+| `{{entitlement.<key>}}` | The business's entitlements. |
+
+Both are read-only — they never reach plugin config or the assistant's saved values, no matter what
+the expression does with them. An unknown key under either resolves to `null`, so an expression
+written against a newer flag than the current business has falls to the hidden/disabled branch
+instead of throwing.
 
 ---
 
@@ -1325,15 +1415,16 @@ injects any matching per-field scripts, and emits it. It performs **no field-lev
 whatsoever**. A field with a misspelled prop, an unknown `type`, or a prop from a newer engine
 packages and publishes cleanly and fails (or silently no-ops) at render time.
 
-Concretely, as of engine 1.8.0:
+Concretely, as of engine 1.9.3:
 
-- Types `qr`, `image`, and `link` render, and are in the engine type, but are **missing from the
-  packager type**. They are in everyday use.
+- Types `qr`, `image`, `link`, `radio`, and `api_key` render, and are in the engine type, but are
+  **missing from the packager type**. `qr`/`image`/`link` are in everyday use; `radio`/`api_key` are
+  new (§5.14, §5.15) and packaging has not caught up to them yet.
 - Props `getFetchUrl`, `optionMapper`, `getHeaders`, `getBody`, `getContextUrl`, `fetchMethod`,
   `typeahead`, `autoSelect`, `required`, `tooltip`, `dependencies`, `validation_pattern`, `match_hint`,
-  `src`, `link`, `title`, `width`, `height`, `href`, `text`, `size`, `value`, and `include` all render
-  but are **missing from the packager type**. (The packager *injects* the five script props itself yet
-  does not declare them.)
+  `src`, `link`, `title`, `width`, `height`, `href`, `text`, `size`, `value`, `include`, and `secret`
+  all render but are **missing from the packager type**. (The packager *injects* the five script props
+  itself yet does not declare them.)
 - `services` is in the engine config type and is honored by the renderer, but is absent from the
   packager config type. It passes through untyped.
 - `actions` is deliberately different per layer: `string[]` when you author it, expanded to

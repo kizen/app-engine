@@ -73,13 +73,15 @@ describe('getProcessedAssistantConfig — secretsToCreate', () => {
   });
 
   it('excludes a hidden api_key field from secretsToCreate via includedKeys', () => {
-    const { secretsToCreate } = getProcessedAssistantConfig(
+    const { secretsToCreate, partialNewConfig } = getProcessedAssistantConfig(
       { apiKey: { value: 'sk-should-not-be-written' } as unknown as ValueStore },
       configWithApiKey,
       ['billingMode'],
     );
 
     expect(secretsToCreate).toEqual([]);
+    expect(partialNewConfig.__kizen_setup_assistant_values.apiKey).toBeUndefined();
+    expect(JSON.stringify(partialNewConfig)).not.toContain('sk-should-not-be-written');
   });
 
   it('throws when an api_key field with a fresh value declares no secret', () => {
@@ -170,7 +172,7 @@ describe('saveAssistantSecrets', () => {
     expect(result.apiKey).toEqual({ type: 'api_key', hasValue: true });
   });
 
-  it('leaves a hidden field alone when it is excluded from includedKeys', async () => {
+  it('strips a hidden field entirely when it is excluded from includedKeys', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
     const result = await saveAssistantSecrets(
@@ -182,7 +184,7 @@ describe('saveAssistantSecrets', () => {
     );
 
     expect(saveSecret).not.toHaveBeenCalled();
-    expect(result.apiKey).toEqual({ value: 'sk-should-not-be-written' });
+    expect(result.apiKey).toBeUndefined();
   });
 
   it('still writes a visible field when includedKeys is provided and contains it', async () => {

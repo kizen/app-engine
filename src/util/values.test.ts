@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { replaceConfigValues } from './values.js';
+import { mergeConfig, replaceConfigValues } from './values.js';
+import type { SetupAssistantField } from '../types/modals.js';
 
 describe('replaceConfigValues', () => {
   it('returns an empty string when given nothing', () => {
@@ -46,5 +47,41 @@ describe('replaceConfigValues', () => {
     expect(replaceConfigValues('{{someKey}}.value === "full"')).toBe(
       '{{someKey}}.value === "full"',
     );
+  });
+});
+
+describe('mergeConfig — api_key', () => {
+  const fields: SetupAssistantField[] = [{ key: 'apiKey', type: 'api_key', secret: 'my_secret' }];
+
+  it('carries hasValue/maskedValue from rawConfig instead of defaulting to empty', () => {
+    const merged = mergeConfig(
+      {},
+      [],
+      { apiKey: { type: 'api_key', hasValue: true, maskedValue: 'AA****jo94' } },
+      fields,
+    );
+
+    expect(merged.apiKey).toEqual({
+      type: 'api_key',
+      hasValue: true,
+      maskedValue: 'AA****jo94',
+    });
+  });
+
+  it('reports hasValue: false when the secret has never been set', () => {
+    const merged = mergeConfig({}, [], {}, fields);
+
+    expect(merged.apiKey).toEqual({ type: 'api_key', hasValue: false, maskedValue: undefined });
+  });
+
+  it('still forces the value out when the field is disabled', () => {
+    const merged = mergeConfig(
+      {},
+      ['apiKey'],
+      { apiKey: { type: 'api_key', hasValue: true, maskedValue: 'AA****jo94' } },
+      fields,
+    );
+
+    expect(merged.apiKey).toEqual({ value: undefined, type: 'api_key' });
   });
 });

@@ -50,6 +50,7 @@ const extractApiKeySecrets = (
 
   for (const field of apiKeyFields) {
     if (includedKeySet && !includedKeySet.has(field.key)) {
+      Reflect.deleteProperty(sanitized, field.key);
       continue;
     }
 

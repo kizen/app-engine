@@ -89,6 +89,14 @@ export const mergeConfig = (
           value: getDisabledValue(field.type),
           type: field.type,
         };
+      } else if (field.type === 'api_key') {
+        const raw = rawConfig[field.key] as { hasValue?: boolean; maskedValue?: string } | undefined;
+
+        mergedConfig[field.key] = {
+          type: field.type,
+          hasValue: Boolean(raw?.hasValue),
+          maskedValue: raw?.maskedValue,
+        };
       } else {
         mergedConfig[field.key] = {
           value: field.default,
