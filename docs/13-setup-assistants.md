@@ -642,8 +642,8 @@ artifact `when` clauses — there is no bare form:
 
 | Accessor | Reads |
 |---|---|
-| `{{plan.<type>.<key>}}` | The business's active general plan config. Can nest arbitrarily deep. |
-| `{{entitlement.<key>}}` | The business's entitlements. |
+| `{{plan.<type>.<key>}}` | `<type>` and `<key>` are exactly two flat segments — the host builds `plan` as `{ [type]: { [key]: value } }` (e.g. react-app: `type` = plan category, `key` = a feature flag). A third segment does not auto-resolve; if `value` is itself an object, reach into it the same way any other field's value is read: `{{plan.general.someKey}}?.nested`. |
+| `{{entitlement.<key>}}` | One flat segment, same rule. |
 
 Both are read-only — they never reach plugin config or the assistant's saved values, no matter what
 the expression does with them. An unknown key under either resolves to `null`, so an expression
