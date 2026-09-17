@@ -90,7 +90,9 @@ export const mergeConfig = (
           type: field.type,
         };
       } else if (field.type === 'api_key') {
-        const raw = rawConfig[field.key] as { hasValue?: boolean; maskedValue?: string } | undefined;
+        const raw = rawConfig[field.key] as
+          | { hasValue?: boolean; maskedValue?: string }
+          | undefined;
 
         mergedConfig[field.key] = {
           type: field.type,
