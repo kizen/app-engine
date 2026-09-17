@@ -19,6 +19,7 @@ import type {
   FieldValueStore,
   ModalContainer,
   NumberValueStore,
+  RadioValueStore,
   SelectValueStore,
   SetupAssistantConfig,
   TextValueStore,
@@ -212,6 +213,16 @@ export const cleanConfig = (
         cleanConfig[key] = consideredValue.value;
         return;
       }
+      case 'radio': {
+        const consideredValue = value as RadioValueStore | undefined;
+
+        if (!consideredValue?.value) {
+          return;
+        }
+
+        cleanConfig[key] = consideredValue.value;
+        return;
+      }
       case 'text': {
         const consideredValue = value as TextValueStore | undefined;
 
@@ -235,6 +246,8 @@ export const cleanConfig = (
       case 'qr':
       case 'image':
       case 'link':
+        return;
+      case 'api_key':
         return;
     }
 

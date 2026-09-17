@@ -52,6 +52,7 @@ export interface PartialClientObject {
 export interface SelectOption {
   label: string;
   value: string;
+  disabled?: string;
 }
 
 export interface PartialLocation {

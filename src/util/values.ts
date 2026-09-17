@@ -101,16 +101,17 @@ export const mergeConfig = (
   return mergedConfig;
 };
 
+const RESERVED_NAMESPACES = ['config', 'userConfig', 'plan', 'entitlement'];
+const NAMESPACE_PATTERN = new RegExp(`{{(${RESERVED_NAMESPACES.join('|')})\\.([^}]+)}}`, 'g');
+
 export const replaceConfigValues = (when?: string): string => {
   if (!when) {
     return '';
   }
 
-  const replaced = when
-    .replaceAll('{{config.', '{{config__')
-    .replaceAll('{{userConfig.', '{{userConfig__');
-
-  return replaced;
+  return when.replace(NAMESPACE_PATTERN, (_match, namespace: string, path: string) => {
+    return `{{${namespace}__${path.replaceAll('.', '__')}}}`;
+  });
 };
 
 export const getEnabledState = async (

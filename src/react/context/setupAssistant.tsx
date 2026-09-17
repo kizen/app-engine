@@ -30,6 +30,7 @@ import { getAllNestedInputsFromConfig, getFieldFromAction } from '../../workers/
 import { useAppState } from './appState.js';
 import { runExpression } from '../../run.js';
 import { getActionFieldKey, getActionMenuFieldKey } from '../../util/assistantKeys.js';
+import { replaceConfigValues } from '../../util/values.js';
 
 interface SetupAssistantContextValue {
   state: Record<string, unknown>;
@@ -135,6 +136,16 @@ const doesValueExist = (field: AssistantField, value?: { value?: UnknownJSON }):
     }
 
     return Boolean(value?.value?.value);
+  } else if (field.type === 'radio') {
+    return Boolean(value?.value?.value);
+  } else if (field.type === 'api_key') {
+    if ((value as { hasValue?: boolean } | undefined)?.hasValue) {
+      return true;
+    }
+
+    const consideredValue = (value?.value ?? '') as string;
+
+    return Boolean(consideredValue.trim());
   } else if (field.type === 'boolean') {
     return Boolean(value?.value);
   }
@@ -225,6 +236,8 @@ export const SetupAssistantController = ({
   templateAssociationsByActionApiName,
   getObjectByAPIName,
   getCustomObjectDetails,
+  plan,
+  entitlements,
 }: {
   children: React.ReactNode;
   config: SetupAssistantConfig;
@@ -236,8 +249,29 @@ export const SetupAssistantController = ({
     apiName: string,
   ) => Promise<{ id: string; object_name: string }[] | undefined>;
   getCustomObjectDetails: (objectId: string) => Promise<CustomObjectDetails>;
+  /* Read-only in `when`/`disabled` as `{{plan.<type>.<key>}}`. */
+  plan?: Record<string, Record<string, unknown>>;
+  /* Read-only in `when`/`disabled` as `{{entitlement.<key>}}`. */
+  entitlements?: Record<string, unknown>;
 }): ReactNode => {
   const [_rawState, _setState] = useState(value ?? {});
+
+  /* Flattened `plan.*` / `entitlement.*` state, merged in last wherever expressions are evaluated. */
+  const reservedState = useMemo(() => {
+    const flattened: Record<string, UnknownJSON> = {};
+
+    Object.entries(plan ?? {}).forEach(([planType, planValues]) => {
+      Object.entries(planValues).forEach(([planKey, planValue]) => {
+        flattened[`plan__${planType}__${planKey}`] = { value: planValue } as UnknownJSON;
+      });
+    });
+
+    Object.entries(entitlements ?? {}).forEach(([entitlementKey, entitlementValue]) => {
+      flattened[`entitlement__${entitlementKey}`] = { value: entitlementValue } as UnknownJSON;
+    });
+
+    return flattened;
+  }, [plan, entitlements]);
 
   const flattenedFields = useMemo(() => {
     return getAllNestedInputsFromConfig(config);
@@ -593,9 +627,10 @@ export const SetupAssistantController = ({
       setWaitingExpressions((prev) => ({ ...prev, [key]: true }));
       setExpressionsStarted(true);
 
-      const result = await runExpression(expression, {
+      const result = await runExpression(replaceConfigValues(expression), {
         ...defaultState,
         ...state,
+        ...reservedState,
       });
 
       setExpressionResults((prev) => {
@@ -611,7 +646,7 @@ export const SetupAssistantController = ({
 
       return result;
     },
-    [state, resetIdleTimeout, handleReinferObjectByKey, defaultState],
+    [state, resetIdleTimeout, handleReinferObjectByKey, defaultState, reservedState],
   );
 
   if (!hasRunInference.current) {
@@ -740,9 +775,10 @@ export const SetupAssistantController = ({
           return field;
         }
 
-        const isVisible = await runExpression(field.when, {
+        const isVisible = await runExpression(replaceConfigValues(field.when), {
           ...defaultState,
           ...state,
+          ...reservedState,
         });
 
         return isVisible ? field : null;
@@ -787,7 +823,7 @@ export const SetupAssistantController = ({
       isValid: errorCount === 0,
       includedKeys: fieldsToCheck.map((f) => f?.key).filter((k): k is string => Boolean(k)),
     };
-  }, [state, flattenedFields, defaultState]);
+  }, [state, flattenedFields, defaultState, reservedState]);
 
   useEffect(() => {
     resetIdleTimeout();
