@@ -601,12 +601,29 @@ Stored/in-assistant shape is deliberately not the plaintext:
 Behavior worth knowing:
 
 - A fresh value never lands in `__kizen_clean_config` (§9.3) or `__kizen_setup_assistant_values` as
-  plaintext — `getProcessedAssistantConfig` extracts it into `secretsToCreate` for the host to write
-  itself, sanitizing the stored copy down to `{ hasValue }` in the same pass.
-- A field hidden by `when` at save time (per the host's `includedKeys`, from `validateForm()`) is left
-  completely alone — its secret is neither read nor overwritten.
+  plaintext — `getProcessedAssistantConfig` extracts it into `secretsToCreate`, sanitizing the stored
+  copy down to `{ hasValue }` in the same pass.
+- A field hidden by `when` at save time (per the host's `includedKeys`, from `validateForm()`) has its
+  plaintext stripped like any other save, but its existing `hasValue` is preserved rather than dropped
+  - so the field doesn't look empty if/when it's shown again; its secret is never overwritten.
 - A user without permission to manage Integration Secrets gets a read-only explanation instead of an
   editable — or worse, silently non-functional — input.
+
+Persisting the extracted secrets is the host's job. Two ways to do it, depending on what else you need
+from the same call:
+
+- **`saveAssistantSecrets(currentAssistantConfig, setupAssistantConfig, pluginApiName, saveSecret, includedKeys?)`**
+  - a self-contained convenience wrapper: sanitizes and persists in one call, returning just the
+    sanitized value store. Use this when you don't also need `getProcessedAssistantConfig`'s
+    `__kizen_setup_assistant_hash` / `__kizen_clean_config` / `actionsToLink` - the CLI's viewer uses
+    it this way.
+- **`getProcessedAssistantConfig(currentAssistantConfig, setupAssistantConfig, { pluginApiName, saveSecret, includedKeys })`**
+  - pass `saveSecret` directly to `getProcessedAssistantConfig` itself when you *do* need the full
+    config shape (e.g. to write it into a business's stored plugin config). It persists each secret
+    via your callback in the same pass that builds the config, so callers don't need a second,
+    separate call (and a second sanitization pass) just to save the secrets `secretsToCreate` reports.
+    Both `pluginApiName` and `saveSecret` are optional - omit `saveSecret` to get `secretsToCreate`
+    back without the function persisting anything itself.
 
 ---
 

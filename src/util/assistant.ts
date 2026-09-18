@@ -22,6 +22,14 @@ export interface SecretToCreate {
   value: string;
 }
 
+export interface SaveSecretParams {
+  pluginApiName: string;
+  secretName: string;
+  value: string;
+}
+
+export type SaveSecretFn = (params: SaveSecretParams) => Promise<void>;
+
 interface ExtractedApiKeySecrets {
   sanitized: Record<string, ValueStore | undefined>;
   secretsToCreate: SecretToCreate[];
@@ -76,11 +84,21 @@ const extractApiKeySecrets = (
   return { sanitized, secretsToCreate };
 };
 
-export const getProcessedAssistantConfig = (
+export interface ProcessAssistantConfigOptions {
+  /** Required together with `saveSecret` - identifies the plugin each secret belongs to. */
+  pluginApiName?: string;
+  includedKeys?: string[];
+  /** When provided, each fresh api_key value is persisted via this callback before it's
+   * stripped from the returned config, so callers don't need a second pass over
+   * `secretsToCreate` (which is still returned, for callers that persist it themselves). */
+  saveSecret?: SaveSecretFn;
+}
+
+export const getProcessedAssistantConfig = async (
   currentAssistantConfig: Record<string, ValueStore | undefined>,
   setupAssistantConfig: SetupAssistantConfig,
-  includedKeys?: string[],
-): {
+  options?: ProcessAssistantConfigOptions,
+): Promise<{
   partialNewConfig: {
     __kizen_setup_assistant_values: Record<string, ValueStore>;
     __kizen_setup_assistant_hash: number;
@@ -88,7 +106,7 @@ export const getProcessedAssistantConfig = (
   };
   actionsToLink: ActionsToLink;
   secretsToCreate: SecretToCreate[];
-} => {
+}> => {
   const actionsToLink: ActionsToLink = {};
   const configValuesToSet: Record<string, ValueStore> = {};
 
@@ -124,8 +142,19 @@ export const getProcessedAssistantConfig = (
   const { sanitized: sanitizedConfigValues, secretsToCreate } = extractApiKeySecrets(
     configValuesToSet,
     setupAssistantConfig,
-    includedKeys,
+    options?.includedKeys,
   );
+
+  if (options?.saveSecret) {
+    for (const secret of secretsToCreate) {
+      await options.saveSecret({
+        pluginApiName: options.pluginApiName ?? '',
+        secretName: secret.secretName,
+        value: secret.value,
+      });
+    }
+  }
+
   const cleanConfigValue = cleanConfig(
     setupAssistantConfig,
     sanitizedConfigValues as Record<string, ValueStore>,
@@ -141,14 +170,6 @@ export const getProcessedAssistantConfig = (
     secretsToCreate,
   };
 };
-
-export interface SaveSecretParams {
-  pluginApiName: string;
-  secretName: string;
-  value: string;
-}
-
-export type SaveSecretFn = (params: SaveSecretParams) => Promise<void>;
 
 export const saveAssistantSecrets = async (
   currentAssistantConfig: Record<string, ValueStore | undefined>,
