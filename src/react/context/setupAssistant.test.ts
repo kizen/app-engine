@@ -2,7 +2,7 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as RunModule from '../../run.js';
-import type { UnknownJSON } from '../../types/common.js';
+import type { JSONValue, UnknownJSON } from '../../types/common.js';
 import type { SetupAssistantConfig } from '../../types/modals.js';
 import { AppStateWrapper } from './appState.js';
 import {
@@ -102,8 +102,8 @@ const renderController = async (
       apiName: string,
     ) => Promise<{ id: string; object_name: string }[] | undefined>;
     value?: Record<string, UnknownJSON>;
-    plan?: Record<string, Record<string, unknown>>;
-    entitlements?: Record<string, unknown>;
+    plan?: Record<string, Record<string, JSONValue>>;
+    entitlements?: Record<string, JSONValue>;
   },
 ): Promise<RenderResult> => {
   const getObjectByAPIName = vi.fn<

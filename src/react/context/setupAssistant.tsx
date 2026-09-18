@@ -9,8 +9,9 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react';
-import type { UnknownJSON } from '../../types/common.js';
+import type { JSONValue, UnknownJSON } from '../../types/common.js';
 import type {
+  ApiKeyValueStore,
   AssistantConfigAction,
   AssistantField,
   MatchSetupAssistantField,
@@ -30,7 +31,7 @@ import { getAllNestedInputsFromConfig, getFieldFromAction } from '../../workers/
 import { useAppState } from './appState.js';
 import { runExpression } from '../../run.js';
 import { getActionFieldKey, getActionMenuFieldKey } from '../../util/assistantKeys.js';
-import { replaceConfigValues } from '../../util/values.js';
+import { flattenReservedState, replaceConfigValues } from '../../util/values.js';
 
 interface SetupAssistantContextValue {
   state: Record<string, unknown>;
@@ -139,7 +140,7 @@ const doesValueExist = (field: AssistantField, value?: { value?: UnknownJSON }):
   } else if (field.type === 'radio') {
     return Boolean(value?.value?.value);
   } else if (field.type === 'api_key') {
-    if ((value as { hasValue?: boolean } | undefined)?.hasValue) {
+    if ((value as ApiKeyValueStore | undefined)?.hasValue) {
       return true;
     }
 
@@ -249,26 +250,15 @@ export const SetupAssistantController = ({
     apiName: string,
   ) => Promise<{ id: string; object_name: string }[] | undefined>;
   getCustomObjectDetails: (objectId: string) => Promise<CustomObjectDetails>;
-  plan?: Record<string, Record<string, unknown>>;
-  entitlements?: Record<string, unknown>;
+  plan?: Record<string, Record<string, JSONValue>>;
+  entitlements?: Record<string, JSONValue>;
 }): ReactNode => {
   const [_rawState, _setState] = useState(value ?? {});
 
-  const reservedState = useMemo(() => {
-    const flattened: Record<string, UnknownJSON> = {};
-
-    Object.entries(plan ?? {}).forEach(([planType, planValues]) => {
-      Object.entries(planValues).forEach(([planKey, planValue]) => {
-        flattened[`plan__${planType}__${planKey}`] = { value: planValue } as UnknownJSON;
-      });
-    });
-
-    Object.entries(entitlements ?? {}).forEach(([entitlementKey, entitlementValue]) => {
-      flattened[`entitlement__${entitlementKey}`] = { value: entitlementValue } as UnknownJSON;
-    });
-
-    return flattened;
-  }, [plan, entitlements]);
+  const reservedState = useMemo(
+    () => flattenReservedState(plan, entitlements),
+    [plan, entitlements],
+  );
 
   const flattenedFields = useMemo(() => {
     return getAllNestedInputsFromConfig(config);

@@ -14,7 +14,7 @@ describe('getProcessedAssistantConfig — api_key sanitization', () => {
     const { partialNewConfig } = getProcessedAssistantConfig(
       {
         billingMode: { type: 'radio', value: { label: 'Kizen', value: 'kizen' } } as ValueStore,
-        apiKey: { value: 'plaintext-secret' } as unknown as ValueStore,
+        apiKey: { value: 'plaintext-secret' },
       },
       configWithApiKey,
     );
@@ -30,7 +30,7 @@ describe('getProcessedAssistantConfig — api_key sanitization', () => {
 
   it('preserves hasValue: true through sanitization', () => {
     const { partialNewConfig } = getProcessedAssistantConfig(
-      { apiKey: { hasValue: true } as unknown as ValueStore },
+      { apiKey: { hasValue: true } },
       configWithApiKey,
     );
 
@@ -42,7 +42,7 @@ describe('getProcessedAssistantConfig — api_key sanitization', () => {
 
   it('never lets an api_key value into __kizen_clean_config either', () => {
     const { partialNewConfig } = getProcessedAssistantConfig(
-      { apiKey: { value: 'plaintext-secret' } as unknown as ValueStore },
+      { apiKey: { value: 'plaintext-secret' } },
       configWithApiKey,
     );
 
@@ -53,7 +53,7 @@ describe('getProcessedAssistantConfig — api_key sanitization', () => {
 describe('getProcessedAssistantConfig — secretsToCreate', () => {
   it('reports a fresh api_key value as a secret to create, not a write it performs itself', () => {
     const { secretsToCreate, partialNewConfig } = getProcessedAssistantConfig(
-      { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+      { apiKey: { value: 'sk-live-123' } },
       configWithApiKey,
     );
 
@@ -65,7 +65,7 @@ describe('getProcessedAssistantConfig — secretsToCreate', () => {
 
   it('reports no secrets to create when nothing fresh was typed', () => {
     const { secretsToCreate } = getProcessedAssistantConfig(
-      { apiKey: { hasValue: true } as unknown as ValueStore },
+      { apiKey: { hasValue: true } },
       configWithApiKey,
     );
 
@@ -74,14 +74,31 @@ describe('getProcessedAssistantConfig — secretsToCreate', () => {
 
   it('excludes a hidden api_key field from secretsToCreate via includedKeys', () => {
     const { secretsToCreate, partialNewConfig } = getProcessedAssistantConfig(
-      { apiKey: { value: 'sk-should-not-be-written' } as unknown as ValueStore },
+      { apiKey: { value: 'sk-should-not-be-written' } },
       configWithApiKey,
       ['billingMode'],
     );
 
     expect(secretsToCreate).toEqual([]);
-    expect(partialNewConfig.__kizen_setup_assistant_values.apiKey).toBeUndefined();
+    expect(partialNewConfig.__kizen_setup_assistant_values.apiKey).toEqual({
+      type: 'api_key',
+      hasValue: false,
+    });
     expect(JSON.stringify(partialNewConfig)).not.toContain('sk-should-not-be-written');
+  });
+
+  it('keeps hasValue for a hidden api_key field that already has a secret behind it', () => {
+    const { secretsToCreate, partialNewConfig } = getProcessedAssistantConfig(
+      { apiKey: { type: 'api_key', hasValue: true, maskedValue: 'AA****jo94' } },
+      configWithApiKey,
+      ['billingMode'],
+    );
+
+    expect(secretsToCreate).toEqual([]);
+    expect(partialNewConfig.__kizen_setup_assistant_values.apiKey).toEqual({
+      type: 'api_key',
+      hasValue: true,
+    });
   });
 
   it('throws when an api_key field with a fresh value declares no secret', () => {
@@ -91,7 +108,7 @@ describe('getProcessedAssistantConfig — secretsToCreate', () => {
 
     expect(() =>
       getProcessedAssistantConfig(
-        { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+        { apiKey: { value: 'sk-live-123' } },
         noSecretConfig,
       ),
     ).toThrow('does not declare a secret');
@@ -103,7 +120,7 @@ describe('saveAssistantSecrets', () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
     const result = await saveAssistantSecrets(
-      { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+      { apiKey: { value: 'sk-live-123' } },
       configWithApiKey,
       'my_plugin',
       saveSecret,
@@ -123,7 +140,7 @@ describe('saveAssistantSecrets', () => {
 
     await expect(
       saveAssistantSecrets(
-        { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+        { apiKey: { value: 'sk-live-123' } },
         configWithApiKey,
         'my_plugin',
         saveSecret,
@@ -139,7 +156,7 @@ describe('saveAssistantSecrets', () => {
 
     await expect(
       saveAssistantSecrets(
-        { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+        { apiKey: { value: 'sk-live-123' } },
         noSecretConfig,
         'my_plugin',
         saveSecret,
@@ -162,7 +179,7 @@ describe('saveAssistantSecrets', () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
     const result = await saveAssistantSecrets(
-      { apiKey: { hasValue: true } as unknown as ValueStore },
+      { apiKey: { hasValue: true } },
       configWithApiKey,
       'my_plugin',
       saveSecret,
@@ -172,11 +189,11 @@ describe('saveAssistantSecrets', () => {
     expect(result.apiKey).toEqual({ type: 'api_key', hasValue: true });
   });
 
-  it('strips a hidden field entirely when it is excluded from includedKeys', async () => {
+  it('strips the plaintext value but keeps hasValue when excluded from includedKeys', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
     const result = await saveAssistantSecrets(
-      { apiKey: { value: 'sk-should-not-be-written' } as unknown as ValueStore },
+      { apiKey: { value: 'sk-should-not-be-written' } },
       configWithApiKey,
       'my_plugin',
       saveSecret,
@@ -184,14 +201,15 @@ describe('saveAssistantSecrets', () => {
     );
 
     expect(saveSecret).not.toHaveBeenCalled();
-    expect(result.apiKey).toBeUndefined();
+    expect(result.apiKey).toEqual({ type: 'api_key', hasValue: false });
+    expect(JSON.stringify(result)).not.toContain('sk-should-not-be-written');
   });
 
   it('still writes a visible field when includedKeys is provided and contains it', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
     const result = await saveAssistantSecrets(
-      { apiKey: { value: 'sk-live-123' } as unknown as ValueStore },
+      { apiKey: { value: 'sk-live-123' } },
       configWithApiKey,
       'my_plugin',
       saveSecret,
@@ -207,7 +225,7 @@ describe('saveAssistantSecrets', () => {
     const config: SetupAssistantConfig = {
       fields: [{ key: 'name', type: 'text' }],
     };
-    const input = { name: { value: 'hello' } as unknown as ValueStore };
+    const input = { name: { value: 'hello' } };
 
     const result = await saveAssistantSecrets(input, config, 'my_plugin', saveSecret);
 

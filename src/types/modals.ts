@@ -268,6 +268,7 @@ export interface RadioValueStore {
 }
 
 export interface ApiKeyValueStore {
+  type?: 'api_key';
   value?: string;
   hasValue?: boolean;
   maskedValue?: string;

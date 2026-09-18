@@ -1,4 +1,5 @@
 import type {
+  ApiKeyValueStore,
   AssistantField,
   CleanValueStore,
   SetupAssistantConfig,
@@ -14,11 +15,6 @@ import {
 import { getHash } from './encode.js';
 
 type ActionsToLink = Record<string, ValueStore & { menuFlags?: Record<string, boolean> }>;
-
-interface ApiKeyRawEntry {
-  value?: string;
-  hasValue?: boolean;
-}
 
 export interface SecretToCreate {
   fieldKey: string;
@@ -49,14 +45,16 @@ const extractApiKeySecrets = (
   const secretsToCreate: SecretToCreate[] = [];
 
   for (const field of apiKeyFields) {
-    if (includedKeySet && !includedKeySet.has(field.key)) {
-      Reflect.deleteProperty(sanitized, field.key);
+    const entry = currentAssistantConfig[field.key] as ApiKeyValueStore | undefined;
+
+    if (!entry) {
       continue;
     }
 
-    const entry = currentAssistantConfig[field.key] as ApiKeyRawEntry | undefined;
-
-    if (!entry) {
+    // Drop the plaintext value while keeping hasValue, so the field doesn't
+    // look empty if/when it's shown again.
+    if (includedKeySet && !includedKeySet.has(field.key)) {
+      sanitized[field.key] = { type: 'api_key', hasValue: Boolean(entry.hasValue) };
       continue;
     }
 
@@ -66,12 +64,12 @@ const extractApiKeySecrets = (
       }
 
       secretsToCreate.push({ fieldKey: field.key, secretName: field.secret, value: entry.value });
-      sanitized[field.key] = { type: 'api_key', hasValue: true } as unknown as ValueStore;
+      sanitized[field.key] = { type: 'api_key', hasValue: true };
     } else {
       sanitized[field.key] = {
         type: 'api_key',
         hasValue: Boolean(entry.hasValue),
-      } as unknown as ValueStore;
+      };
     }
   }
 

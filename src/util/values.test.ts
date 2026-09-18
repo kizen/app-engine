@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeConfig, replaceConfigValues } from './values.js';
+import { flattenReservedState, mergeConfig, replaceConfigValues } from './values.js';
 import type { SetupAssistantField } from '../types/modals.js';
 
 describe('replaceConfigValues', () => {
@@ -83,5 +83,23 @@ describe('mergeConfig — api_key', () => {
     );
 
     expect(merged.apiKey).toEqual({ value: undefined, type: 'api_key' });
+  });
+});
+
+describe('flattenReservedState', () => {
+  it('flattens a nested plan value to plan__<type>__<key>', () => {
+    expect(flattenReservedState({ general: { allow_external_keys: true } })).toEqual({
+      plan__general__allow_external_keys: { value: true },
+    });
+  });
+
+  it('flattens an entitlement value to entitlement__<key>', () => {
+    expect(flattenReservedState(undefined, { beta: true })).toEqual({
+      entitlement__beta: { value: true },
+    });
+  });
+
+  it('returns an empty object when given nothing', () => {
+    expect(flattenReservedState()).toEqual({});
   });
 });

@@ -246,7 +246,6 @@ export const cleanConfig = (
       case 'qr':
       case 'image':
       case 'link':
-        return;
       case 'api_key':
         return;
     }

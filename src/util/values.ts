@@ -8,8 +8,8 @@ import {
 import type { DataAdornmentConfig } from '../types/artifacts/dataAdornment.js';
 import type { RoutablePageConfig } from '../types/artifacts/routablePage.js';
 import type { RouteScriptConfig } from '../types/artifacts/routeScript.js';
-import type { AppPlugin, UnknownJSON } from '../types/common.js';
-import type { IncludeOption, SetupAssistantField } from '../types/modals.js';
+import type { AppPlugin, JSONValue, UnknownJSON } from '../types/common.js';
+import type { ApiKeyValueStore, IncludeOption, SetupAssistantField } from '../types/modals.js';
 import { getAllNestedInputsFromConfig } from '../workers/util.js';
 import {
   buildIframeURLWithProxy,
@@ -90,9 +90,7 @@ export const mergeConfig = (
           type: field.type,
         };
       } else if (field.type === 'api_key') {
-        const raw = rawConfig[field.key] as
-          | { hasValue?: boolean; maskedValue?: string }
-          | undefined;
+        const raw = rawConfig[field.key] as ApiKeyValueStore | undefined;
 
         mergedConfig[field.key] = {
           type: field.type,
@@ -113,6 +111,25 @@ export const mergeConfig = (
 
 const RESERVED_NAMESPACES = ['config', 'userConfig', 'plan', 'entitlement'];
 const NAMESPACE_PATTERN = new RegExp(`{{(${RESERVED_NAMESPACES.join('|')})\\.([^}]+)}}`, 'g');
+
+export const flattenReservedState = (
+  plan?: Record<string, Record<string, JSONValue>>,
+  entitlements?: Record<string, JSONValue>,
+): Record<string, UnknownJSON> => {
+  const flattened: Record<string, UnknownJSON> = {};
+
+  Object.entries(plan ?? {}).forEach(([planType, planValues]) => {
+    Object.entries(planValues).forEach(([planKey, planValue]) => {
+      flattened[`plan__${planType}__${planKey}`] = { value: planValue } as UnknownJSON;
+    });
+  });
+
+  Object.entries(entitlements ?? {}).forEach(([entitlementKey, entitlementValue]) => {
+    flattened[`entitlement__${entitlementKey}`] = { value: entitlementValue } as UnknownJSON;
+  });
+
+  return flattened;
+};
 
 export const replaceConfigValues = (when?: string): string => {
   if (!when) {
