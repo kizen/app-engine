@@ -7,7 +7,6 @@ export * from './network.js';
 export { KizenRequestError } from './errors.js';
 export {
   getProcessedAssistantConfig,
-  saveAssistantSecrets,
   type SaveSecretFn,
   type SaveSecretParams,
   type SecretToCreate,

@@ -16,11 +16,11 @@ import {
 } from '../../util/frames.js';
 
 interface UsePluginEngineReturn {
-  scriptUIRef: React.RefObject<HTMLDivElement>;
-  outputUIRef: React.RefObject<HTMLDivElement>;
+  scriptUIRef: React.RefObject<HTMLDivElement | null>;
+  outputUIRef: React.RefObject<HTMLDivElement | null>;
   scopedCss: string;
   sanitizedHtml: string | null;
-  interactableScriptRef: React.RefObject<HTMLDivElement>;
+  interactableScriptRef: React.RefObject<HTMLDivElement | null>;
   iframeURL?: string | undefined;
   pending: boolean;
   collectFormData: () => CollectedFormDataResponse;

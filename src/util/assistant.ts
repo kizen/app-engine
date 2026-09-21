@@ -170,27 +170,3 @@ export const getProcessedAssistantConfig = async (
     secretsToCreate,
   };
 };
-
-export const saveAssistantSecrets = async (
-  currentAssistantConfig: Record<string, ValueStore | undefined>,
-  setupAssistantConfig: SetupAssistantConfig,
-  pluginApiName: string,
-  saveSecret: SaveSecretFn,
-  includedKeys?: string[],
-): Promise<Record<string, ValueStore | undefined>> => {
-  const { sanitized, secretsToCreate } = extractApiKeySecrets(
-    currentAssistantConfig,
-    setupAssistantConfig,
-    includedKeys,
-  );
-
-  for (const secret of secretsToCreate) {
-    await saveSecret({
-      pluginApiName,
-      secretName: secret.secretName,
-      value: secret.value,
-    });
-  }
-
-  return sanitized;
-};

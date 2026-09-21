@@ -15,8 +15,8 @@ import type { BuildIframeURLWithProxyOptions } from '../../util/frames.js';
 interface PluginCustomHTML {
   scopedCss: string;
   sanitizedHtml: string | null;
-  outputUIRef: RefObject<HTMLDivElement>;
-  interactableScriptRef: RefObject<HTMLDivElement>;
+  outputUIRef: RefObject<HTMLDivElement | null>;
+  interactableScriptRef: RefObject<HTMLDivElement | null>;
 }
 
 export const useAppCustomHTML = (

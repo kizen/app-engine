@@ -609,21 +609,12 @@ Behavior worth knowing:
 - A user without permission to manage Integration Secrets gets a read-only explanation instead of an
   editable — or worse, silently non-functional — input.
 
-Persisting the extracted secrets is the host's job. Two ways to do it, depending on what else you need
-from the same call:
-
-- **`saveAssistantSecrets(currentAssistantConfig, setupAssistantConfig, pluginApiName, saveSecret, includedKeys?)`**
-  - a self-contained convenience wrapper: sanitizes and persists in one call, returning just the
-    sanitized value store. Use this when you don't also need `getProcessedAssistantConfig`'s
-    `__kizen_setup_assistant_hash` / `__kizen_clean_config` / `actionsToLink` - the CLI's viewer uses
-    it this way.
-- **`getProcessedAssistantConfig(currentAssistantConfig, setupAssistantConfig, { pluginApiName, saveSecret, includedKeys })`**
-  - pass `saveSecret` directly to `getProcessedAssistantConfig` itself when you *do* need the full
-    config shape (e.g. to write it into a business's stored plugin config). It persists each secret
-    via your callback in the same pass that builds the config, so callers don't need a second,
-    separate call (and a second sanitization pass) just to save the secrets `secretsToCreate` reports.
-    Both `pluginApiName` and `saveSecret` are optional - omit `saveSecret` to get `secretsToCreate`
-    back without the function persisting anything itself.
+Persisting the extracted secrets is the host's job. Pass `saveSecret` (and `pluginApiName`) directly to
+`getProcessedAssistantConfig(currentAssistantConfig, setupAssistantConfig, { pluginApiName, saveSecret, includedKeys })` -
+it persists each secret via your callback in the same pass that builds the config, so you don't need a
+second, separate call (and a second sanitization pass) just to save the secrets `secretsToCreate`
+reports. Both `pluginApiName` and `saveSecret` are optional - omit `saveSecret` to get `secretsToCreate`
+back without the function persisting anything itself.
 
 ---
 

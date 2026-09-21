@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SetupAssistantConfig, ValueStore } from '../types/modals.js';
-import { getProcessedAssistantConfig, saveAssistantSecrets } from './assistant.js';
+import { getProcessedAssistantConfig } from './assistant.js';
 
 const configWithApiKey: SetupAssistantConfig = {
   fields: [
@@ -155,123 +155,28 @@ describe('getProcessedAssistantConfig — saveSecret option', () => {
       }),
     ).rejects.toThrow('network error');
   });
-});
 
-describe('saveAssistantSecrets', () => {
-  it('writes a fresh value via saveSecret and strips it from the returned config', async () => {
+  it('does not call saveSecret for a field excluded via includedKeys', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
-    const result = await saveAssistantSecrets(
-      { apiKey: { value: 'sk-live-123' } },
-      configWithApiKey,
-      'my_plugin',
-      saveSecret,
-    );
-
-    expect(saveSecret).toHaveBeenCalledWith({
-      pluginApiName: 'my_plugin',
-      secretName: 'my_secret',
-      value: 'sk-live-123',
-    });
-    expect(result.apiKey).toEqual({ type: 'api_key', hasValue: true });
-    expect(JSON.stringify(result)).not.toContain('sk-live-123');
-  });
-
-  it('rejects and writes nothing when the secret write fails', async () => {
-    const saveSecret = vi.fn().mockRejectedValue(new Error('network error'));
-
-    await expect(
-      saveAssistantSecrets(
-        { apiKey: { value: 'sk-live-123' } },
-        configWithApiKey,
-        'my_plugin',
-        saveSecret,
-      ),
-    ).rejects.toThrow('network error');
-  });
-
-  it('throws without calling saveSecret when the field declares no secret', async () => {
-    const noSecretConfig: SetupAssistantConfig = {
-      fields: [{ key: 'apiKey', type: 'api_key' }],
-    };
-    const saveSecret = vi.fn().mockResolvedValue(undefined);
-
-    await expect(
-      saveAssistantSecrets(
-        { apiKey: { value: 'sk-live-123' } },
-        noSecretConfig,
-        'my_plugin',
-        saveSecret,
-      ),
-    ).rejects.toThrow('does not declare a secret');
-
-    expect(saveSecret).not.toHaveBeenCalled();
-  });
-
-  it('does not call saveSecret for a field the user never touched', async () => {
-    const saveSecret = vi.fn().mockResolvedValue(undefined);
-
-    const result = await saveAssistantSecrets({}, configWithApiKey, 'my_plugin', saveSecret);
-
-    expect(saveSecret).not.toHaveBeenCalled();
-    expect(result).toEqual({});
-  });
-
-  it('leaves an already-saved secret (hasValue, no fresh value) untouched by saveSecret', async () => {
-    const saveSecret = vi.fn().mockResolvedValue(undefined);
-
-    const result = await saveAssistantSecrets(
-      { apiKey: { hasValue: true } },
-      configWithApiKey,
-      'my_plugin',
-      saveSecret,
-    );
-
-    expect(saveSecret).not.toHaveBeenCalled();
-    expect(result.apiKey).toEqual({ type: 'api_key', hasValue: true });
-  });
-
-  it('strips the plaintext value but keeps hasValue when excluded from includedKeys', async () => {
-    const saveSecret = vi.fn().mockResolvedValue(undefined);
-
-    const result = await saveAssistantSecrets(
+    await getProcessedAssistantConfig(
       { apiKey: { value: 'sk-should-not-be-written' } },
       configWithApiKey,
-      'my_plugin',
-      saveSecret,
-      ['billingMode'],
+      { pluginApiName: 'my_plugin', saveSecret, includedKeys: ['billingMode'] },
     );
 
     expect(saveSecret).not.toHaveBeenCalled();
-    expect(result.apiKey).toEqual({ type: 'api_key', hasValue: false });
-    expect(JSON.stringify(result)).not.toContain('sk-should-not-be-written');
   });
 
-  it('still writes a visible field when includedKeys is provided and contains it', async () => {
+  it('calls saveSecret for a field included via includedKeys', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
-    const result = await saveAssistantSecrets(
+    await getProcessedAssistantConfig(
       { apiKey: { value: 'sk-live-123' } },
       configWithApiKey,
-      'my_plugin',
-      saveSecret,
-      ['billingMode', 'apiKey'],
+      { pluginApiName: 'my_plugin', saveSecret, includedKeys: ['billingMode', 'apiKey'] },
     );
 
     expect(saveSecret).toHaveBeenCalledTimes(1);
-    expect(result.apiKey).toEqual({ type: 'api_key', hasValue: true });
-  });
-
-  it('passes through configs with no api_key fields unchanged', async () => {
-    const saveSecret = vi.fn().mockResolvedValue(undefined);
-    const config: SetupAssistantConfig = {
-      fields: [{ key: 'name', type: 'text' }],
-    };
-    const input = { name: { value: 'hello' } };
-
-    const result = await saveAssistantSecrets(input, config, 'my_plugin', saveSecret);
-
-    expect(result).toBe(input);
-    expect(saveSecret).not.toHaveBeenCalled();
   });
 });
