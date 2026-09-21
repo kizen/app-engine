@@ -9,7 +9,8 @@ is a bare script body executed inside a Web Worker with `this` bound to that con
 **See also:** [platform API endpoints](05-platform-api.md) · [auth, secrets, services](06-auth-secrets-services.md) ·
 [views, modals, forms](10-views-modals-forms.md) · [output UI, iframes, frames](11-output-ui-iframes-frames.md) ·
 [navigation and communication](14-navigation-and-communication.md) ·
-[errors and observability](15-errors-and-observability.md) · [gotchas](17-gotchas.md)
+[errors and observability](15-errors-and-observability.md) ·
+[sharing code between scripts](19-sharing-code-between-scripts.md) · [gotchas](17-gotchas.md)
 
 ---
 
@@ -32,11 +33,19 @@ Consequences that shape how plugin code must be written:
 - **Nothing on `this` survives between runs.** The main script and its event scripts do not
   share a context. Two invocations of the same event script do not share a context.
   `this.myCache = …` in one script is invisible everywhere else.
-- **There is no module system.** The body is compiled as a function, so `import` and
-  `require` are unavailable, and there is no file the scripts can share. Helper functions
-  must be defined inside each script that uses them; duplicating a small `esc()` or
-  `describeError()` helper across scripts is the correct, intended pattern — not a smell to
-  refactor away.
+- **There is no module system at runtime.** The body the engine runs is compiled as a single
+  function, so `require` is unavailable and no file is loaded at runtime — a helper has to be
+  present in the compiled body to run. At authoring time, though, a script can
+  `import { a, b } from '../../lib/x.js'` from a plain `.js` file placed under `entry` outside
+  any artifact directory; the packager folds that code into the script at build time, so what
+  the engine executes is still one self-contained function with no `import` left in it. See
+  [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md).
+- **The worker has no page globals.** `window`, `document`, the DOM, `localStorage`,
+  `alert`/`confirm`/`prompt`, `requestIdleCallback`, `importScripts` (module worker) and Node
+  APIs (`require`, `process`, `Buffer`) do not exist. What does: `fetch`, timers,
+  `queueMicrotask`, `requestAnimationFrame`, `crypto`, `TextEncoder`, `URL`, `PerformanceObserver`,
+  `location` (the worker's own, not the page's — use `this.location`) and `navigator`. The
+  packager rejects a reference to an absent global at build time (`runtime/unavailable-global`).
 - **What does persist:** the painted DOM from the last [`this.outputUI()`](#thisoutputuimarkup-options)
   (a repaint swaps it in place), `this.sessionData` (per browser session, per plugin), the
   per-user config store behind [`getUserConfig`/`setUserConfig`](#thisgetuserconfig), business
@@ -1475,8 +1484,11 @@ return schemas.
 
 - **Nothing survives on `this`.** Every run is a new worker and a new context. Cross-script
   state goes through `sessionData`, user/business config, hidden form inputs, or the backend.
-- **No imports, no shared helpers.** Duplicating a small helper into every script that needs it
-  is the intended pattern, not a smell.
+- **Shared helpers are compiled in, not loaded.** Import them from a shared file
+  ([19](19-sharing-code-between-scripts.md)); the packager copies the code into each script, so a
+  shared file's variables are per script and per run — never shared state.
+- **`window`, `document`, `localStorage` and `alert` do not exist in the worker**, and the build
+  fails on a reference to them (`runtime/unavailable-global`). Use `this.*`.
 - **`this.put` does not exist** even though the transport supports PUT. Use `patch`.
 - **`patch` omits the `X-Request-Type` header** that the other Kizen-bound verbs add.
 - **Plain `get/post/patch/delete` resolve `undefined` on failure** *and* report the failure to

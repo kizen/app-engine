@@ -22,13 +22,14 @@
 | Navigate or pass data between surfaces | [14-navigation-and-communication.md](14-navigation-and-communication.md) |
 | Decide `throw` vs `onError` vs `showToast` | [15-errors-and-observability.md](15-errors-and-observability.md) |
 | Release a version | [16-release-and-publish.md](16-release-and-publish.md) |
+| Share a helper between scripts | [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) |
 | Debug something weird | [17-gotchas.md](17-gotchas.md) |
 | Copy a working end-to-end build | [18-recipes.md](18-recipes.md) |
 | Read a whole real plugin / find live call sites | [examples/](examples/README.md) — [kitchen_sink.md](examples/kitchen_sink.md) (every surface) · [google_calendar.md](examples/google_calendar.md) (production OAuth + calendar source) |
 
 ## Link legend
 
-01 [overview](01-overview.md) · 02 [getting started](02-getting-started.md) · 03 [manifest](03-manifest-reference.md) · 04 [worker runtime](04-worker-runtime-api.md) · 05 [platform API](05-platform-api.md) · 06 [auth & services](06-auth-secrets-services.md) · 07 [workflow steps](07-automation-steps.md) · 08 [actions](08-actions.md) · 09 [blocks](09-blocks.md) · 10 [views & modals](10-views-modals-forms.md) · 11 [output UI & frames](11-output-ui-iframes-frames.md) · 12 [routes/calendars/adornments/settings](12-routes-calendars-adornments-settings.md) · 13 [setup assistants](13-setup-assistants.md) · 14 [navigation & communication](14-navigation-and-communication.md) · 15 [errors](15-errors-and-observability.md) · 16 [release](16-release-and-publish.md) · glossary [glossary.md](glossary.md)
+01 [overview](01-overview.md) · 02 [getting started](02-getting-started.md) · 03 [manifest](03-manifest-reference.md) · 04 [worker runtime](04-worker-runtime-api.md) · 05 [platform API](05-platform-api.md) · 06 [auth & services](06-auth-secrets-services.md) · 07 [workflow steps](07-automation-steps.md) · 08 [actions](08-actions.md) · 09 [blocks](09-blocks.md) · 10 [views & modals](10-views-modals-forms.md) · 11 [output UI & frames](11-output-ui-iframes-frames.md) · 12 [routes/calendars/adornments/settings](12-routes-calendars-adornments-settings.md) · 13 [setup assistants](13-setup-assistants.md) · 14 [navigation & communication](14-navigation-and-communication.md) · 15 [errors](15-errors-and-observability.md) · 16 [release](16-release-and-publish.md) · 19 [sharing code](19-sharing-code-between-scripts.md) · glossary [glossary.md](glossary.md)
 
 ## A–Z index
 
@@ -178,7 +179,9 @@
 | `hint_related_object_field_name` | step parameter field | [07](07-automation-steps.md#hint_related_object_field_name) |
 | `icon` (data adornment) | adornment config field | [12](12-routes-calendars-adornments-settings.md#icon) |
 | `image` (assistant field type) | assistant field type | [13](13-setup-assistants.md#510-image) |
+| `import`/`export` (shared code between scripts) | concept | [19](19-sharing-code-between-scripts.md) · [glossary](glossary.md#shared-file) |
 | `import.kzn` | file convention | [03](03-manifest-reference.md#importkzn) |
+| `imports/*` validation rules | build rules | [19](19-sharing-code-between-scripts.md#diagnostics) · [03](03-manifest-reference.md#script-rules) |
 | `include` (identity params on `qr` / `image.link` / `link`) | assistant field prop | [13](13-setup-assistants.md#513-include--identity-params-on-qr-imagelink-and-link) |
 | `include_perform_action` | install-time association setting | [08](08-actions.md#include_perform_action) · [glossary](glossary.md#include_perform_action) |
 | `input_source` | step parameter field | [07](07-automation-steps.md#input_source) |
@@ -304,6 +307,7 @@
 | `this.show(config?)` (floating frame) | `this.*` method | [04](04-worker-runtime-api.md#thisshowconfig) |
 | `this.showToast(message, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thisshowtoastmessage-options) · [15](15-errors-and-observability.md#4-thisshowtoast--the-channel-for-expected-failures) |
 | `this.showViewInModal(id, config?)` | `this.*` method | [04](04-worker-runtime-api.md#thisshowviewinmodalid-config) · [10](10-views-modals-forms.md#thisshowviewinmodalid-config) |
+| Shared file (`src/lib/*.js`) | concept | [19](19-sharing-code-between-scripts.md#writing-shared-code) · [glossary](glossary.md#shared-file) |
 | Single-painter convention | concept | [09](09-blocks.md#the-single-painter-convention) · [14](14-navigation-and-communication.md#pattern--single-painter-orchestration) |
 | `POST /api/smart-connectors/{connector_identifier}/webhook` | REST endpoint | [05](05-platform-api.md#post-apismart-connectorsconnector_identifierwebhook) |
 | `Stage` | step data type | [07](07-automation-steps.md#stage) |

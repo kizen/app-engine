@@ -78,7 +78,7 @@ The click path carries no per-element data, so **payloads ride in forms**: rende
 <a id="esc-discipline"></a>
 ### `esc()` discipline
 
-Everything interpolated into `outputUI` markup — API responses, config values, user input echoed back — must be escaped or it becomes markup (at best mangled by the sanitizer, at worst clobbering attributes). Event scripts are isolated (no shared modules), so the helper is duplicated per script by design:
+Everything interpolated into `outputUI` markup — API responses, config values, user input echoed back — must be escaped or it becomes markup (at best mangled by the sanitizer, at worst clobbering attributes). Define the helper once in a shared file (`src/lib/html.js`) and `import { esc }` it into every script that paints ([19](19-sharing-code-between-scripts.md)):
 
 ```js
 const esc = (text) =>

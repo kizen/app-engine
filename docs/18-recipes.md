@@ -33,6 +33,8 @@ plugin-example/
 │   └── 1.0.0.md
 └── src/
     ├── thumbnail.png                 # required to publish; PNG at the entry root
+    ├── lib/
+    │   └── html.js                   # shared helpers, imported by scripts
     └── blocks/statusCard/
         ├── config.json
         ├── script.js
@@ -96,16 +98,25 @@ this.outputUI(`<div class="sc-card sc-card--loading">Loading status…</div>`);
 this.runEventScript("render", { reason: "mount" });
 ```
 
-### `src/blocks/statusCard/eventScripts/render.js`
+### `src/lib/html.js`
+
+A shared file: plain JS with named exports, anywhere under `src/` that is not an artifact
+directory. The packager copies it into every script that imports it, so each script still ships
+self-contained ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)).
 
 ```js
-// Single painter. Event scripts are isolated workers — small helpers like esc()
-// are duplicated per script by design; there are no shared modules.
-const esc = (text) =>
+export const esc = (text) =>
   String(text).replace(
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
+```
+
+### `src/blocks/statusCard/eventScripts/render.js`
+
+```js
+// Single painter. esc() comes from the shared file; the import is compiled away at build time.
+import { esc } from "../../../lib/html.js";
 
 const name = this.currentUser?.profile?.first_name || "there";
 const refreshedAt = this.sessionData?.scRefreshedAt;
@@ -668,9 +679,10 @@ except psycopg.Error as exc:
 
 ### `src/automationSteps/dbWrite/script.py`
 
-Steps are isolated units — there are no shared modules, so `load_connection`,
-`connect_with_retry`, and `SMART_QUOTE_MAP` are **copied verbatim** from the read step. That
-duplication is the correct pattern, not a smell.
+Python steps are isolated units — there are no shared modules between `script.py` files (unlike
+the plugin's JavaScript, which can `import` — [19](19-sharing-code-between-scripts.md)), so
+`load_connection`, `connect_with_retry`, and `SMART_QUOTE_MAP` are **copied verbatim** from the
+read step. That duplication is the correct pattern for Python steps, not a smell.
 
 ```python
 # Example Plugin · Agentic Workflow Step · Write Data

@@ -7,7 +7,8 @@ net — scan the relevant section before and after building any surface.
 
 See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 [04-worker-runtime-api.md](04-worker-runtime-api.md) for `this.*` contracts,
-[15-errors-and-observability.md](15-errors-and-observability.md) for the error-handling doctrine.
+[15-errors-and-observability.md](15-errors-and-observability.md) for the error-handling doctrine,
+[19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md) for import/export rules.
 
 ---
 
@@ -143,10 +144,17 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   `runEventScript`. What persists: the painted DOM from the last `outputUI`, `sessionData`,
   user config, and the backend. → [04-worker-runtime-api.md](04-worker-runtime-api.md)
 
-- **Event scripts are isolated units — there are no shared helper modules, and there is no `import`/`require`.**
-  Script bodies are compiled with `AsyncFunction`; duplicating small helpers (an `esc()` or
-  `describeError()`) across scripts is the correct, unavoidable pattern, not a smell.
-  → [04-worker-runtime-api.md](04-worker-runtime-api.md)
+- **Shared helpers live in a plain `.js` file outside any artifact directory** (convention
+  `src/lib/`), imported with relative ESM `import` — the packager folds it into each script at
+  build time, so the runtime still only ever sees one isolated body per script, and shared
+  `let`/`const` state is NOT shared (each importer gets its own copy). There is no `require`
+  and nothing is loaded at runtime. → [Sharing code](#sharing-code),
+  [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)
+
+- **Browser-page and Node globals do not exist in a worker — `window`, `document`, `localStorage`, `alert`, `require` and friends are all absent.**
+  This includes setup-assistant per-field scripts, which run in the expression worker.
+  `@kizenapps/packager` fails the build on a reference to one (`runtime/unavailable-global`); a
+  `typeof window` feature check is exempt. → [04-worker-runtime-api.md](04-worker-runtime-api.md)
 
 - **Relative GETs are cached forever within a worker — there is no TTL.**
   `this.get`/`getWithErrors` memoize per-URL for the worker's lifetime; with `this.preserve = true`
@@ -238,6 +246,81 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   `getUserConfig()` for an explicit re-read that can fail visibly. Note this fetch is **not
   retried** — the catch lives inside the query function, so the retry policy never engages.
   → [04-worker-runtime-api.md](04-worker-runtime-api.md)
+
+## Sharing code
+
+- **A shared file's `let`/`const` is per script, not shared state.** The packager folds the shared
+  file into each importing script independently, so every importer gets its own copy of its module
+  scope, and every script run still starts fresh — a `let count = 0` never accumulates across
+  scripts or across runs. Use `sessionData` or config for anything that must actually persist or be
+  visible elsewhere. → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#shared-state-is-per-script-not-shared)
+
+- **An exported `let` is a snapshot, not a live binding (`imports/mutable-export`, warning).**
+  `export let count` is destructured into the importer once; a later reassignment inside the shared
+  file (from an exported `bump()`, a `.then` callback, a timer) never reaches the importer's `count`.
+  Keep the binding private and export a getter. A `const` holding an object is fine — mutation is by
+  reference. → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#exported-bindings-are-snapshots-not-live-bindings)
+
+- **The whole shared file's top-level code runs in every importer, not just the parts behind the
+  names you imported.** Only imported *names* enter the importer's scope, but every top-level
+  statement still executes there — a costly or throwing statement at module scope hits every
+  importer. Keep shared-file top level pure and cheap; do real work inside the exported functions.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#the-top-level-of-a-shared-file)
+
+- **Top-level `await` and top-level `return` are build errors in a shared file** (`imports/top-level-await`,
+  `imports/top-level-return`), even though both are fine in a script body. A stray `return` would
+  replace the export surface and make every import `undefined`. Put the code inside a function.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#the-top-level-of-a-shared-file)
+
+- **`this` in a shared helper is whatever surface imported it.** `this.entityId` exists in an action
+  and is `undefined` in a block; a plain `function` (not an arrow) inside the file gets its own
+  `this`. Pass context as arguments when a helper spans surfaces.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#this-inside-a-shared-file)
+
+- **`export`, dynamic `import()`, and `import.meta` are build errors in EVERY plugin script now,
+  not just ones using shared code** (`imports/script-export`, `imports/unsupported-import`,
+  packager 0.7.0+). The packager parses every script to check for these regardless of whether it
+  opts into shared code. Neither construct ever worked at runtime — the engine compiles a script
+  body with `new AsyncFunction`, which can't parse a top-level `export` and has no module to resolve
+  `import()` against — so this moves an existing failure from runtime to build time.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#what-changes-for-existing-plugins)
+
+- **Any `import` makes that script strict-mode-parsed (`imports/script-parse`).** A script that
+  imports something and also uses sloppy-only syntax (a legacy octal literal, `with`, duplicate
+  function parameter names) fails to build; a script with no imports is unaffected. The same rule
+  rejects importing `val` while also declaring `const val` in the same script — a duplicate binding.
+  Parsing strict does not make the code *run* strict; the minifier strips `"use strict"`.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#strict-mode-parsing)
+
+- **Importing another artifact's `script.js`, or a helper file placed inside a component
+  directory (`blocks/<name>/`, `actions/<name>/`, etc.), is a build error** (`imports/component-script`).
+  Shared code has to live outside every artifact directory — `src/lib/` is the convention.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#where-shared-code-can-live)
+
+- **Plugins in a multi-plugin repo cannot import each other's files** (`imports/outside-entry`), and
+  one plugin's `entry` may not sit inside another's (`manifest/nested-entry`). Two entries may point
+  at the *same* directory (a prod/dev pair); they may not nest.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#where-shared-code-can-live)
+
+- **Setup-assistant per-field scripts cannot import** (`imports/assistant-script`). They are single
+  arrow-function expressions evaluated in the expression worker, not script bodies.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#setup-assistant-field-scripts-cannot-import)
+
+- **`__proto__` cannot be an export name.** The export surface is emitted as an object literal, where
+  a `__proto__` key (quoted or not) sets the prototype instead of defining a property, so the export
+  silently disappears. The build rejects it (`imports/unsupported-export`).
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#import-and-export-rules)
+
+- **`checkJs`/`@ts-check` flags a script's top-level `return` as `TS1108`.** Every script body is
+  executed as a function, so `return` at the top level is intentional — that's the checker enforcing
+  module semantics on a file the engine doesn't treat as one, not a plugin bug. Plain `allowJs` with
+  no `checkJs` produces no such diagnostic.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#ide-support-and-the-top-level-return-caveat)
+
+- **`npx --yes @kizenapps/cli build` prints errors only.** `imports/mutable-export` and
+  `imports/unused-module` are warnings and surface on the pull-request check, not locally; a clean
+  local build is not evidence of zero warnings.
+  → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#diagnostics)
 
 ## Error handling & observability
 
