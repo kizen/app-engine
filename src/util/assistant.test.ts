@@ -171,11 +171,11 @@ describe('getProcessedAssistantConfig — saveSecret option', () => {
   it('calls saveSecret for a field included via includedKeys', async () => {
     const saveSecret = vi.fn().mockResolvedValue(undefined);
 
-    await getProcessedAssistantConfig(
-      { apiKey: { value: 'sk-live-123' } },
-      configWithApiKey,
-      { pluginApiName: 'my_plugin', saveSecret, includedKeys: ['billingMode', 'apiKey'] },
-    );
+    await getProcessedAssistantConfig({ apiKey: { value: 'sk-live-123' } }, configWithApiKey, {
+      pluginApiName: 'my_plugin',
+      saveSecret,
+      includedKeys: ['billingMode', 'apiKey'],
+    });
 
     expect(saveSecret).toHaveBeenCalledTimes(1);
   });
