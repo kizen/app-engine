@@ -25,9 +25,9 @@ interface UseCustomBlockArgs {
 }
 
 interface UseCustomBlockResult {
-  scriptUIRef: RefObject<HTMLDivElement>;
-  outputUIRef: RefObject<HTMLDivElement>;
-  interactableScriptRef: RefObject<HTMLDivElement>;
+  scriptUIRef: RefObject<HTMLDivElement | null>;
+  outputUIRef: RefObject<HTMLDivElement | null>;
+  interactableScriptRef: RefObject<HTMLDivElement | null>;
   scopedCss: string;
   sanitizedHtml: string | null;
   iframeURL?: string | undefined;

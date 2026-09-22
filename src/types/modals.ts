@@ -172,6 +172,8 @@ export interface AssistantField {
     | 'text'
     | 'number'
     | 'select'
+    | 'radio'
+    | 'api_key'
     | 'boolean'
     | 'qr'
     | 'image'
@@ -184,6 +186,7 @@ export interface AssistantField {
   default?: string;
   options?: SelectOption[];
   allow_multiple?: boolean;
+  secret?: string;
   placeholder?: string;
   when?: string;
   getFetchUrl?: string;
@@ -258,6 +261,19 @@ export interface SelectValueStore {
   value: SelectOption | SelectOption[];
 }
 
+export type RadioCleanValue = SelectOption;
+
+export interface RadioValueStore {
+  value: SelectOption;
+}
+
+export interface ApiKeyValueStore {
+  type?: 'api_key';
+  value?: string;
+  hasValue?: boolean;
+  maskedValue?: string;
+}
+
 type TextCleanValue = string;
 
 export interface TextValueStore {
@@ -270,6 +286,8 @@ export type ValueStore =
   | FieldValueStore
   | NumberValueStore
   | SelectValueStore
+  | RadioValueStore
+  | ApiKeyValueStore
   | TextValueStore;
 
 export type CleanValueStoreType =
@@ -278,6 +296,7 @@ export type CleanValueStoreType =
   | FieldCleanValue
   | NumberCleanValue
   | SelectCleanValue
+  | RadioCleanValue
   | TextCleanValue;
 
 export type CleanValueStore = Record<string, CleanValueStoreType>;

@@ -2,7 +2,7 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as RunModule from '../../run.js';
-import type { UnknownJSON } from '../../types/common.js';
+import type { JSONValue, UnknownJSON } from '../../types/common.js';
 import type { SetupAssistantConfig } from '../../types/modals.js';
 import { AppStateWrapper } from './appState.js';
 import {
@@ -81,6 +81,7 @@ interface RenderResult {
   latestState: Record<string, unknown>;
   getState: () => Record<string, unknown>;
   context: SetupAssistantContextValue;
+  getContext: () => SetupAssistantContextValue;
 }
 
 const flushAsyncWork = async (): Promise<void> => {
@@ -100,6 +101,9 @@ const renderController = async (
     getObjectByAPIName?: (
       apiName: string,
     ) => Promise<{ id: string; object_name: string }[] | undefined>;
+    value?: Record<string, UnknownJSON>;
+    plan?: Record<string, Record<string, JSONValue>>;
+    entitlements?: Record<string, JSONValue>;
   },
 ): Promise<RenderResult> => {
   const getObjectByAPIName = vi.fn<
@@ -143,6 +147,11 @@ const renderController = async (
         children: () =>
           createElement(SetupAssistantController, {
             config,
+            ...(overrides?.value !== undefined ? { value: overrides.value } : {}),
+            ...(overrides?.plan !== undefined ? { plan: overrides.plan } : {}),
+            ...(overrides?.entitlements !== undefined
+              ? { entitlements: overrides.entitlements }
+              : {}),
             onStateChange,
             getObjectByAPIName,
             getCustomObjectDetails,
@@ -168,6 +177,13 @@ const renderController = async (
     latestState: getState(),
     getState,
     context: capturedContext,
+    getContext: () => {
+      if (!capturedContext) {
+        throw new Error('SetupAssistantController never rendered its context');
+      }
+
+      return capturedContext;
+    },
   };
 };
 
@@ -543,6 +559,180 @@ describe('objectIdFilter key matching', () => {
       value: { value: 'field-3', label: 'Transcript Title' },
       associatedObject: { id: 'obj-2', name: 'Transcripts' },
     });
+  });
+});
+
+describe('validateForm — radio and api_key', () => {
+  it('requires a radio field to have a selected option', async () => {
+    const { context, getContext } = await renderController({
+      fields: [
+        {
+          key: 'billingMode',
+          type: 'radio',
+          required: true,
+          options: [
+            { label: 'Kizen', value: 'kizen' },
+            { label: 'Own Key', value: 'own_key' },
+          ],
+        },
+      ],
+    });
+
+    let result: { isValid: boolean } | undefined;
+    await act(async () => {
+      result = await context.validateForm();
+    });
+
+    expect(result?.isValid).toBe(false);
+    expect(getContext().getFieldErrorState('billingMode')?.message).toBe('This field is required');
+  });
+
+  it('is satisfied once a radio option is selected', async () => {
+    const { context } = await renderController(
+      {
+        fields: [
+          {
+            key: 'billingMode',
+            type: 'radio',
+            required: true,
+            options: [{ label: 'Kizen', value: 'kizen' }],
+          },
+        ],
+      },
+      { value: { billingMode: { type: 'radio', value: { label: 'Kizen', value: 'kizen' } } } },
+    );
+
+    let result: { isValid: boolean } | undefined;
+    await act(async () => {
+      result = await context.validateForm();
+    });
+
+    expect(result?.isValid).toBe(true);
+  });
+
+  it('requires an api_key field to be filled unless the secret already has a value', async () => {
+    const { context } = await renderController({
+      fields: [{ key: 'apiKey', type: 'api_key', required: true, secret: 'api_key' }],
+    });
+
+    let emptyResult: { isValid: boolean } | undefined;
+    await act(async () => {
+      emptyResult = await context.validateForm();
+    });
+
+    expect(emptyResult?.isValid).toBe(false);
+  });
+
+  it('treats an api_key field as satisfied when the backing secret already has a value', async () => {
+    const { context } = await renderController(
+      {
+        fields: [{ key: 'apiKey', type: 'api_key', required: true, secret: 'api_key' }],
+      },
+      { value: { apiKey: { type: 'api_key', hasValue: true } } },
+    );
+
+    let result: { isValid: boolean } | undefined;
+    await act(async () => {
+      result = await context.validateForm();
+    });
+
+    expect(result?.isValid).toBe(true);
+  });
+});
+
+describe('reserved `plan.*` / `entitlement.*` namespaces in `when` expressions', () => {
+  const fakeWorkerEval = (
+    expression: string,
+    values: Record<string, unknown>,
+  ): Promise<boolean> => {
+    const interpolated = expression.replace(/\{\{(.*?)\}\}/g, (_match, key: string) => {
+      const entry = (values as Record<string, { value?: unknown } | undefined>)[key];
+      return typeof entry?.value !== 'undefined' ? JSON.stringify(entry.value) : 'null';
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+    const result = new Function(`return ${interpolated};`)() as boolean;
+
+    return Promise.resolve(result);
+  };
+
+  it('resolves a nested plan value without needing the sibling-key mock', async () => {
+    const { context, getContext } = await renderController(
+      {
+        fields: [
+          {
+            key: 'ownKeyOption',
+            type: 'boolean',
+            when: '{{plan.general.allow_external_keys}} === true',
+          },
+        ],
+      },
+      { plan: { general: { allow_external_keys: true } } },
+    );
+
+    expressionOverride.current = fakeWorkerEval;
+    await act(async () => {
+      await context.evaluateExpression(
+        '{{plan.general.allow_external_keys}} === true',
+        'ownKeyOption',
+      );
+    });
+
+    expect(getContext().shouldHideField('ownKeyOption')).toBe(false);
+  });
+
+  it('hides the field when the plan value is false', async () => {
+    const { context, getContext } = await renderController(
+      {
+        fields: [
+          {
+            key: 'ownKeyOption',
+            type: 'boolean',
+            when: '{{plan.general.allow_external_keys}} === true',
+          },
+        ],
+      },
+      { plan: { general: { allow_external_keys: false } } },
+    );
+
+    expressionOverride.current = fakeWorkerEval;
+    await act(async () => {
+      await context.evaluateExpression(
+        '{{plan.general.allow_external_keys}} === true',
+        'ownKeyOption',
+      );
+    });
+
+    expect(getContext().shouldHideField('ownKeyOption')).toBe(true);
+  });
+
+  it('resolves an entitlement value', async () => {
+    const { context, getContext } = await renderController(
+      {
+        fields: [{ key: 'betaFeature', type: 'boolean', when: 'Boolean({{entitlement.beta}})' }],
+      },
+      { entitlements: { beta: true } },
+    );
+
+    expressionOverride.current = fakeWorkerEval;
+    await act(async () => {
+      await context.evaluateExpression('Boolean({{entitlement.beta}})', 'betaFeature');
+    });
+
+    expect(getContext().shouldHideField('betaFeature')).toBe(false);
+  });
+
+  it('resolves an unknown reserved key to null rather than throwing', async () => {
+    const { context, getContext } = await renderController({
+      fields: [{ key: 'newFlag', type: 'boolean', when: '{{plan.general.not_declared}} === true' }],
+    });
+
+    expressionOverride.current = fakeWorkerEval;
+    await act(async () => {
+      await context.evaluateExpression('{{plan.general.not_declared}} === true', 'newFlag');
+    });
+
+    expect(getContext().shouldHideField('newFlag')).toBe(true);
   });
 });
 

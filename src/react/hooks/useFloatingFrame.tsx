@@ -116,10 +116,10 @@ interface UseFloatingFrameResult {
   hideHeader?: boolean | undefined;
   isFixed: boolean;
   isCircle: boolean;
-  outputUIRef: RefObject<HTMLDivElement>;
+  outputUIRef: RefObject<HTMLDivElement | null>;
   scopedCss: string;
   sanitizedHtml: string | null;
-  interactableScriptRef: RefObject<HTMLDivElement>;
+  interactableScriptRef: RefObject<HTMLDivElement | null>;
   tooltipPosition: 'top' | 'left' | 'bottom';
   currentPluginId?: string | undefined;
   setMinimized: (minimized: boolean) => void;
@@ -128,7 +128,7 @@ interface UseFloatingFrameResult {
   script: string | undefined;
   dragging: boolean;
   frameOffset: number;
-  scriptUIRef: RefObject<HTMLDivElement> | undefined;
+  scriptUIRef: RefObject<HTMLDivElement | null> | undefined;
 }
 
 export const useFloatingFrame = (
