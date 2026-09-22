@@ -312,9 +312,13 @@ Details: [06-auth-secrets-services.md](06-auth-secrets-services.md) and
   (`/external-integrations/proxy/{plugin}/{service}/…`); the proxy resolves the declared
   service, injects and refreshes OAuth tokens or stored secrets, and forwards only a strict
   header allowlist. Scripts and Python steps never see tokens. Secret values inside
-  `kizen.json` (e.g. OAuth `client_secret`) should be encrypted envelopes produced by
-  `npx --yes @kizenapps/cli encrypt` (`{"encrypted": true, "value": "…"}`); plaintext values still function
-  but are legacy and discouraged.
+  `kizen.json` (e.g. OAuth `client_secret`) must be encrypted envelopes produced by
+  `npx --yes @kizenapps/cli encrypt` (`{"encrypted": true, "value": "…"}`), a declared
+  `{{secret.KEY}}` reference, or an `integration_secret_api_name`. A plaintext `token`,
+  `password` or `client_secret` is a build error (`security/plaintext-credential`) and never
+  publishes — and any value that was already committed is compromised, so rotate it at the
+  provider rather than just deleting the line (see
+  [security rules the build enforces](06-auth-secrets-services.md#security-rules-the-build-enforces)).
 - **No inbound HTTP surface.** Plugins cannot register endpoints; external systems push data
   into Kizen only through the authenticated ingestion endpoints (Agentic Workflow webhook
   triggers, the Webhook SmartConnector, records upsert — see

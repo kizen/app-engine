@@ -834,7 +834,28 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   the current options are a `no_auth` service + script-side header, or a token-exchange auth type
   if the vendor supports it. → [06-auth-secrets-services.md](06-auth-secrets-services.md)
 
-- **Encrypt manifest secrets with `npx --yes @kizenapps/cli encrypt` — plaintext values still work but are legacy and discouraged.**
+- **A plaintext `token`/`password`/`client_secret` literal in `auth_credentials` fails the build (`security/plaintext-credential`) — and one that was ever committed is already compromised.**
+  `client_id` is exempt: it is an identifier, not a secret. Replacing the value with an `encrypt`
+  envelope makes the build pass, but it does not un-leak git history — rotate the credential at
+  the vendor as well. → [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces)
+
+- **`security/dynamic-code` matches only LITERAL `eval` / `new Function` / string-argument `setTimeout`/`setInterval` — passing it is not proof a script is dynamic-code-free.**
+  Computed or obfuscated equivalents get through. In the other direction there is no allowlist, so
+  a vendored/minified third-party bundle pasted into a script trips the rule — deliberately.
+  Inlining someone else's bundle is the thing the rule exists to stop, so restructure rather than
+  look for a way around it. → [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces)
+
+- **`security/dangerously-skip-proxy` is a WARNING — the build stays green and the plugin ships.**
+  Nothing blocks a release that bypasses the proxy, so treat every occurrence as a review item
+  rather than a resolved question; it gives up the message bridge, plugin attribution and origin
+  pinning. → [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces)
+
+- **A clean `security/*` pass does not mean secrets don't leak — the rules are static and stop at the obvious shapes.**
+  Nothing checks a secret flowing into a log line, an error message, an analytics payload, or a
+  request to a host other than the one it belongs to. Those are review and code-design problems,
+  not build problems. → [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces)
+
+- **Encrypt manifest secrets with `npx --yes @kizenapps/cli encrypt` — plaintext values are legacy, and the credential-shaped ones now fail the build.**
   The envelope `{"encrypted": true, "value": "<base64>"}` goes anywhere a secret lives in
   `kizen.json` (e.g. `services[].auth_credentials.client_secret`); the publish pipeline decrypts
   server-side. Note `npx --yes @kizenapps/cli encrypt` targets production keys by default — pass `--stage dev`
@@ -928,13 +949,13 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 - **An unmapped optional input is ABSENT from `inputs` — attribute access raises `AttributeError`, it is not `None`.**
   Always `getattr(inputs, "name", None)` for optional inputs. → [07-automation-steps.md](07-automation-steps.md)
 
-- **`data_type` must be a VARIABLE type, not a field type — wrong values publish fine and then break the builder.**
+- **`data_type` must be a VARIABLE type, not a field type — a wrong value now FAILS THE BUILD (`automation-step/data-type`).**
   The valid enum (9 values): `string, boolean, number, date, datetime, phone_number, employee,
-  entity, uuid`. Field-type names (`text`, `integer`, `decimal`, `money`, `files`, `file`)
-  publish without error, render a broken field dropdown ("No Options"), and fail at Agentic
-  Workflow save with `"X" is not a valid choice`. Use `number` for numerics and `string` for text
-  and files fields. `email` isn't valid either - use `string`.
-  → [07-automation-steps.md](07-automation-steps.md)
+  entity, uuid`. Field-type names are rejected with a suggested replacement — `integer`/`decimal`
+  → `number`, `file`/`files`/`email`/`emails` → `string` — and a missing `data_type` errors too.
+  Since packager 0.8.0 these never reach the builder, so the old symptoms (a "No Options" field
+  dropdown, `"X" is not a valid choice` at Agentic Workflow save) only apply to apps published
+  before the rule existed. → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
 
 - **`allowed_values` on static inputs is stripped server-side at publish and never reaches the builder.**
   The workflow author sees a free-text control, not a picker, and nothing validates their input
@@ -946,13 +967,31 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   at run time, so an input you expected to default arrives as whatever the empty control produced.
   Apply defaults in the script. → [07-automation-steps.md](07-automation-steps.md)
 
-- **The authored `api_name` (published as `action_step_api_name`) is the step's real identity — `action_type` is dead and `script_alias` is vestigial.**
-  Steps resolve by `(plugin_app, action_step_api_name)`. The Python runtime binds `inputs.<name>`
-  by the param's `name`, never `script_alias`; a mismatched alias is harmless, a renamed
-  `api_name` breaks every wired workflow. → [07-automation-steps.md](07-automation-steps.md)
+- **The authored `api_name` (published as `action_step_api_name`) is the step's real identity — and the dead keys around it are now build errors.**
+  Steps resolve by `(plugin_app, action_step_api_name)`, so a renamed `api_name` breaks every wired
+  workflow. `automation-step/removed-field` rejects `action_type`, `script_alias`,
+  `plugin_description` and `overall_description` on the step, plus `script_alias` on a parameter:
+  delete them, and put the step's prose in `action_description`. The two description keys were
+  plugin-level blurbs, not step descriptions — that text now belongs in the manifest's optional
+  [`agentic_description`](03-manifest-reference.md#agentic_description). The Python runtime binds
+  `inputs.<name>` by the param's `name` — there is no alias indirection to preserve.
+  → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
 
-- **`output_target` is a phantom key — silently dropped at publish.**
-  `input_source` is used for both inputs and outputs. → [07-automation-steps.md](07-automation-steps.md)
+- **Omitting `runtime` now means `python 3.13`, not `python 3.12` — a step that relied on the old default changes interpreter on its next republish.**
+  `automation-step/runtime` accepts only `python 3.12` and `python 3.13`. If the step depends on
+  3.12 behavior or a dependency with no 3.13 wheel, pin `"runtime": "python 3.12"` explicitly
+  before you republish; the config that has always been silent is the one that moves.
+  → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
+
+- **A step `secrets` entry that isn't declared in the manifest's `base_config.secrets` fails the build (`automation-step/undeclared-secret`).**
+  The step config lists secrets by bare name and the manifest is what actually declares them, so
+  the two lists must agree. Add the name to `base_config.secrets` (remembering the runtime key is
+  namespaced `<plugin_api_name>__<secret_name>`).
+  → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
+
+- **`output_target` is a phantom key — it used to be silently dropped at publish, and is now rejected by `automation-step/output-target`.**
+  `input_source` is used for both inputs and outputs.
+  → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
 
 - **`employee`/`entity` inputs arrive as bare id scalars (UUIDs), not objects.**
   A team-member input arrives as `uuid.UUID`; resolve details via
@@ -1048,6 +1087,19 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   fields. → [12-routes-calendars-adornments-settings.md](12-routes-calendars-adornments-settings.md)
 
 ## Release & publish
+
+- **`npx --yes @kizenapps/cli build` now runs the same `automation-step/*` and `security/*` rules the publish pipeline runs — a clean local build is the expected pre-PR gate.**
+  Publish re-checks step data types against the live type list read from the *target environment*
+  (and fails as a pipeline problem, not a config error, if it can't read that list), so local and
+  remote can only disagree when the environment's list has moved. Already-published apps are never
+  re-validated: one that predates a rule keeps running until its next publish, which is when the
+  rule finally bites. → [16-release-and-publish.md](16-release-and-publish.md)
+
+- **The scaffolded Copilot code-review workflow does nothing until it is on the repo's DEFAULT branch.**
+  `.github/workflows/copilot-code-review.yml` and its `copilot-setup-steps` job (which clones
+  these docs into `.copilot-docs/` so reviews cite the live corpus) only take effect once merged,
+  so the PR that introduces them gets no review from them. Merge first, then expect reviews.
+  → [02-getting-started.md](02-getting-started.md#the-cli-kizenappscli)
 
 - **Every release push must bump `kizen.json` `version` AND add `releaseNotes/<version>.md` — together, in the same commit.**
   The version must strictly increase versus the base branch (PR check), the backend rejects

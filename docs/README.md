@@ -12,7 +12,7 @@ auth headers, the public API beyond what plugins need).
 nothing to install first. (`create` is the one that needs an interactive terminal.)
 
 ```
-npx --yes @kizenapps/cli <command>    # create · build · dev · encrypt · report · icons
+npx --yes @kizenapps/cli <command>    # create · build · dev · encrypt · report · icons · setup-copilot
 ```
 
 See [02-getting-started.md](02-getting-started.md#the-cli-kizenappscli).

@@ -205,6 +205,14 @@ and a version that fails validation is never sent.
 every release commit. Its rule set can lag the pipeline's by a release, so a clean local build
 is a strong signal, not a guarantee.
 
+It is one rule set in four families: `manifest/*` and `structure/*`
+([manifest reference §10](03-manifest-reference.md#10-validation-rules)), `automation-step/*`
+([automation steps](07-automation-steps.md#build-time-validation)) and `security/*`
+([auth, secrets & services](06-auth-secrets-services.md#security-rules-the-build-enforces)).
+The pipeline runs the same `@kizenapps/packager`, so anything in those families that fails in
+CI fails in `build` first — including plaintext credentials and dynamic code, which never reach
+the backend at all.
+
 That lag matters for the setup-assistant `view` key: the six rules that validate a view-based
 assistant (`manifest/setup-assistant-view-conflict`, `-view-not-found`, `-shape`, `-parse`,
 `-orphaned-field-scripts` and `-disabled-keys-ignored`) require `@kizenapps/packager` 0.5.0, so
@@ -218,7 +226,11 @@ their triggers in [manifest reference §10](03-manifest-reference.md#10-validati
 
 ## 5. Publish-side validation you can hit
 
-These failures come from the backend, after a clean build:
+Two gates exist and they fail in different places. The packager's `manifest/*`, `structure/*`,
+`automation-step/*` and `security/*` rules are build-time: they fail in `npx --yes @kizenapps/cli
+build` and again in CI, before anything is sent to an environment. The errors below are
+backend-only — they come from the publish call itself, after a clean build, and there is no local
+check that predicts them:
 
 | Error | Cause | Fix |
 |---|---|---|
@@ -227,10 +239,16 @@ These failures come from the backend, after a clean build:
 | Thumbnail required | No `thumbnail.png` at the first level under `entry`. | Add exactly one PNG at `<entry>/thumbnail.png`. |
 | Dev build must be unlisted | `version` is `0.0.0` without `published: false`. | Let the pipeline own `0.0.0`; do not author it. |
 | Missing developer business | Preview or `0.0.0` build without `developer_business_id`. | Add the field, per-environment form. |
-| Undeclared secret | A step's `secrets` entry, or a `{{secret.KEY}}` token in `services`, is not in `base_config.secrets`. | Declare it in `base_config.secrets`. |
 | Service validation failed | A `services` entry's `auth_credentials` do not satisfy its `auth_type`. | See [auth, secrets & services](06-auth-secrets-services.md). |
 | Secret decryption failed | An encrypted envelope no longer decrypts under the plugin's current key. | Re-run `npx --yes @kizenapps/cli encrypt` and commit the fresh envelope. |
 | Publish not permitted | The publishing business lacks developer-program membership, or this repository is not allow-listed for it. | See [§8](#8-developer-program-requirements). |
+
+Undeclared secrets are **not** in that table any more: both halves fail the build first. A step
+`secrets` entry missing from `base_config.secrets` is `automation-step/undeclared-secret`
+([automation steps](07-automation-steps.md#build-time-validation)); an undeclared `{{secret.KEY}}`
+in `services` is `security/undeclared-secret-reference`
+([auth, secrets & services](06-auth-secrets-services.md#security-rules-the-build-enforces)). The
+backend still rejects them, but you only reach that check by skipping the build.
 
 Publishing is version-scoped and additive: each publish creates a new version row with fresh
 configuration. There is no diff or upsert — the published version wholly describes the plugin
@@ -355,8 +373,10 @@ stage fail the pipeline's decryption check with a clear error rather than publis
 credentials.
 
 The pipeline decrypts centrally before publishing, so no environment holds key material and
-the ciphertext is safe in a public repository. Plaintext values still function but are legacy:
-anyone with repository access can read them.
+the ciphertext is safe in a public repository. A plaintext `token`, `password` or `client_secret`
+is a build error (`security/plaintext-credential`) and never publishes; anyone with repository
+access could read it, so a value that was ever committed has to be rotated at the provider, not
+just deleted.
 
 If a re-encryption is ever needed, the decryption check fails first — re-run `npx --yes @kizenapps/cli encrypt`
 and commit the new envelope.
@@ -376,6 +396,8 @@ Before pushing to a release branch:
 - [ ] New secrets declared in `base_config.secrets`; new `{{secret.KEY}}` tokens too.
 - [ ] `thumbnail.png` still present at `<entry>/thumbnail.png`.
 - [ ] Encrypted credential envelopes current for the stage you publish to.
+- [ ] Any `security/dangerously-skip-proxy` warning in the build output reviewed deliberately —
+      it does not fail the build ([security rules](06-auth-secrets-services.md#security-rules-the-build-enforces)).
 - [ ] Preview build exercised in the developer business (install, run each changed surface).
 
 ---

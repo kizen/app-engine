@@ -1,11 +1,11 @@
 # Agentic Workflow Steps (Python code steps)
 
 **What this covers.** How a plugin declares its own Agentic Workflow steps: the authoring
-`config.json` schema field by field, the authored→packaged rename map, the complete `data_type`
-enum and its Python/wire encodings, the inputs/outputs contract, what the workflow builder user
-sees, and the Python runtime contract (`inputs`, `outputs`, `secrets`, `kizen`) including the
-`kizen.api` client, secrets namespacing, retry patterns, database-connector patterns, and how a
-step fails cleanly.
+`config.json` schema field by field, the authored→packaged rename map, the `automation-step/*`
+build-time validation rules, the complete `data_type` enum and its Python/wire encodings, the
+inputs/outputs contract, what the workflow builder user sees, and the Python runtime contract
+(`inputs`, `outputs`, `secrets`, `kizen`) including the `kizen.api` client, secrets namespacing,
+retry patterns, database-connector patterns, and how a step fails cleanly.
 
 **See also:** [manifest reference](03-manifest-reference.md) ·
 [platform API](05-platform-api.md) ·
@@ -60,9 +60,7 @@ Full example, referenced field by field below:
 {
   "name": "Send Notification",
   "api_name": "send_notification",
-  "plugin_description": "Example Plugin — messaging integration for Agentic Workflows.",
   "action_description": "Posts a plain-text message to the given channel using the connected workspace. Channels may be given by name (#general) or by id.",
-  "action_type": "example_plugin_send_notification",
   "runtime": "python 3.13",
   "secrets": ["api_key"],
   "when": "Boolean({{config.enableNotifications}})",
@@ -70,21 +68,18 @@ Full example, referenced field by field below:
     {
       "name": "channel",
       "label": "Channel",
-      "hint": "Use #channel-name to look up by name, or a channel id for direct delivery.",
       "data_type": "string",
       "required": true,
       "input_source": "variable",
       "hint_field_name": "channel",
-      "hint_related_object_field_name": null,
-      "script_alias": "channel"
+      "hint_related_object_field_name": null
     },
     {
       "name": "message",
       "label": "Message",
       "data_type": "string",
       "required": true,
-      "input_source": "variable",
-      "script_alias": "message"
+      "input_source": "variable"
     }
   ],
   "outputs": [
@@ -96,7 +91,6 @@ Full example, referenced field by field below:
       "input_source": "object_field",
       "hint_field_name": "last_notified_at",
       "hint_related_object_field_name": null,
-      "script_alias": "delivered_at",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     }
@@ -108,16 +102,22 @@ Full example, referenced field by field below:
 |---|---|---|---|
 | `name` | string | yes | Human label in the builder's action picker. |
 | `api_name` | api-name string | *effectively yes* | The step's stable identity. Falls back to a sanitized directory name if omitted. |
-| `plugin_description` | string | no | Plugin-level blurb shown above the action picker. |
 | `action_description` | string | no | Shown once this action is selected. |
-| `action_type` | api-name string | no | Stored, never read at runtime. Inert. |
-| `runtime` | string | no | Python runtime selector. Normalized at package time. |
+| `runtime` | string | no | `"python 3.13"` (the default) or `"python 3.12"`. Normalized at package time. |
 | `secrets` | string[] | no | Integration secret names this step may read. |
 | `when` | expression string | no | Gates whether the step is offered, against install config. |
 | `step_history_template` | string | no | **Dropped by the packager** — authoring it in `config.json` has no effect. |
 | `script` | string | no | **Ignored.** The packager always reads `script.py` from disk. |
 | `inputs` | object[] | yes (may be `[]`) | Declared inputs — see [parameter reference](#parameter-reference-inputs-and-outputs). |
 | `outputs` | object[] | yes (may be `[]`) | Declared outputs — same shape plus two output-only fields. |
+
+Four step-level keys older configs carry — `action_type`, `script_alias`, `plugin_description` and
+`overall_description` — are **removed from the publish contract**: each one now fails the build.
+
+The fields with a rule in [Build-time validation](#build-time-validation) — `runtime`, `secrets`,
+the shape of `inputs`/`outputs`, and the removed keys — are checked before anything is sent. The
+rest, `name`, `api_name`, `action_description`, `when` and `step_history_template` among them, pass
+through unvalidated.
 
 ### `name`
 
@@ -144,11 +144,12 @@ name hard-fail at run time with a "config not found" error. Treat it as immutabl
 
 ### `plugin_description`
 
-Packaged as `overall_description`. Despite living on each step, it is displayed **once**, above
-the action picker, as the plugin-level description. The builder uses the first action's value.
+**Removed.** Setting it — or `overall_description`, the name it used to be packaged under — fails
+the build with `automation-step/removed-field`. Delete the key.
 
-Consequence: give every step in a plugin the *same* `plugin_description`, describing the plugin.
-Putting step-specific text here means the blurb shown depends on which step happens to be first.
+The plugin-level blurb above the action picker is now authored once, as the top-level
+[`agentic_description`](03-manifest-reference.md#agentic_description) in `kizen.json`. Step-specific
+text belongs in `action_description`.
 
 ### `action_description`
 
@@ -162,32 +163,26 @@ target field).
 
 ### `action_type`
 
-An api-name string. It is stored at publish time and validated in the admin, but **nothing reads
-it at runtime**. It is inert. Set it to something readable and unique-ish
-(`example_plugin_send_notification`) and do not build anything on it.
+**Removed.** An api-name string that older configs set and nothing ever read at runtime. It is no
+longer part of the publish contract, and setting it fails the build with
+`automation-step/removed-field`. Delete it; the step's identity is `api_name`.
 
 ### `runtime`
 
-Selects the Python runtime. Two runtimes exist: **Python 3.13** and **Python 3.12**.
+Selects the Python runtime. Two runtimes exist, Python 3.13 and Python 3.12, and the authored
+string must **normalize to `python-3-12` or `python-3-13`** or the build fails with
+`automation-step/runtime`. A runtime that does not exist, such as `"python 3.7"`, fails there.
 
-**Omitting `runtime` gives you Python 3.12, not the newer one** — the packager's fallback is
-`python-3-12`, applied both when the field is absent and when `config.json` itself is missing. If
-you want 3.13 you have to ask for it; a step that "just works" on your machine and inexplicably
-lacks a 3.13 feature in production is usually a step with no `runtime` set.
+**Omitting `runtime` gives you Python 3.13.** The packager's fallback is `python-3-13`, applied
+both when the field is absent and when `config.json` itself is missing. The fallback was
+`python-3-12` before `@kizenapps/packager` 0.8.0, so a step that never declared a runtime moves to
+3.13 the next time the plugin is published — pin `"python 3.12"` explicitly if the script depends
+on it.
 
-The authored string is normalized at package time by replacing spaces and dots with hyphens, so
-all of these produce the same packaged value:
-
-| Authored `runtime` | Packaged `script_runtime` |
-|---|---|
-| `"python 3.13"` | `"python-3-13"` |
-| `"python-3-13"` | `"python-3-13"` |
-| `"python 3.12"` | `"python-3-12"` |
-| `"python-3-12"` | `"python-3-12"` |
-
-There is no allowed-runtimes enum at package time — a string naming a runtime that does not exist
-(for example `"python 3.7"`) packages cleanly and is rejected at publish. Prefer the hyphenated
-form `"python-3-13"` so the authored value matches the packaged value exactly.
+Normalization replaces whitespace and dots with hyphens, and it runs *before* the check, so every
+spelling that collapses to the packaged value is accepted: `"python 3.13"`, `"python-3-13"` and
+`"python-3.13"` all package as `script_runtime: "python-3-13"`, and the 3.12 spellings likewise.
+Author the spaced form — `"python 3.13"` — which is what the rule's own error message names.
 
 ### `secrets`
 
@@ -197,8 +192,9 @@ An array of **bare** integration-secret names this step is allowed to read:
 "secrets": ["api_key", "connection_json"]
 ```
 
-Each name must also appear in the manifest's `base_config.secrets` — publish rejects a step
-secret that is not a subset of the plugin's declared secrets. See
+Each name must also appear in the manifest's `base_config.secrets`. A step secret that is not
+declared there fails the build with `automation-step/undeclared-secret`, and the publish pipeline
+checks the same subset rule again. See
 [auth, secrets and services](06-auth-secrets-services.md).
 
 Declaring a secret here is what gets its **value** into the step's `secrets` dict at run time. A
@@ -244,21 +240,22 @@ configs carry `"script": "script.py"`; it is decoration.
 
 ## Authored → packaged rename map
 
-Three fields are renamed on the way from your `config.json` into the published step definition.
+Two fields are renamed on the way from your `config.json` into the published step definition.
 This matters when reading platform-side documentation, publish payloads, or the workflow-builder
 API, which all use the packaged names.
 
 | Authored `config.json` | Packaged / stored | Notes |
 |---|---|---|
 | `api_name` | `action_step_api_name` | The real key. Falls back to the sanitized directory name. |
-| `plugin_description` | `overall_description` | Plugin-level, shown above the action picker. |
 | `runtime` (`"python 3.13"`) | `script_runtime` (`"python-3-13"`) | Spaces and dots → hyphens. |
 | `action_description` | `action_description` | Unchanged. |
-| `action_type` | `action_type` | Unchanged, and inert. |
 | `secrets` | `secrets` | Unchanged. |
 | `when` | `when` | Unchanged. |
 | `inputs` / `outputs` | `inputs` / `outputs` | Pass through unchanged. |
 | `script.py` file content | `script` | Raw, unminified. |
+
+`plugin_description` no longer maps to `overall_description`: both names are rejected at build
+time, and the plugin-level blurb is authored as `agentic_description` in `kizen.json` instead.
 
 The packaged collection itself is `automation_action_configs`.
 
@@ -268,7 +265,6 @@ The packaged collection itself is `automation_action_configs`.
 |---|---|
 | `api_name` | **Runtime.** The unique key; everything resolves through it. |
 | `name`, `action_description` | **Builder.** Rendered in the builder UI. |
-| `plugin_description` | **Builder.** Plugin-scoped in effect - see above. |
 | `runtime` | **Runtime.** Selects the interpreter. |
 | `secrets` | **Runtime.** Gates what the `secrets` dict contains. |
 | `inputs[].name`, `outputs[].name` | **Runtime.** These are the runtime accessors. |
@@ -276,10 +272,10 @@ The packaged collection itself is `automation_action_configs`.
 | `required` | **Runtime.** Pre-execution validation refuses to run with a required input unmapped or null. |
 | `input_source`, `hint_field_name` | Builder only. Not read at runtime. |
 | `conflict_resolution`, `create_field_options` | **Runtime.** Read on outputs at write-back time. |
-| `action_type` | **Inert.** Stored, never read. |
-| `script_alias` | **Inert.** A fossil of an abandoned design; the runtime binds by `name`. |
-| `allowed_values` | **Inert as enforcement.** Documentation only — see below. |
-| `output_target` | **Phantom.** Silently dropped at publish; use `input_source` on outputs too. |
+| `action_type`, `script_alias`, `plugin_description`, `overall_description` | **Rejected.** Removed from the publish contract; each fails the build with `automation-step/removed-field`. |
+| `output_target` | **Rejected.** Fails the build with `automation-step/output-target`; use `input_source` on outputs too. |
+| `allowed_values`, `default` | **Inert as enforcement.** Silently dropped at publish — documentation only, see below. |
+| `hint` | **Phantom.** Silently dropped at publish; never rendered in the builder. |
 | `script` | **Ignored.** `script.py` is always read from disk. |
 
 ---
@@ -287,19 +283,22 @@ The packaged collection itself is `automation_action_configs`.
 ## Parameter reference (`inputs` and `outputs`)
 
 Inputs and outputs share one shape. Outputs add `conflict_resolution` and `create_field_options`;
-both are **rejected on inputs**.
+both on an input fail the build with `automation-step/output-only-option`.
+
+The fields with a rule in [Build-time validation](#build-time-validation) — `data_type`,
+`input_source`, `conflict_resolution`, `create_field_options`, `output_target` and `script_alias` —
+are checked before anything is sent. `name`, `label`, `required` and the two `hint_*` keys pass
+through unvalidated; `hint`, `allowed_values` and `default` are dropped at publish altogether.
 
 ```json
 {
   "name": "channel",
   "label": "Channel",
-  "hint": "Use #channel-name to look up by name, or a channel id for direct delivery.",
   "data_type": "string",
   "required": true,
   "input_source": "object_field",
   "hint_field_name": "channel",
   "hint_related_object_field_name": null,
-  "script_alias": "channel",
   "allowed_values": ["general", "alerts"],
   "default": true
 }
@@ -319,14 +318,20 @@ What the workflow author sees next to the mapping control in the builder. Free t
 
 ### `hint`
 
-Optional help text rendered with the field in the builder. Use it to state format expectations the
-label cannot carry ("Use `#channel-name` to look up by name, or a channel id for direct delivery").
+**Dropped at publish, exactly like [`default`](#default).** It is not in the fixed parameter field
+set the publish endpoint accepts, and the workflow builder reads only `hint_field_name`, so a
+`hint` is discarded server-side without a warning and never shown to anyone.
+
+Format expectations that do not fit the `label` belong in the step's `action_description`, which
+the builder does render, or in the plugin's own documentation. Some existing configs carry a
+`hint`; it is decoration.
 
 ### `data_type`
 
-The variable type of the value. See [`data_type` reference](#data_type-reference) — this is the
-field most likely to be set wrong, because the valid values are **variable** type names, not
-custom-field type names.
+The variable type of the value, and the one field every parameter must carry. See
+[`data_type` reference](#data_type-reference) — this is the field most likely to be set wrong,
+because the valid values are **variable** type names, not custom-field type names. A missing,
+non-string, or out-of-enum value fails the build with `automation-step/data-type`.
 
 ### `required`
 
@@ -350,6 +355,9 @@ Where the value comes from (inputs) or goes to (outputs). Publishable values:
 | `related_object_field` | A field on a related record. |
 | `static_value` | A literal the workflow author types in the builder. |
 
+A value outside this table fails the build with `automation-step/input-source`; omitting the key
+altogether is allowed.
+
 `input_source` is used for **both** inputs and outputs — outputs use the same key, not
 `output_target`.
 
@@ -363,7 +371,7 @@ An array of literals intended to constrain a `static_value` input.
 
 **It is dropped at publish and never reaches the builder.** Publishing accepts a fixed field set
 for step parameters — `name`, `label`, `data_type`, `required`, `input_source`,
-`hint_field_name`, `hint_related_object_field_name`, `script_alias`, `conflict_resolution`,
+`hint_field_name`, `hint_related_object_field_name`, `conflict_resolution`,
 `create_field_options` — and silently discards anything else. `allowed_values` is not on that list,
 so it is stripped server-side without a warning: the workflow author sees a free-text control, not
 a picker, and nothing validates their input against your list.
@@ -429,12 +437,12 @@ an explicit `null` is the house style.
 
 ### `script_alias`
 
-**Vestigial.** A fossil of an abandoned JavaScript-runtime design. The Python runtime binds
-`inputs.<name>` by the parameter's `name` and never consults `script_alias`. A mismatched or
-absent `script_alias` is harmless.
+**Removed**, on parameters and at step level alike. The Python runtime always bound
+`inputs.<name>` by the parameter's `name` and never consulted `script_alias`; the key is now
+rejected, so a config that still carries it fails the build with `automation-step/removed-field`.
 
-Existing configs set it to the same value as `name`. Keep doing that for consistency, and never
-write a script that expects the alias to be the accessor.
+Older configs set it on every input and output. Delete all of them — nothing referenced it, so
+there is nothing to migrate.
 
 ### `conflict_resolution` (outputs only)
 
@@ -451,6 +459,10 @@ How the write-back reconciles with the field's current value.
 The builder surfaces `overwrite`, `update_if_blank`, and `add_only`. The other two are accepted by
 the platform.
 
+A value outside this table fails the build with `automation-step/conflict-resolution`; `null` and
+an absent key are both fine. On an *input* the key itself is an error —
+`automation-step/output-only-option`.
+
 ### `create_field_options` (outputs only)
 
 Boolean. When `true`, writing a value that does not match an existing dropdown option **creates**
@@ -459,25 +471,65 @@ the option rather than failing. Default `false`.
 Leave it `false` unless the step's whole purpose is to seed an option list from an external system
 — a typo in an upstream feed becomes a permanent dropdown option otherwise.
 
+A non-boolean value fails the build with `automation-step/create-field-options`, and the key on an
+*input* fails with `automation-step/output-only-option`.
+
 ### `output_target` — do not use
 
-A phantom field. Some published configs carry `"output_target": "object_field"` on outputs; it is
-**silently dropped at publish**. The real key on outputs is `input_source`, exactly as on inputs.
-An output declared with only `output_target` and no `input_source` publishes without complaint and
-is missing its source declaration.
+Not a field. Some published configs carry `"output_target": "object_field"` on outputs; it used to
+be silently dropped at publish and now **fails the build** with `automation-step/output-target`.
+The real key on outputs is `input_source`, exactly as on inputs.
+
+---
+
+## Build-time validation
+
+Step `config.json` files are validated by the packager, so a wrong value is a build error rather
+than a step that publishes and then misbehaves in the workflow builder.
+`npx --yes @kizenapps/cli build` and every `dev` rebuild run the whole rule set and print the
+failing `rule` id along with the step and the parameter at fault.
+
+| Rule | Checks | Fix |
+|---|---|---|
+| `automation-step/data-type` | Every input and output carries a `data_type`, as a string, from the nine-value enum. | Use a [variable type name](#data_type-reference). The message suggests a replacement for the known mistakes: `integer`/`decimal` → `number`, `file`/`files`/`email`/`emails` → `string`. |
+| `automation-step/removed-field` | Step level: no `action_type`, `script_alias`, `plugin_description`, `overall_description`. Parameter level: no `script_alias`. | Delete the key. Per-step text goes in `action_description`; the plugin-level blurb goes in the manifest's [`agentic_description`](03-manifest-reference.md#agentic_description). |
+| `automation-step/undeclared-secret` | Every name in the step's `secrets` is declared in the manifest's `base_config.secrets`. | Add it to `base_config.secrets`, or drop it from the step. |
+| `automation-step/input-source` | `input_source` is `variable`, `object_field`, `related_object_field` or `static_value`. | Fix the value, or omit the key. |
+| `automation-step/output-only-option` | `conflict_resolution` and `create_field_options` appear only on outputs. | Remove them from the input. |
+| `automation-step/output-target` | No output carries `output_target` (only outputs are checked; on an input the key is silently ignored — it is not one of the fields `automation-step/output-only-option` checks either). | Outputs declare `input_source`, same as inputs. |
+| `automation-step/conflict-resolution` | `conflict_resolution` is `overwrite`, `add_only`, `remove_only`, `update_if_blank` or `overwrite_except_null`. | Fix the value, or use `null`/omit it. |
+| `automation-step/create-field-options` | `create_field_options` is a boolean. | Use `true`/`false`, not `"true"`. |
+| `automation-step/runtime` | `runtime` normalizes to `python-3-12` or `python-3-13` (whitespace and dots → hyphens, applied before the check). | Author `python 3.13` or `python 3.12`, or omit the key and take the `python 3.13` default. |
+| `automation-step/parameters-shape` | `inputs` and `outputs` are arrays of objects. | Fix the shape; an empty array is fine. |
+
+Every rule is an **error** — there are no warnings in this set, and none of them can be waived.
+
+### Where each gate runs
+
+- **Build and `dev`.** `data_type` is validated against the type list bundled in the packager, and
+  every other rule against the fixed lists above.
+- **Publish.** The pipeline re-validates `data_type` against the *live* list read from the target
+  Kizen environment (`GET /api/automation2/automations/metadata`, keyed by
+  `variables.variable_from_field`). If that list cannot be read the publish fails as a **pipeline**
+  problem, not a plugin problem: retry the publish rather than editing the step.
+- **Already-published apps are never re-validated.** An app that shipped with `action_type`,
+  `script_alias`, or a `files` `data_type` keeps running exactly as it did. Only the next publish
+  is gated — which is also when those keys have to come out.
 
 ---
 
 ## `data_type` reference
 
-`data_type` names a **variable** type, not a custom-field type. The publishable enum is nine values:
+`data_type` names a **variable** type, not a custom-field type. The enum is nine values, and every
+input and output must carry one of them, as a string — anything else fails the build with
+`automation-step/data-type`:
 
 ```
 string | boolean | number | date | datetime | phone_number | employee | entity | uuid
 ```
 
 There's no `file` value. A parameter that will be mapped to a files field is declared as `string` - see
-[Types that publish but break](#types-that-publish-but-break).
+[Types that are rejected](#types-that-are-rejected).
 
 ### Wire encoding
 
@@ -501,8 +553,8 @@ directly, but the type codes explain what you receive:
 | *field option* | `o<object_id,field_id>` | `FieldOption` (see below) | Option id or name. |
 
 The italicised rows are **not** `data_type` values you can write in `config.json` — they are codes
-the platform derives from the field or variable an author maps. Only the ten named values above are
-publishable.
+the platform derives from the field or variable an author maps. Only the nine named values above
+are authorable, and the build rejects anything else.
 
 Note the near-collision between `employee` and `entity`: `employee` is the bare code `e`, while
 `entity` is the *parameterized* `e<object_id>`. They are distinguished by the angle brackets, not
@@ -550,28 +602,28 @@ Pipeline stage values deserialize to a `Stage` object:
 | `status` | `open`, `won`, or `lost`. |
 | `percentage_chance_to_close` | Numeric probability. |
 
-### Types that publish but break
+### Types that are rejected
 
-Nothing checks `data_type` before an author tries to use the step. The packager treats it as a free
-string and the publish endpoint stores it in an unconstrained text column, so a wrong value survives
-packaging *and* publishing and surfaces only in the builder.
+Custom-**field** type names are the mistake authors reach for, and they no longer get past the
+build. `files`, `file`, `integer`, `decimal`, `money`, `text`, `email` and `emails` all fail with
+`automation-step/data-type`, naming the step and the parameter:
 
-Custom-**field** type names are the most common mistake. `files`, `file`, `integer`, `decimal`,
-`money`, and `text` all publish without error and then fail in one or both of these ways:
+| Reached for | Declare instead |
+|---|---|
+| `integer`, `decimal`, `money` | `number` |
+| `text`, `email`, `emails` | `string` |
+| `file`, `files` | `string` — no file type exists |
 
-1. The builder's field dropdown for that parameter shows **"No Options"**, because the builder
-   matches against variable types and no variable type matches.
-2. Saving the workflow fails with `"X" is not a valid choice` — the *saved step's* `data_type` is
-   enum-validated even though the *published parameter's* was not.
+`file` and `files` have no valid equivalent because `data_type` enumerates *variable* types, and no
+variable type carries a file. Declare `string`: a `string` parameter mapped to a files field arrives
+in the script as a **list of file objects**, not a `str`, so handle it as a list.
 
-Use `number` for integer, decimal, and money; `string` for text and for files.
+Before the build gate, these values published and surfaced only later — **"No Options"** in the
+builder's field dropdown, then `"X" is not a valid choice` at workflow save. Those remain the
+symptoms for an app published before the gate; a build that passes today cannot produce them.
 
-A files field is declared as `string`. A `string` input mapped to a files field arrives as a list
-of file objects rather than a `str`.
-
-`email` isn't a valid `data_type`. Use `string`.
-
-Test every new step by wiring it into a workflow and **saving** it, not just by publishing.
+The gate checks the enum, not whether the type you picked matches the field you meant, so still
+wire every new step into a workflow and **save** it before calling it done.
 
 ---
 
@@ -580,8 +632,10 @@ Test every new step by wiring it into a workflow and **saving** it, not just by 
 Understanding the builder UI is what separates a step that feels native from one that feels like a
 form to fill in.
 
-1. **Plugin description.** Your `plugin_description` (as `overall_description`) is rendered above
-   the action picker — once, plugin-wide.
+1. **Plugin description.** The plugin's manifest
+   [`agentic_description`](03-manifest-reference.md#agentic_description) is rendered above the
+   action picker — once, plugin-wide. No step field feeds it any more; an app published before the
+   fields were removed still shows the `overall_description` it shipped with until it republishes.
 2. **Action select.** Every step your plugin publishes, by `name`, that passes its `when` gate.
 3. **Action description.** Once an action is selected, its `action_description` appears.
 4. **Pre-configured input and output lists.** This is the key difference from a generic code step:
@@ -613,7 +667,7 @@ optional input, is safe.
 
 ### Execution environment
 
-- **Runtimes:** Python 3.13 and Python 3.12 (**3.12 is the packager's default when `runtime` is
+- **Runtimes:** Python 3.13 and Python 3.12 (**3.13 is the packager's default when `runtime` is
   omitted**).
 - **Isolation:** each execution runs in a fresh container with `/tmp` wiped beforehand, and the
   user code runs in a subprocess.
@@ -1028,22 +1082,25 @@ record data.
 {
   "name": "Read Data",
   "api_name": "db_read",
-  "plugin_description": "Example database connector.",
   "action_description": "Connects to the configured database and runs a read-only query. SELECT only — write statements are rejected. With Return Single Value on, the query must return exactly one row and one column.",
-  "action_type": "example_plugin_db_read",
-  "runtime": "python-3-13",
+  "runtime": "python 3.13",
   "secrets": ["connection_json"],
   "inputs": [
-    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value", "script_alias": "database" },
-    { "name": "query", "label": "Query", "data_type": "string", "required": true, "input_source": "variable", "script_alias": "query" },
-    { "name": "return_single_value", "label": "Return Single Value", "data_type": "boolean", "required": true, "input_source": "static_value", "default": true, "script_alias": "return_single_value" },
-    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value", "script_alias": "connection_secret_tag" }
+    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value" },
+    { "name": "query", "label": "Query", "data_type": "string", "required": true, "input_source": "variable" },
+    { "name": "return_single_value", "label": "Return Single Value", "data_type": "boolean", "required": true, "input_source": "static_value" },
+    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value" }
   ],
   "outputs": [
-    { "name": "result", "label": "Result", "data_type": "string", "required": true, "input_source": "variable", "script_alias": "result", "conflict_resolution": "overwrite", "create_field_options": false }
+    { "name": "result", "label": "Result", "data_type": "string", "required": true, "input_source": "variable", "conflict_resolution": "overwrite", "create_field_options": false }
   ]
 }
 ```
+
+No `default` on `return_single_value`: the key is [dropped at publish](#default), and the input is
+`required: true`, so the builder always supplies a value and the script reads
+`inputs.return_single_value` directly. An optional flag would need
+`getattr(inputs, "flag", True)` instead.
 
 `src/automationSteps/dbRead/script.py`:
 
@@ -1208,27 +1265,22 @@ message, and writes the delivery timestamp back to a record field.
 {
   "name": "Send Notification",
   "api_name": "send_notification",
-  "plugin_description": "Example Plugin — messaging integration for Agentic Workflows.",
   "action_description": "Posts a plain-text message to a channel using the connected workspace. Channels may be given by name (#general) or by id. Writes the delivery timestamp back to the record.",
-  "action_type": "example_plugin_send_notification",
-  "runtime": "python-3-13",
+  "runtime": "python 3.13",
   "inputs": [
     {
       "name": "channel",
       "label": "Channel",
-      "hint": "Use #channel-name to look up by name, or a channel id for direct delivery.",
       "data_type": "string",
       "required": true,
-      "input_source": "variable",
-      "script_alias": "channel"
+      "input_source": "variable"
     },
     {
       "name": "message",
       "label": "Message",
       "data_type": "string",
       "required": true,
-      "input_source": "variable",
-      "script_alias": "message"
+      "input_source": "variable"
     },
     {
       "name": "notify_owner",
@@ -1237,8 +1289,7 @@ message, and writes the delivery timestamp back to a record field.
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "owner",
-      "hint_related_object_field_name": null,
-      "script_alias": "notify_owner"
+      "hint_related_object_field_name": null
     }
   ],
   "outputs": [
@@ -1250,7 +1301,6 @@ message, and writes the delivery timestamp back to a record field.
       "input_source": "object_field",
       "hint_field_name": "last_notified_at",
       "hint_related_object_field_name": null,
-      "script_alias": "delivered_at",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1260,7 +1310,6 @@ message, and writes the delivery timestamp back to a record field.
       "data_type": "string",
       "required": false,
       "input_source": "variable",
-      "script_alias": "message_id",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     }
@@ -1398,24 +1447,27 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
 - **An unmapped optional input is absent, not `None`.** `inputs.optional_thing` raises
   `AttributeError`. Use `getattr(inputs, "optional_thing", None)` for every non-required input.
 - **`data_type` takes variable type names, not field type names.** `files`, `file`, `integer`,
-  `decimal`, `money`, and `text` publish without error, then show "No Options" in the builder's
-  field dropdown and fail at workflow save with `"X" is not a valid choice`. Use `number` and
-  `string`; files fields take `string`. `email` isn't valid either - use `string`.
+  `decimal`, `money`, `text`, `email` and `emails` fail the build with
+  [`automation-step/data-type`](#build-time-validation). Use `number` and `string`; files fields
+  take `string` and arrive as a list of file objects.
 - **`hint_field_name` prefills with no type check.** A wrong `data_type` looks correct when the
   hint happens to match a field name and only breaks at save time — which is why the same step can
   work when mapped by hand and fail when auto-mapped.
 - **Always set `api_name` explicitly.** The directory-name fallback lowercases, so `sendNotification`
   collapses to `sendnotification` (underscores themselves are preserved), and a later directory
   rename silently changes the step's primary key.
-- **`script_alias` is not the accessor.** The runtime binds by `name`. A script written against
-  `script_alias` will not find its input.
-- **`action_type` is dead.** Stored, admin-validated, never read.
-- **`output_target` is silently dropped.** Outputs use `input_source`, same as inputs.
+- **`script_alias`, `action_type`, `plugin_description` and `overall_description` are rejected.**
+  All four are out of the publish contract; a config that still carries one fails the build with
+  `automation-step/removed-field`. The runtime always bound inputs by `name`.
+- **`output_target` fails the build.** Outputs use `input_source`, same as inputs.
 - **A `"script"` key in `config.json` is ignored.** `script.py` is always read from disk.
 - **`allowed_values` is not enforced.** Any string can reach a `static_value` input; always handle
   the else branch.
-- **`plugin_description` is plugin-wide, not per-step.** The builder shows one value above the
-  action picker. Keep it identical across every step and put step detail in `action_description`.
+- **The plugin-level blurb comes from the manifest, not the step.** The builder shows
+  `agentic_description` from `kizen.json` above the action picker; step detail goes in
+  `action_description`.
+- **Omitting `runtime` now means Python 3.13.** It used to mean 3.12. Pin `"python 3.12"`
+  explicitly if a step depends on it.
 - **Secrets are namespaced at runtime.** `config.json` declares `"api_key"`; the script reads
   `secrets["example_plugin__api_key"]`. Suffix-match when the api_name varies across environments
   or sandbox builds.
@@ -1444,5 +1496,11 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
 - **Uninstalling a plugin invalidates every workflow step that used it** ("The Plugin is no longer
   available"), and a removed or renamed step api_name hard-fails at run time with a
   config-not-found error. Additive changes are safe; removals and renames are breaking.
-- **There is essentially no build-time validation of step configs.** Errors surface at publish or
-  at workflow save. Always wire a new step into a real workflow and save it before calling it done.
+- **Step configs are validated at build time.** The `automation-step/*` rules
+  ([Build-time validation](#build-time-validation)) fail `build` and `dev` on a bad `data_type`,
+  `input_source`, `conflict_resolution`, `create_field_options`, `runtime`, an undeclared secret,
+  an output-only key on an input, or a removed field. What they cannot check is whether the type
+  you declared matches the field you meant, so still wire a new step into a real workflow and save
+  it before calling it done.
+- **Already-published apps are not re-validated.** An app that shipped before these rules keeps
+  running; the gate applies to its next publish, which is when removed keys have to come out.

@@ -70,6 +70,7 @@ example-plugin/
   "version": "2.3.0",
   "published": true,
   "description": "Syncs example records and exposes a dashboard block.\n\nRequires an Example account.",
+  "agentic_description": "Example Plugin — syncs example records into Agentic Workflows.",
   "external_link": "https://developer.example.com/kizen",
   "engine": "1.0.0",
   "entry": "src/",
@@ -162,9 +163,11 @@ Full discipline and the bump-size matrix live in
 
 ### `description`
 
-Marketplace body copy. Multiline is fine — embed `\n\n` for paragraphs. It also becomes the
-`overall_description` shown alongside plugin-provided Agentic Workflow steps in some surfaces,
-so keep it about the plugin, not about one feature.
+Marketplace body copy. Multiline is fine — embed `\n\n` for paragraphs. Keep it about the plugin,
+not about one feature.
+
+It does **not** feed the Agentic Workflow builder. That blurb is its own optional field,
+[`agentic_description`](#agentic_description).
 
 ### `engine`
 
@@ -192,6 +195,7 @@ Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but n
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
+| `agentic_description` | string | none | Plugin-level blurb shown above this plugin's steps in the Agentic Workflow builder. |
 | `published` | boolean | `true` at the backend | `true` = listed in the Marketplace; `false` = published but unlisted. |
 | `release_notes_directory` | string | none | Directory holding `<version>.md` release-notes files. |
 | `release_branches` | string[] | repo default branch | Branches whose pushes produce a real release. |
@@ -203,6 +207,21 @@ Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but n
 | `services` | object[] | `[]` | External service declarations for the request proxy. |
 | `developer_business_id` | string \| object | none | Business that owns dev/preview builds. |
 | `block_loading_for_setup` | boolean | computed | Set by the packager; do not author. |
+
+### `agentic_description`
+
+The plugin-level description the Agentic Workflow builder renders above this plugin's steps — the
+slot a per-step `plugin_description` used to fill. Optional, but when the key is present it must be
+a non-empty string or the build fails with `manifest/agentic-description`.
+
+Write it about the plugin as a whole: it is shown once, for every step the plugin publishes.
+Step-specific detail belongs in each step's
+[`action_description`](07-automation-steps.md#action_description).
+
+This is the only authoring path to that blurb: the per-step `plugin_description` and
+`overall_description` fields are
+[rejected at build time](07-automation-steps.md#build-time-validation). An app published before
+they were removed keeps showing the `overall_description` it shipped with until it republishes.
 
 ### `published`
 
@@ -662,8 +681,12 @@ above for you to paste into `kizen.json`. The publish pipeline decrypts them ser
 the plugin reaches any environment, so committing the ciphertext to a public repository is
 safe.
 
-Plaintext credential strings still function, but they are legacy: anyone with repository access
-reads them. Encrypt every credential in a repo that is or may become public.
+**A plaintext credential fails the build.** `security/plaintext-credential` rejects a bare string
+in `auth_credentials.token`, `.password` or `.client_secret` — `client_id` is exempt, since it is
+not a secret. Supply an encrypted envelope, a `{{secret.KEY}}` reference, or
+`integration_secret_api_name` instead, and rotate anything that was already committed in the clear.
+The rule and its siblings are enumerated in
+[security rules the build enforces](06-auth-secrets-services.md#security-rules-the-build-enforces).
 
 ### `{{secret.KEY}}` templating
 
@@ -855,10 +878,8 @@ Plugin-provided Agentic Workflow steps, written in Python.
 |---|---|---|
 | `name` | string | Step name in the workflow builder. |
 | `api_name` | string | Step identity (published as `action_step_api_name`). Set it explicitly. |
-| `plugin_description` | string | Plugin-wide blurb (published as `overall_description`). |
 | `action_description` | string | What this step does. |
-| `action_type` | string | Legacy step type id; stored, never read at runtime. |
-| `runtime` | string | `"python 3.13"` / `"python-3-13"` (also 3.12). Normalized at package time. |
+| `runtime` | string | `"python 3.13"` (the default) or `"python 3.12"`. Normalized at package time. |
 | `secrets` | string[] | Bare secret names this step may read; each must be in `base_config.secrets`. |
 | `inputs` | object[] | Input parameter declarations. |
 | `outputs` | object[] | Output parameter declarations. |
@@ -866,16 +887,16 @@ Plugin-provided Agentic Workflow steps, written in Python.
 | `step_history_template` | string | Optional template for the step's history line. |
 
 Parameter entry shape: `{name, label, data_type, required, input_source, hint_field_name,
-hint_related_object_field_name, script_alias}`; outputs add `conflict_resolution` and
-`create_field_options`.
+hint_related_object_field_name}`; outputs add `conflict_resolution` and `create_field_options`.
+
+`action_type`, `script_alias`, `plugin_description` and `overall_description` are **removed from
+the publish contract** — a config that still sets one fails the build.
 
 ```json
 {
   "name": "Fetch Example Record",
   "api_name": "fetch_example_record",
-  "plugin_description": "Example Plugin steps.",
   "action_description": "Fetches a record from the Example API and writes the result back.",
-  "action_type": "example_plugin_fetch_record",
   "runtime": "python 3.13",
   "secrets": ["api_key"],
   "inputs": [
@@ -906,9 +927,14 @@ hint_related_object_field_name, script_alias}`; outputs add `conflict_resolution
 Files: `config.json`, `script.py`. **`script.py` is shipped raw, not minified**, and a
 `"script"` key in `config.json` is ignored — the file on disk always wins.
 
+Step configs are validated at build time by the `automation-step/*` rules: `data_type`,
+`input_source`, `conflict_resolution`, `create_field_options`, `runtime`, the `secrets` subset,
+output-only keys on an input, the removed fields, and the shape of `inputs`/`outputs`. A wrong
+value fails `build` and `dev`, not the builder.
+
 `data_type` must be a **variable** type, not a field type. The authoring surface, the runtime
-contract, the `data_type` enum and conflict-resolution values are documented in
-[07-automation-steps.md](07-automation-steps.md).
+contract, the `data_type` enum, conflict-resolution values and the full rule table are documented
+in [07-automation-steps.md](07-automation-steps.md#build-time-validation).
 
 ### `blocks/<name>/`
 
@@ -1245,7 +1271,9 @@ Rules and consequences:
 ## 10. Validation rules
 
 Two gates fail a plugin: the packager's rule set (build time, before anything is sent) and the
-backend's publish validation. Warnings never fail a build.
+backend's publish validation. The build-time set spans four rule families — `manifest/*` and
+`structure/*` below, plus `automation-step/*` and `security/*`, which their owning docs enumerate.
+Warnings never fail a build.
 
 ### Build-time rules
 
@@ -1255,6 +1283,7 @@ backend's publish validation. Warnings never fail a build.
 | `manifest/parse` | error | `kizen.json` is not valid JSON. |
 | `manifest/shape` | error | A manifest entry is not a JSON object. |
 | `manifest/required-field` | error | `version`, `api_name`, `name`, `description`, `engine` or `entry` missing/empty — or an optional field present with the wrong type. |
+| `manifest/agentic-description` | error | `agentic_description` is present but not a non-empty string. |
 | `manifest/version-format` | error | `version` is not `\d+.\d+.\d+`. |
 | `manifest/api-name-format` | error | `api_name` fails `/^[a-z_][a-z0-9_]+$/`. |
 | `manifest/engine-version` | error | `engine` is not `"1.0.0"`. |
@@ -1289,12 +1318,18 @@ backend's publish validation. Warnings never fail a build.
 `base_config.disabled_keys` — outside either assistant — and the host applies the same array to both. A plugin with one view-based and one declarative assistant
 still legitimately needs it; remove it only once no assistant on the plugin is declarative.
 
+One more family runs in the same pass, documented where the surface it checks is documented:
+
+| Family | Severity | Checks | Reference |
+|---|---|---|---|
+| `automation-step/*` | error | Every Agentic Workflow step `config.json`: `data_type`, `input_source`, `conflict_resolution`, `create_field_options`, `runtime`, the `secrets` subset, output-only keys on inputs, removed fields, and the shape of `inputs`/`outputs`. | [07-automation-steps.md](07-automation-steps.md#build-time-validation) |
+
 ### Script rules
 
 These parse every `.js` file under `entry`. The message carries the file and 1-based
 `line:column`. The `imports/*` rules are explained in
 [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#diagnostics); the
-`security/*` rules in [06-auth-secrets-services.md](06-auth-secrets-services.md).
+`security/*` rules in [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces).
 
 | Rule | Severity | Trigger |
 |---|---|---|

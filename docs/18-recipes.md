@@ -507,28 +507,32 @@ target production in one workflow and staging in another with one install and on
 {
   "name": "Read Data",
   "api_name": "db_read",
-  "plugin_description": "Example database connector.",
   "action_description": "Connects to the configured database and runs a read-only query. SELECT only — write statements are rejected; use Write Data to modify rows. With Return Single Value on, the query must return exactly one row and one column. Multi-row results are returned as a single stringified value.",
-  "action_type": "example_plugin_db_read",
-  "runtime": "python-3-13",
+  "runtime": "python 3.13",
   "secrets": ["connection_json"],
   "inputs": [
-    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value", "script_alias": "database" },
-    { "name": "query", "label": "Query", "data_type": "string", "required": true, "input_source": "variable", "script_alias": "query" },
-    { "name": "return_single_value", "label": "Return Single Value", "data_type": "boolean", "required": true, "input_source": "static_value", "default": true, "script_alias": "return_single_value" },
-    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value", "script_alias": "connection_secret_tag" }
+    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value" },
+    { "name": "query", "label": "Query", "data_type": "string", "required": true, "input_source": "variable" },
+    { "name": "return_single_value", "label": "Return Single Value", "data_type": "boolean", "required": true, "input_source": "static_value" },
+    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value" }
   ],
   "outputs": [
-    { "name": "result", "label": "Result", "data_type": "string", "required": true, "input_source": "variable", "script_alias": "result", "conflict_resolution": "overwrite", "create_field_options": false }
+    { "name": "result", "label": "Result", "data_type": "string", "required": true, "input_source": "variable", "conflict_resolution": "overwrite", "create_field_options": false }
   ]
 }
 ```
 
 Config rules that bite: `data_type` takes **variable** type names (`number`, `string` — never
-`integer`/`decimal`/`text`/`file`, which publish cleanly and then fail at workflow save); the step's
-`secrets` array lists the **bare** name and must be a subset of `base_config.secrets`;
-`plugin_description` is shown once plugin-wide, so keep it identical across both steps and put
-step detail in `action_description`.
+`integer`/`decimal`/`text`/`file`, which fail the build with `automation-step/data-type`, and for
+the common mistakes the error names the replacement); the step's
+`secrets` array lists the **bare** name and must be a subset of `base_config.secrets`; and step
+detail belongs in `action_description`. `script_alias`, `action_type`, `plugin_description` and
+`overall_description` are **rejected** by the build (`automation-step/removed-field`) — a
+parameter is addressed by its `name`. A parameter `default` is silently dropped at
+publish ([automation steps](07-automation-steps.md#default)), so nothing supplies one at run
+time: `return_single_value` is declared `required: true`, which is why the script can read
+`inputs.return_single_value` directly. Read any optional input as
+`getattr(inputs, "name", fallback)` and apply the fallback in the script.
 
 ### `src/automationSteps/dbRead/script.py`
 
@@ -661,18 +665,16 @@ except psycopg.Error as exc:
 {
   "name": "Write Data",
   "api_name": "db_write",
-  "plugin_description": "Example database connector.",
   "action_description": "Runs a write statement (INSERT/UPDATE/DELETE) against the configured database and commits it. This step is privileged and has no guardrail — the statement runs verbatim as the configured database user. Outputs the affected row count.",
-  "action_type": "example_plugin_db_write",
-  "runtime": "python-3-13",
+  "runtime": "python 3.13",
   "secrets": ["connection_json"],
   "inputs": [
-    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value", "script_alias": "database" },
-    { "name": "statement", "label": "Statement", "data_type": "string", "required": true, "input_source": "variable", "script_alias": "statement" },
-    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value", "script_alias": "connection_secret_tag" }
+    { "name": "database", "label": "Database", "data_type": "string", "required": true, "input_source": "static_value" },
+    { "name": "statement", "label": "Statement", "data_type": "string", "required": true, "input_source": "variable" },
+    { "name": "connection_secret_tag", "label": "Connection Secret Tag", "data_type": "string", "required": false, "input_source": "static_value" }
   ],
   "outputs": [
-    { "name": "rows_affected", "label": "Rows Affected", "data_type": "number", "required": false, "input_source": "variable", "script_alias": "rows_affected", "conflict_resolution": "overwrite", "create_field_options": false }
+    { "name": "rows_affected", "label": "Rows Affected", "data_type": "number", "required": false, "input_source": "variable", "conflict_resolution": "overwrite", "create_field_options": false }
   ]
 }
 ```
