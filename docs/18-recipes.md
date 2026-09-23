@@ -531,8 +531,8 @@ detail belongs in `action_description`. `script_alias`, `action_type`, `plugin_d
 parameter is addressed by its `name`. A parameter `default` is silently dropped at
 publish ([automation steps](07-automation-steps.md#default)), so nothing supplies one at run
 time: `return_single_value` is declared `required: true`, which is why the script can read
-`inputs.return_single_value` directly. Read any optional input as
-`getattr(inputs, "name", fallback)` and apply the fallback in the script.
+`inputs.return_single_value` directly. An unmapped optional input arrives as `None`, so apply
+any fallback in the script with an `is None` check.
 
 ### `src/automationSteps/dbRead/script.py`
 
@@ -574,8 +574,8 @@ def load_connection():
 
     document = json.loads(secrets[key].translate(SMART_QUOTE_MAP))
 
-    # Optional inputs are ABSENT (AttributeError), not None — always getattr.
-    tag = getattr(inputs, "connection_secret_tag", None)
+    # An unmapped optional input arrives as None.
+    tag = inputs.connection_secret_tag
     if tag:
         if tag not in document:
             raise ValueError(

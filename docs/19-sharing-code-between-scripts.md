@@ -41,8 +41,9 @@ this.outputUI(`<p>${esc(name)}: ${money(total)}</p>`);
 - **Top level of a shared file:** no `await`, no `return`; keep it pure and cheap — every statement
   in it runs in every importer.
 - **Errors are build-time:** every mistake below fails `npx --yes @kizenapps/cli build` and the PR
-  check with an `imports/*` rule id. Nothing about shared code can fail at runtime.
-- **Setup-assistant field scripts cannot import** (`setupAssistant/<key>/*.js`).
+  check with an `imports/*` rule id. No import can fail to resolve at runtime.
+- **Setup-assistant field scripts cannot import** (`setupAssistant/<key>/*.js` and
+  `userSetupAssistant/<key>/*.js`).
 - **Import-free plugins are untouched:** a script with no `import` packages byte-for-byte as before.
 
 ## The problem this solves
@@ -123,7 +124,13 @@ and explain most of the rules below:
 
 1. **Privacy of names.** `BASE` and `describe` stay inside the wrapper. The script can declare its
    own `const BASE` without colliding, and only the names between `import {` and `}` enter its
-   scope.
+   scope. The privacy is one-way: the wrappers are emitted into the importing script's own top
+   level, so a shared file's free identifiers — globals like `Date` or `fetch`, or a helper it uses
+   but never declares or imports — resolve against the script's top-level declarations first. A
+   top-level `function helper` in the script hijacks that name inside the shared file, and a
+   top-level `const Date` makes the shared file's `Date` throw a TDZ `ReferenceError`. No rule
+   catches this. Don't shadow globals at a script's top level, and don't rely on a shared file
+   reaching a name it doesn't declare or import itself.
 2. **One copy per importing script.** Each script's build gets its own wrapper. Two scripts
    importing the same file do not share the wrapper's variables (see
    [Shared state is per script](#shared-state-is-per-script-not-shared)).
@@ -149,7 +156,9 @@ Three things cannot be imported, each a build error:
 
 - **A file inside an artifact directory** — another artifact's `script.js`, or a helper dropped
   into `blocks/<name>/helpers.js`. Component scripts are compiled and shipped on their own
-  (`imports/component-script`). Move the helper out to `src/lib/`.
+  (`imports/component-script`). Move the helper out to `src/lib/`. A helper there that uses
+  `export` also gets `imports/script-export` on itself, because it is compiled as a component
+  script.
 - **A file outside `entry`** — including another plugin's files in a multi-plugin repo
   (`imports/outside-entry`). Each plugin shares only within its own entry directory. Two plugins
   that need the same helper keep two copies, or share one entry directory (two manifest entries may
@@ -179,7 +188,7 @@ Not supported (build error, `imports/unsupported-import` unless noted):
 | `import { "string name" as x }` | Bindings are identifiers. |
 | `import('./y.js')` | Imports are compiled away; nothing exists to resolve at runtime. |
 | `import.meta` | A script is a function body, not a module; it has no metadata. |
-| `import { x } from 'pkg'` | `imports/bad-specifier` — only files inside `entry` resolve. |
+| `import { x } from 'pkg'` | `imports/bad-specifier` — only files inside `entry` resolve. A non-relative specifier always reports `imports/bad-specifier`, even when the import shape is also unsupported. |
 
 A shared file's exports are equally narrow — named exports only:
 
@@ -188,6 +197,7 @@ export const fetchContact = async (id) => { /* … */ };
 export function describeError(err) { /* … */ }
 export class Cache { /* … */ }
 export { helperA, helperB as helperC };
+export const { a, b: c } = obj;
 ```
 
 Not supported (build error, `imports/unsupported-export`):
@@ -209,8 +219,8 @@ script are errors in a shared file:
   site stays synchronous. Put the `await` inside an exported `async` function and call it from the
   script.
 - **Top-level `return`** (`imports/top-level-return`). The wrapper's return value *is* the export
-  surface, so a stray `return` replaces it and every import comes back `undefined`. Move the
-  `return` inside a function.
+  surface, so a stray `return` replaces it: names imported from the file come back `undefined`,
+  or the import throws outright. Move the `return` inside a function.
 
 And one thing that is legal but costly: **every top-level statement in a shared file runs in every
 importer**, whether or not it produced a name that importer asked for. Privacy is about *names*, not
@@ -283,8 +293,11 @@ return { imported: count, live: read() };   // { imported: 0, live: 2 }
 ```
 
 The packager reports `imports/mutable-export` (a **warning**) on `count`: it is exported, it is a
-`let`/`var`/`function`/`class` binding, and something reachable from an export reassigns it after
-initialization. The fix is the pattern in `read()` — keep the mutable binding private and export a
+`let`/`var`/`function`/`class` binding, and something that runs later — a function reachable from
+an export, or a timer, promise, or listener callback — reassigns it. A reassignment at the shared
+file's top level isn't flagged: the wrapper returns its exports after all top-level code has
+run, so importers already see the final value. The fix is the pattern in `read()` — keep the
+mutable binding private and export a
 function that reads it. A `const` holding an object is not flagged: object mutation is shared by
 reference and behaves as expected within the script.
 
@@ -303,9 +316,10 @@ rules fire even in a plugin that never writes an `import`:
   script to check against. See [worker globals](04-worker-runtime-api.md#1-execution-model) and
   [gotchas](17-gotchas.md#workers--http).
 
-None of these ever worked at runtime — the engine compiles a script body with `new AsyncFunction`,
-which rejects a top-level `export`, has no module to resolve `import()` against, and runs in a Web
-Worker with no `window`. Before 0.7.0 each one broke the script at runtime, silently or with an
+None of these did anything useful at runtime — the engine compiles a script body with
+`new AsyncFunction`, which rejects a top-level `export`; a relative dynamic `import()` had nothing in
+the plugin to resolve against; and the script runs in a Web Worker with no `window`. Before 0.7.0
+each one broke the script at runtime, silently or with an
 opaque syntax error; now the build names the file and line. A plugin free of all three constructs
 is unaffected, and its packaged output is byte-identical to the previous release's.
 
@@ -412,7 +426,7 @@ anything. The short version:
    - The inventory table (name, classification, copies, variants, files).
    - Shared files created and what each exports; files changed and copies removed.
    - The bundle diff summary (N scripts changed, all others identical).
-   - Any `imports/*` warnings the PR check will raise (the CLI prints errors only).
+   - Any `imports/*` warnings the PR check will raise (a passing CLI build prints no warnings).
    - **A numbered Wave 2 menu**: one entry per DIVERGENT, CLOSURE, or STATEFUL name, each with
      your recommended treatment (below), the behavior change it implies, and the files affected.
      Then stop and wait. Do nothing from the menu until I reply with the numbers I want done.
@@ -457,12 +471,13 @@ a `version` bump and release notes — do not bump or write them yourself.
 ## Diagnostics
 
 Everything is caught locally by `npx --yes @kizenapps/cli build` and by the same validation on the
-pull-request check; the message names the file and the 1-based `line:column`. Errors fail the
-build; warnings do not.
+pull-request check. Most messages name the file and the 1-based `line:column`; `imports/cycle`,
+`imports/unused-module` and `imports/module-parse` name only the file (or, for a cycle, the chain).
+Errors fail the build; warnings do not.
 
 | Rule | Severity | Trigger | Fix |
 |---|---|---|---|
-| `imports/bad-specifier` | error | Specifier is not a relative path ending in `.js` (a package name, an absolute path, a missing extension). | Use `./` or `../` and include `.js`. |
+| `imports/bad-specifier` | error | Specifier is not a relative path ending in `.js` (a package name, an absolute path, a missing extension). Reported even when the import shape is also unsupported. | Use `./` or `../` and include `.js`. |
 | `imports/unsupported-import` | error | Default, namespace, side-effect, or string-named import; `import { default as x }`; dynamic `import()`; `import.meta`. | Use `import { a, b as c }` from a static relative path. |
 | `imports/outside-entry` | error | The resolved path is outside the plugin's `entry` directory. | Move the file under `entry`. |
 | `imports/missing-file` | error | The resolved path is not a file in the plugin. | Create it, or fix the specifier. |
@@ -471,19 +486,21 @@ build; warnings do not.
 | `imports/unsupported-export` | error | `export default`, `export { x as default }`, a re-export, `export *`, a string export name, or `__proto__` as an export name. | Use plain named exports. |
 | `imports/top-level-await` | error | `await` (or `for await`) at the top level of a shared file. | Move it into an exported `async` function. |
 | `imports/top-level-return` | error | `return` at the top level of a shared file. | Move it into a function. |
-| `imports/mutable-export` | **warning** | An exported `let`/`var`/`function`/`class` is reassigned after initialization by code reachable from an export, so importers read a stale snapshot. | Keep the binding private; export a getter. |
+| `imports/mutable-export` | **warning** | An exported `let`/`var`/`function`/`class` is reassigned by code that runs later — a function reachable from an export, or a timer, promise, or listener callback — so importers read a stale snapshot. | Keep the binding private; export a getter. |
 | `imports/script-export` | error | `export` in a component script. | Move the code to a shared file, or delete the `export`. |
 | `imports/assistant-script` | error | `import` in a setup-assistant field script. | Inline the code. |
 | `imports/module-parse` | error | A shared file that some script imports fails to parse as JavaScript. | Fix the syntax error (the message includes acorn's). |
 | `imports/script-parse` | error | A script that imports something fails to parse as an ES module — strict mode. See [Strict-mode parsing](#strict-mode-parsing). | Fix the construct the message names. |
 | `imports/cycle` | error | Shared files that a script imports into import each other in a cycle. The message prints the chain. | Move the code they share into a third file neither imports. |
-| `imports/unused-module` | **warning** | A shared file no script imports. It ships nothing. | Import it, or delete it. |
+| `imports/unused-module` | **warning** | A shared file using `import`/`export` that no script imports. It ships nothing. Suppressed plugin-wide while any non-shared script fails to parse. | Import it, or delete it. |
 
 Two behaviors of the table worth knowing:
 
-- **Errors are independent.** A missing file in one script does not suppress a missing export in
-  another; each importer is checked on its own, and a script with an error still lets every other
-  script compile.
+- **Each importer is checked independently.** A missing file in one script does not suppress a
+  missing export in another, but any error still fails the build. Two exceptions:
+  `imports/missing-export` is skipped against a shared file that has its own error, and every `imports/unused-module`
+  warning is suppressed plugin-wide while any non-shared script (component or setup-assistant) fails
+  to parse.
 - **A cycle only errors once a script imports into it.** A cyclic pair of shared files that no
   script reaches gets `imports/unused-module` on each file instead.
 
@@ -543,7 +560,8 @@ plugin bug. Either leave `checkJs` off for script files, or ignore `TS1108` ther
   build error.** Shared code lives outside every artifact directory — `src/lib/` by convention. →
   [Where shared code can live](#where-shared-code-can-live)
 - **`export`, dynamic `import()`, and `import.meta` are build errors in every plugin script**, not
-  just ones using shared code. Neither ever worked at runtime. →
+  just ones using shared code. Neither did anything useful at runtime: `export` can't parse, and a
+  relative dynamic `import()` had nothing in the plugin to resolve against. →
   [What changes for existing plugins](#what-changes-for-existing-plugins)
 - **`__proto__` cannot be an export name.** The export surface is an object literal; a `__proto__`
   key there sets the prototype and the export silently vanishes. →
@@ -556,6 +574,7 @@ plugin bug. Either leave `checkJs` off for script files, or ignore `TS1108` ther
 - **`checkJs`/`@ts-check` flags every script's top-level `return` as `TS1108`.** That is the
   checker, not a plugin problem. →
   [IDE support and the top-level `return` caveat](#ide-support-and-the-top-level-return-caveat)
-- **`npx --yes @kizenapps/cli build` prints errors, not warnings.** `imports/mutable-export` and
+- **A passing `npx --yes @kizenapps/cli build` prints no warnings.** Warnings appear only alongside
+  errors when a build fails, so on an otherwise clean build `imports/mutable-export` and
   `imports/unused-module` surface on the pull-request check; a clean local build is not evidence of
   zero warnings. → [Diagnostics](#diagnostics)

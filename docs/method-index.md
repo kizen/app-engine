@@ -58,6 +58,7 @@
 | Agentic Workflow | vocabulary | [glossary](glossary.md#agentic-workflow) · [07](07-automation-steps.md) |
 | `allowed_values` | step parameter field | [07](07-automation-steps.md#allowed_values) |
 | `api_name` (manifest / per artifact) | manifest & artifact config field | [03](03-manifest-reference.md#api_name) · [03](03-manifest-reference.md#artifact-api_name-resolution) · [07](07-automation-steps.md#api_name) · [08](08-actions.md#api_name) · [09](09-blocks.md#api_name) · [12](12-routes-calendars-adornments-settings.md#api_name-route-script) · [12](12-routes-calendars-adornments-settings.md#api_name-calendar-source) · [12](12-routes-calendars-adornments-settings.md#api_name-object-settings-menu-item) · [glossary](glossary.md#api_name) |
+| `api_key` (assistant field type) | assistant field type | [13](13-setup-assistants.md#515-api_key) |
 | `this.applicationPath` | `this.*` data member | [04](04-worker-runtime-api.md#thisapplicationpath) |
 | `this.args` | `this.*` data member | [04](04-worker-runtime-api.md#thisargs) |
 | `assistant.json` | assistant config file | [13](13-setup-assistants.md#assistantjson-shape) |
@@ -207,6 +208,7 @@
 | `label` (step parameter / settings item) | artifact config field | [07](07-automation-steps.md#label) · [12](12-routes-calendars-adornments-settings.md#label) |
 | `link` (assistant field type) | assistant field type | [13](13-setup-assistants.md#512-link) |
 | `this.location` | `this.*` data member | [04](04-worker-runtime-api.md#thislocation) |
+| `manifest/reserved-api-name` | validation rule | [03](03-manifest-reference.md#10-validation-rules) |
 | `manifest/setup-assistant-*` (validation rules) | validation rule | [13](13-setup-assistants.md#125-packaging-validation) · [03](03-manifest-reference.md) |
 | `match` / `ignore` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#match-ignore) |
 | `message_handler` (`message.js`) | artifact config field | [11](11-output-ui-iframes-frames.md#message_handler-routing) · [03](03-manifest-reference.md#floatingframesname) |
@@ -245,6 +247,7 @@
 | `this.patch(url, body?, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thispatchurl-body-options) |
 | `this.patchWithErrors(url, body, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thispatchwitherrorsurl-body-options) |
 | `POST /api/permission-group` | REST endpoint | [05](05-platform-api.md#post-apipermission-group) |
+| `{{plan.*}}` / `{{entitlement.*}}` | `when` namespace (setup assistants only) | [13](13-setup-assistants.md#6-when-inside-the-assistant) |
 | `this.pluginApiName` | `this.*` data member | [04](04-worker-runtime-api.md#thispluginapiname) |
 | `{plugin_api_name}__{secret_name}` (secret naming) | naming convention | [06](06-auth-secrets-services.md#secret-storage-plugin_api_name__secret_name) |
 | `plugin_description` | step config field — **rejected since packager 0.8.0** (`automation-step/removed-field`); plugin-level text moved to manifest `agentic_description`, per-step text is `action_description` | [07](07-automation-steps.md#build-time-validation) |
@@ -260,6 +263,7 @@
 | `this.put` (does not exist) | `this.*` method | [04](04-worker-runtime-api.md#there-is-no-thisput) |
 | `kizen.api.put(path, data=None, json=None, headers=None, **kwargs)` | Python `kizen.api` | [07](07-automation-steps.md#methods) · [07](07-automation-steps.md#response-object) |
 | `qr` (assistant field type) | assistant field type | [13](13-setup-assistants.md#511-qr) |
+| `radio` (assistant field type) | assistant field type | [13](13-setup-assistants.md#514-radio) |
 | Rate limits & retries | convention | [05](05-platform-api.md#rate-limits) · [07](07-automation-steps.md#rate-limits-and-retries) · [15](15-errors-and-observability.md#8-retries-and-rate-limits) |
 | `recommended_height` | block config field | [09](09-blocks.md#recommended_height) |
 | `POST /api/records/{object}/add` | REST endpoint | [05](05-platform-api.md#post-apirecordsobjectadd) |
@@ -288,9 +292,11 @@
 | `this.runEventScript(scriptName, args?)` | `this.*` method | [04](04-worker-runtime-api.md#thisruneventscriptscriptname-args) · [14](14-navigation-and-communication.md#thisruneventscriptscriptname-args) |
 | `this.communicate.runFrameScript(frameAPIName, scriptId, args?)` | `communicate.*` method | [04](04-worker-runtime-api.md#thiscommunicaterunframescriptframeapiname-scriptid-args) · [14](14-navigation-and-communication.md#thiscommunicaterunframescriptframeapiname-scriptid-args) |
 | `runtime` | step config field | [07](07-automation-steps.md#runtime) |
+| `runtime/unavailable-global` | validation rule | [03](03-manifest-reference.md#10-validation-rules) · [19](19-sharing-code-between-scripts.md#what-changes-for-existing-plugins) · [04](04-worker-runtime-api.md#1-execution-model) |
 | `scope` (service caller restriction) | service field | [06](06-auth-secrets-services.md#field-scope-caller-identity-restriction) |
 | `script_alias` | step config & parameter field — **rejected since packager 0.8.0** (`automation-step/removed-field`) | [07](07-automation-steps.md#build-time-validation) |
 | `script` (step config) | step config field | [07](07-automation-steps.md#script) |
+| `secret` (assistant field prop) | assistant field prop | [13](13-setup-assistants.md#515-api_key) |
 | `{{secret.KEY}}` templating | service field syntax | [03](03-manifest-reference.md#secretkey-templating) · [06](06-auth-secrets-services.md#secretkey-templating-in-service-config) |
 | `secrets` (Python step global) | Python step global | [07](07-automation-steps.md#secrets-inside-a-step) · [06](06-auth-secrets-services.md#reading-secrets-python-steps-only) |
 | `secrets` (step config) | step config field | [07](07-automation-steps.md#secrets) |
@@ -319,6 +325,7 @@
 | `POST /api/smart-connectors/{connector_identifier}/webhook` | REST endpoint | [05](05-platform-api.md#post-apismart-connectorsconnector_identifierwebhook) |
 | `Stage` | step data type | [07](07-automation-steps.md#stage) |
 | `step_history_template` | step config field | [07](07-automation-steps.md#step_history_template) |
+| `structure/reserved-api-name` | validation rule | [03](03-manifest-reference.md#10-validation-rules) |
 | `GET /api/team` | REST endpoint | [05](05-platform-api.md#get-apiteam) |
 | `GET /api/team/{employee_id}` | REST endpoint | [05](05-platform-api.md#get-apiteamemployee_id) |
 | `POST /api/team/search` | REST endpoint | [05](05-platform-api.md#post-apiteamsearch) |
@@ -338,7 +345,7 @@
 | `views/<name>/` | artifact directory | [03](03-manifest-reference.md#viewsname) · [10](10-views-modals-forms.md#directory-layout-and-configjson) |
 | View-based setup assistant | concept | [13](13-setup-assistants.md#12-view-based-setup-assistants) · [glossary](glossary.md#view-based-setup-assistant) |
 | `this.wait(ms)` | `this.*` method | [04](04-worker-runtime-api.md#thiswaitms) |
-| `when` | artifact config field / gating clause | [03](03-manifest-reference.md#when-conditions) · [07](07-automation-steps.md#when) · [09](09-blocks.md#when) · [11](11-output-ui-iframes-frames.md#when) · [12](12-routes-calendars-adornments-settings.md#when-gating-on-these-surfaces) · [13](13-setup-assistants.md#6-when-inside-the-assistant) · [glossary](glossary.md#when-clause) |
+| `when` | artifact config field / gating clause (assistant-only `{{plan.*}}` / `{{entitlement.*}}` namespaces) | [03](03-manifest-reference.md#when-conditions) · [07](07-automation-steps.md#when) · [09](09-blocks.md#when) · [11](11-output-ui-iframes-frames.md#when) · [12](12-routes-calendars-adornments-settings.md#when-gating-on-these-surfaces) · [13](13-setup-assistants.md#6-when-inside-the-assistant) · [glossary](glossary.md#when-clause) |
 | `width` / `height` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#width-height) |
 | `*WithErrors` tuple convention | convention | [15](15-errors-and-observability.md#5-the-witherrors-tuple-convention) |
 | Worker (execution model) | concept | [04](04-worker-runtime-api.md#1-execution-model) · [glossary](glossary.md#worker) |

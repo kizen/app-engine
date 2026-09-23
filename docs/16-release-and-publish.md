@@ -175,8 +175,9 @@ Behaviorally, per push:
    (`runtime/unavailable-global`), and dynamic code and plaintext credentials are flagged
    (`security/*`) — see [manifest reference §10](03-manifest-reference.md#10-validation-rules).
    Other runtime errors in a script body still surface only at runtime. `assistant.json` is parsed and
-   shape-checked (`manifest/setup-assistant-parse`, `manifest/setup-assistant-shape`), but its
-   field content is not.
+   shape-checked (`manifest/setup-assistant-parse`, `manifest/setup-assistant-shape`); its field
+   content is checked only by the seven setup-assistant field rules (dotted keys, `api_key`
+   secrets and defaults, and radio/select options).
 2. **Build.** JavaScript artifact scripts have their imports compiled away — each shared file
    is inlined into every script that imports it
    ([19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md)) — and are then
@@ -205,9 +206,11 @@ and a version that fails validation is never sent.
 every release commit. Its rule set can lag the pipeline's by a release, so a clean local build
 is a strong signal, not a guarantee.
 
-It is one rule set in four families: `manifest/*` and `structure/*`
-([manifest reference §10](03-manifest-reference.md#10-validation-rules)), `automation-step/*`
-([automation steps](07-automation-steps.md#build-time-validation)) and `security/*`
+It is one rule set in six families: `manifest/*` and `structure/*`
+([manifest reference §10](03-manifest-reference.md#10-validation-rules)), `imports/*` and
+`runtime/*` ([sharing code](19-sharing-code-between-scripts.md#diagnostics)),
+`automation-step/*` ([automation steps](07-automation-steps.md#build-time-validation)) and
+`security/*`
 ([auth, secrets & services](06-auth-secrets-services.md#security-rules-the-build-enforces)).
 The pipeline runs the same `@kizenapps/packager`, so anything in those families that fails in
 CI fails in `build` first — including plaintext credentials and dynamic code, which never reach
@@ -219,7 +222,12 @@ assistant (`manifest/setup-assistant-view-conflict`, `-view-not-found`, `-shape`
 a build on an older packager reports none of them. Likewise the `imports/*` and
 `runtime/unavailable-global` rules — and import support itself — require 0.7.0: a plugin that
 imports shared code must not be deployed by a pipeline on an older packager, which would ship the
-`import` statements verbatim and only warn (`security/script-parse`). All rules are listed with
+`import` statements verbatim and only warn (`security/script-parse`). The rest of the rule set
+arrived the same way: the `security/*` rules and `manifest/services-shape` in 0.6.0;
+`manifest/nested-entry` and the `manifest/reserved-api-name` / `structure/reserved-api-name`
+rules alongside `imports/*` in 0.7.0; the `automation-step/*` rules,
+`manifest/agentic-description` and the `python 3.13` default runtime in 0.8.0; and the seven
+setup-assistant field rules in 0.9.0. All rules are listed with
 their triggers in [manifest reference §10](03-manifest-reference.md#10-validation-rules).
 
 ---
@@ -227,10 +235,10 @@ their triggers in [manifest reference §10](03-manifest-reference.md#10-validati
 ## 5. Publish-side validation you can hit
 
 Two gates exist and they fail in different places. The packager's `manifest/*`, `structure/*`,
-`automation-step/*` and `security/*` rules are build-time: they fail in `npx --yes @kizenapps/cli
-build` and again in CI, before anything is sent to an environment. The errors below are
-backend-only — they come from the publish call itself, after a clean build, and there is no local
-check that predicts them:
+`imports/*`, `runtime/*`, `automation-step/*` and `security/*` rules are build-time: they fail in
+`npx --yes @kizenapps/cli build` and again in CI, before anything is sent to an environment. The
+errors below are backend-only — they come from the publish call itself, after a clean build, and
+there is no local check that predicts them:
 
 | Error | Cause | Fix |
 |---|---|---|
@@ -239,16 +247,23 @@ check that predicts them:
 | Thumbnail required | No `thumbnail.png` at the first level under `entry`. | Add exactly one PNG at `<entry>/thumbnail.png`. |
 | Dev build must be unlisted | `version` is `0.0.0` without `published: false`. | Let the pipeline own `0.0.0`; do not author it. |
 | Missing developer business | Preview or `0.0.0` build without `developer_business_id`. | Add the field, per-environment form. |
+| Undeclared secret | A `{{secret.KEY}}` in `base_service_url`, `custom_headers` or any `auth_credentials` value whose `KEY` isn't in `base_config.secrets`. The build only catches whole-value references in `token`/`password`/`client_secret`, plus step `secrets`. | Declare it in `base_config.secrets`. |
 | Service validation failed | A `services` entry's `auth_credentials` do not satisfy its `auth_type`. | See [auth, secrets & services](06-auth-secrets-services.md). |
 | Secret decryption failed | An encrypted envelope no longer decrypts under the plugin's current key. | Re-run `npx --yes @kizenapps/cli encrypt` and commit the fresh envelope. |
 | Publish not permitted | The publishing business lacks developer-program membership, or this repository is not allow-listed for it. | See [§8](#8-developer-program-requirements). |
 
-Undeclared secrets are **not** in that table any more: both halves fail the build first. A step
-`secrets` entry missing from `base_config.secrets` is `automation-step/undeclared-secret`
-([automation steps](07-automation-steps.md#build-time-validation)); an undeclared `{{secret.KEY}}`
-in `services` is `security/undeclared-secret-reference`
+Two kinds of undeclared secret fail the build first. A step `secrets` entry missing from
+`base_config.secrets` is `automation-step/undeclared-secret`
+([automation steps](07-automation-steps.md#build-time-validation)); a `token`, `password` or
+`client_secret` whose whole value is an undeclared `{{secret.KEY}}` is
+`security/undeclared-secret-reference`
 ([auth, secrets & services](06-auth-secrets-services.md#security-rules-the-build-enforces)). The
-backend still rejects them, but you only reach that check by skipping the build.
+backend still rejects those, but you only reach that check by skipping the build; every other
+undeclared reference is the table row above.
+
+"API Name is reserved" 400s are now caught at build time too, for the plugin `api_name`, step
+`api_name`s and step input/output names (`manifest/reserved-api-name`,
+`structure/reserved-api-name` — see [manifest reference §10](03-manifest-reference.md#build-time-rules)).
 
 Publishing is version-scoped and additive: each publish creates a new version row with fresh
 configuration. There is no diff or upsert — the published version wholly describes the plugin
@@ -396,8 +411,9 @@ Before pushing to a release branch:
 - [ ] New secrets declared in `base_config.secrets`; new `{{secret.KEY}}` tokens too.
 - [ ] `thumbnail.png` still present at `<entry>/thumbnail.png`.
 - [ ] Encrypted credential envelopes current for the stage you publish to.
-- [ ] Any `security/dangerously-skip-proxy` warning in the build output reviewed deliberately —
-      it does not fail the build ([security rules](06-auth-secrets-services.md#security-rules-the-build-enforces)).
+- [ ] Any `security/dangerously-skip-proxy` warning on the pull-request check output reviewed
+      deliberately — it does not fail the build, and a passing local build does not print it
+      ([security rules](06-auth-secrets-services.md#security-rules-the-build-enforces)).
 - [ ] Preview build exercised in the developer business (install, run each changed surface).
 
 ---

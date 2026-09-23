@@ -55,7 +55,7 @@ plugin publicly in the Marketplace; `published: false` publishes it unlisted
 ## Execution architecture: workers and the host bridge
 
 Plugin JavaScript never runs on the page's main thread and never touches the DOM. The engine
-(`@kizenapps/engine`, currently 1.9.1 — note the manifest `engine` field is a fixed `"1.0.0"`,
+(`@kizenapps/engine`, currently 1.10.0 — note the manifest `engine` field is a fixed `"1.0.0"`,
 see [03-manifest-reference.md](03-manifest-reference.md)) runs every script in a dedicated
 **web worker**:
 
@@ -227,7 +227,8 @@ button.
    `@kizenapps/cli` CLI (`npx --yes @kizenapps/cli <command>`): build/validate, and render surfaces against the real
    engine without publishing. See [02-getting-started.md](02-getting-started.md).
 2. **Validate** — every push runs manifest + structure validation (packager rules: required
-   fields, api_name format, per-artifact config requirements) as CI checks; PRs additionally
+   fields, api_name format, per-artifact config requirements) plus the imports, runtime,
+   automation-step and security rules as CI checks; PRs additionally
    enforce version discipline. Failures block. Rule catalog:
    [03-manifest-reference.md](03-manifest-reference.md) and
    [16-release-and-publish.md](16-release-and-publish.md).

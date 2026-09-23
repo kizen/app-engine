@@ -13,7 +13,7 @@
 `src/views/` and `src/pages/` both compile into the plugin's single **routable-pages collection**. There is no separate "views" list in the packaged bundle — a *view* is simply a routable page you open as modal content, and a *page* is one the user can navigate to directly. Consequences:
 
 - `this.showViewInModal(id)` resolves `id` against the combined collection by `api_name` — it can open anything declared under `views/` **or** `pages/`.
-- `api_name`s must be unique across views *and* pages (duplicate names fail packaging with `structure/duplicate-api-name`).
+- Directory names must be unique across views *and* pages (`structure/duplicate-component-name`); `structure/duplicate-api-name` only catches two components in the *same* directory resolving to one `api_name`. A view and a page with the same `api_name` but different directory names are not caught, so keep `api_name`s unique across both yourself.
 - Only entries authored under `pages/` get a route and can appear in the toolbar; entries under `views/` are reachable only through `showViewInModal`.
 - Neither views nor pages can be `when`-gated — a `when` in either `config.json` is discarded at package time, silently. Conditional visibility applies to blocks, data adornments, floating frames, object settings items, toolbar items, calendar sources and Agentic Workflow steps, never to the `routable_pages` collection. Gate whatever navigates to a page instead.
 

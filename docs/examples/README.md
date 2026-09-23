@@ -13,7 +13,7 @@ generator) and regenerate, or your correction is lost on the next refresh. See
 
 | Report | Lines | Surfaces it demonstrates |
 |---|---|---|
-| [kitchen_sink.md](kitchen_sink.md) | ~5,150 | **Everything.** Actions (writeback, perform-action, relationship-add override, deliberate failure modes), Python automation steps (all 10 `data_type`s, secret + Basic auth, retry/backoff, forced failures), blocks (dashboard, homepage, record, cross-block ping/pong, charts), floating frames (script widget, scoped iframe, iframe bridge), pages, toolbar items, views (form, frameless, summary), data adornments, object settings items, calendar sources, route scripts, and both setup assistants. Four services, one per auth shape. |
+| [kitchen_sink.md](kitchen_sink.md) | ~5,150 | **Everything.** Actions (writeback, perform-action, relationship-add override, deliberate failure modes), Python automation steps (all nine valid `data_type`s plus the now-rejected `email`, secret + Basic auth, retry/backoff, forced failures), blocks (dashboard, homepage, record, cross-block ping/pong, charts), floating frames (script widget, scoped iframe, iframe bridge), pages, toolbar items, views (form, frameless, summary), data adornments, object settings items, calendar sources, route scripts, and both setup assistants. Four services, one per auth shape. |
 | [google_calendar.md](google_calendar.md) | ~975 | A **production** integration, narrow and deep: user-level OAuth service, calendar source (`calendars.js` + `events.js`), date and datetime data adornments, and business + user setup assistants driven by async selects (`getFetchUrl.js` + `optionMapper.js`). Also 14 release-note files, showing how versioning accumulates over a real plugin's life. |
 
 Kitchen sink is the reference implementation — synthetic, exhaustive, and commented to explain the
@@ -78,4 +78,8 @@ and doesn't redact. Read the diff before you commit a new one, not just the mani
 Each report is a snapshot of one version — the heading tells you which (`Kitchen Sink v1.0.0`,
 `Google Calendar v2.0.1`). Plugins keep moving after that. When a report and the live docs disagree
 about a contract, trust the numbered docs in [`../`](../) and check the plugin repo; when a report
-and your own memory of an API disagree, trust the report, because it compiled.
+and your own memory of an API disagree, trust the report, because it compiled. The exception is the
+kitchen sink's Agentic Workflow step configs: that report predates packager 0.8.0's
+`automation-step/*` rules, so they still use the removed `action_type`, `plugin_description` and
+`script_alias` fields and a `data_type` of `"email"`. Don't copy those configs verbatim — see
+[07-automation-steps.md](../07-automation-steps.md#build-time-validation).

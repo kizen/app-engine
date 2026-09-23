@@ -16,7 +16,7 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 - **The manifest `engine` field must be exactly `"1.0.0"` — it is a fixed value, not a version choice.**
   The packager validates against an exact-match allowlist of `['1.0.0']`, and nothing at runtime
-  branches on it. The engine library itself is at 1.9.1; do not try to express engine requirements
+  branches on it. The engine library itself is at 1.10.0; do not try to express engine requirements
   through this field. → [03-manifest-reference.md](03-manifest-reference.md)
 
 - **`kizen.json` can be a top-level JSON array (multi-plugin repo) — parse and tool accordingly.**
@@ -96,8 +96,10 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   → [11-output-ui-iframes-frames.md](11-output-ui-iframes-frames.md)
 
 - **Packager TypeScript types are advisory; the engine runtime types are the authority.**
-  The packager's setup-assistant field type is missing `qr`/`image`/`link` and ~20 real props;
-  its `conflict_resolution` enum omits `update_if_blank`. Typechecking authored JSON against
+  The packager's setup-assistant types now cover `radio`, `api_key`, `required`, `tooltip`, `secret`
+  and assistant `services`, but the field type is still missing `qr`/`image`/`link` and real props
+  such as `match_hint`, `dependencies`, `validation_pattern` and the per-field script hooks.
+  Typechecking authored JSON against
   `@kizenapps/packager` produces false errors on valid manifests. → [03-manifest-reference.md](03-manifest-reference.md)
 
 - **An Agentic Workflow step's `"script"` key in `config.json` is ignored — the packager always reads `script.py` from disk.**
@@ -280,9 +282,10 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 - **`export`, dynamic `import()`, and `import.meta` are build errors in EVERY plugin script now,
   not just ones using shared code** (`imports/script-export`, `imports/unsupported-import`,
   packager 0.7.0+). The packager parses every script to check for these regardless of whether it
-  opts into shared code. Neither construct ever worked at runtime — the engine compiles a script
-  body with `new AsyncFunction`, which can't parse a top-level `export` and has no module to resolve
-  `import()` against — so this moves an existing failure from runtime to build time.
+  opts into shared code. Neither construct did anything useful at runtime — the engine compiles a
+  script body with `new AsyncFunction`, which can't parse a top-level `export`, and a relative
+  dynamic `import()` had nothing in the plugin to resolve against — so this moves an existing
+  failure from runtime to build time.
   → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#what-changes-for-existing-plugins)
 
 - **Any `import` makes that script strict-mode-parsed (`imports/script-parse`).** A script that
@@ -317,9 +320,10 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   no `checkJs` produces no such diagnostic.
   → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#ide-support-and-the-top-level-return-caveat)
 
-- **`npx --yes @kizenapps/cli build` prints errors only.** `imports/mutable-export` and
-  `imports/unused-module` are warnings and surface on the pull-request check, not locally; a clean
-  local build is not evidence of zero warnings.
+- **A passing `npx --yes @kizenapps/cli build` prints no warnings.** Warnings appear only alongside
+  errors when a build fails. `imports/mutable-export` and `imports/unused-module` are warnings, so on
+  an otherwise clean build they surface on the pull-request check, not locally; a clean local build
+  is not evidence of zero warnings.
   → [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#diagnostics)
 
 ## Error handling & observability
@@ -457,10 +461,11 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   `required: false` while OAuth credentials are placeholders, or setup hard-blocks.
   → [13-setup-assistants.md](13-setup-assistants.md)
 
-- **Async-select companion scripts run in the BROWSER marketplace page, not a worker.**
-  No `this.getServiceUrl` — hand-build `/external-integrations/proxy/${state.pluginApiName}/{service}/...`.
-  Guard dependent fetches with a fallback so the URL is valid before the parent field is picked.
-  → [13-setup-assistants.md](13-setup-assistants.md)
+- **Async-select companion scripts run in the isolated expression worker, not as artifact scripts.**
+  No `this`, no `this.getServiceUrl`, and no `window`/`document` — hand-build
+  `/external-integrations/proxy/${state.pluginApiName}/{service}/...`. The page, not the worker,
+  performs the resulting fetch. Guard dependent fetches with a fallback so the URL is valid before the
+  parent field is picked. → [13-setup-assistants.md](13-setup-assistants.md#8-per-field-scripts)
 
 - **The install modal re-prompt is skipped only when `__kizen_setup_assistant_hash` matches — any non-declarative config write must maintain it.**
   If your code writes config outside the assistant and doesn't preserve the hash sibling, users
@@ -480,9 +485,12 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   visible. Default defensively in the script. → [13-setup-assistants.md](13-setup-assistants.md)
 
 - **Unknown assistant field types silently render an invalid block.**
-  There is essentially zero packager validation of assistant fields; malformed assistants publish
-  and fail at runtime. The valid types are: `custom_object, description, container, field, text,
-  number, select, boolean, qr, image, link`. → [13-setup-assistants.md](13-setup-assistants.md)
+  The packager runs only seven assistant-field rules: a field `key` containing `.`, an `api_key`
+  field whose `secret` is missing, undeclared in `base_config.secrets`, or paired with a literal
+  `default`, and a `radio`/`select` whose `options` are empty, share a `value`, or don't contain the
+  `default`. Unknown types and misspelled props still package cleanly and fail at runtime. The valid
+  types are: `custom_object, description, container, field, text, number, select, radio, api_key,
+  boolean, qr, image, link`. → [13-setup-assistants.md](13-setup-assistants.md)
 
 - **`completeSetup(payload)` REPLACES `__kizen_clean_config` wholesale — every key missing from the payload is gone.**
   The host assigns it directly: `{ ...existingConfig, __kizen_clean_config: payload }`. A view that
@@ -946,13 +954,15 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 ## Agentic Workflow steps & actions
 
-- **An unmapped optional input is ABSENT from `inputs` — attribute access raises `AttributeError`, it is not `None`.**
-  Always `getattr(inputs, "name", None)` for optional inputs. → [07-automation-steps.md](07-automation-steps.md)
+- **An unmapped optional input is `None`, so `getattr` with a fallback does not apply a default.**
+  Every declared input is present on `inputs`; `getattr(inputs, "name", True)` returns `None` for an
+  unmapped one. Apply defaults with `if value is None:`. → [07-automation-steps.md](07-automation-steps.md#inputs)
 
 - **`data_type` must be a VARIABLE type, not a field type — a wrong value now FAILS THE BUILD (`automation-step/data-type`).**
   The valid enum (9 values): `string, boolean, number, date, datetime, phone_number, employee,
-  entity, uuid`. Field-type names are rejected with a suggested replacement — `integer`/`decimal`
-  → `number`, `file`/`files`/`email`/`emails` → `string` — and a missing `data_type` errors too.
+  entity, uuid`. The common field-type mistakes get a suggested replacement — `integer`/`decimal`
+  → `number`, `file`/`files`/`email`/`emails` → `string` — any other invalid value gets the list of
+  valid values, and a missing `data_type` errors too.
   Since packager 0.8.0 these never reach the builder, so the old symptoms (a "No Options" field
   dropdown, `"X" is not a valid choice` at Agentic Workflow save) only apply to apps published
   before the rule existed. → [07-automation-steps.md](07-automation-steps.md#build-time-validation)
@@ -1089,8 +1099,9 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 ## Release & publish
 
 - **`npx --yes @kizenapps/cli build` now runs the same `automation-step/*` and `security/*` rules the publish pipeline runs — a clean local build is the expected pre-PR gate.**
-  Publish re-checks step data types against the live type list read from the *target environment*
-  (and fails as a pipeline problem, not a config error, if it can't read that list), so local and
+  The pipeline re-checks step data types against the live type list, which both the PR check and the
+  deploy read from the first publishable environment in `release_environments` (`go` if none). It
+  fails as a pipeline problem, not a config error, if it can't read that list, so local and
   remote can only disagree when the environment's list has moved. Already-published apps are never
   re-validated: one that predates a rule keeps running until its next publish, which is when the
   rule finally bites. → [16-release-and-publish.md](16-release-and-publish.md)
@@ -1099,7 +1110,7 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
   `.github/workflows/copilot-code-review.yml` and its `copilot-setup-steps` job (which clones
   these docs into `.copilot-docs/` so reviews cite the live corpus) only take effect once merged,
   so the PR that introduces them gets no review from them. Merge first, then expect reviews.
-  → [02-getting-started.md](02-getting-started.md#the-cli-kizenappscli)
+  → [02-getting-started.md](02-getting-started.md#copilot-code-review)
 
 - **Every release push must bump `kizen.json` `version` AND add `releaseNotes/<version>.md` — together, in the same commit.**
   The version must strictly increase versus the base branch (PR check), the backend rejects

@@ -102,7 +102,7 @@ Full example, referenced field by field below:
 |---|---|---|---|
 | `name` | string | yes | Human label in the builder's action picker. |
 | `api_name` | api-name string | *effectively yes* | The step's stable identity. Falls back to a sanitized directory name if omitted. |
-| `action_description` | string | no | Shown once this action is selected. |
+| `action_description` | string | *effectively yes* | Shown once this action is selected. The packager sends `""` when it is absent, and publish rejects a blank value. |
 | `runtime` | string | no | `"python 3.13"` (the default) or `"python 3.12"`. Normalized at package time. |
 | `secrets` | string[] | no | Integration secret names this step may read. |
 | `when` | expression string | no | Gates whether the step is offered, against install config. |
@@ -115,9 +115,11 @@ Four step-level keys older configs carry — `action_type`, `script_alias`, `plu
 `overall_description` — are **removed from the publish contract**: each one now fails the build.
 
 The fields with a rule in [Build-time validation](#build-time-validation) — `runtime`, `secrets`,
-the shape of `inputs`/`outputs`, and the removed keys — are checked before anything is sent. The
-rest, `name`, `api_name`, `action_description`, `when` and `step_history_template` among them, pass
-through unvalidated.
+the shape of `inputs`/`outputs`, and the removed keys — are checked before anything is sent.
+`api_name` is checked too, by the `structure/api-name-format`, `structure/duplicate-api-name` and
+`structure/reserved-api-name` rules (see [`api_name`](#api_name)). `name`, `action_description`,
+`when` and `step_history_template` are not checked at build time. Publish does reject an empty
+`action_description`, and the packager sends `""` when the key is absent, so set it on every step.
 
 ### `name`
 
@@ -137,6 +139,12 @@ lowercasing it, collapsing hyphen and whitespace runs to `_`, then dropping char
 `send-notification` into `send_notification`. Underscores are preserved, so `send_notification`
 comes through unchanged. The reason to set it anyway is that a later directory rename silently
 changes the key — and the key is the step's primary identity.
+
+**It must not be a reserved name.** The packager carries a list of 46 names that publish rejects
+with "API Name is reserved" — field type names (`files`, `email`, `status`, …), default Contact
+fields (`first_name`, `tags`, …), default object fields (`name`, `owner`, `stage`, …) and `notes`.
+A step whose `api_name` (explicit or derived from the directory) is on that list fails the build
+with `structure/reserved-api-name`. Prefix it (`example_plugin_status`) instead.
 
 Renaming a published `api_name` is a breaking change: existing workflows that reference the old
 name hard-fail at run time with a "config not found" error. Treat it as immutable once shipped
@@ -287,8 +295,10 @@ both on an input fail the build with `automation-step/output-only-option`.
 
 The fields with a rule in [Build-time validation](#build-time-validation) — `data_type`,
 `input_source`, `conflict_resolution`, `create_field_options`, `output_target` and `script_alias` —
-are checked before anything is sent. `name`, `label`, `required` and the two `hint_*` keys pass
-through unvalidated; `hint`, `allowed_values` and `default` are dropped at publish altogether.
+are checked before anything is sent. `name` must not be a reserved name
+(`structure/reserved-api-name`; see [`name`](#name-1)). `label`, `required` and the two `hint_*`
+keys pass through unvalidated; `hint`, `allowed_values` and `default` are dropped at publish
+altogether.
 
 ```json
 {
@@ -307,7 +317,13 @@ through unvalidated; `hint`, `allowed_values` and `default` are dropped at publi
 ### `name`
 
 **The runtime accessor.** `inputs.<name>` reads an input; `outputs.<name> = value` writes an
-output. Must be an api-name-shaped string (lowercase, underscores).
+output. Publish requires an api-name-shaped string (lowercase letters, digits and underscores,
+starting with a letter or underscore); the build does not check the format.
+
+The build does check that `name` is not a reserved name: `files`, `email`, `status`, `name`,
+`first_name`, `owner`, `notes` and the rest of the same list as [`api_name`](#api_name) fail with
+`structure/reserved-api-name`. Prefix it (`s3_files`) and rename `inputs.<name>` / `outputs.<name>`
+in `script.py` to match — the runtime binds by name.
 
 Output names are validated on write-back: assigning to a name that is not a declared output raises
 inside the runtime and fails the step.
@@ -355,8 +371,8 @@ Where the value comes from (inputs) or goes to (outputs). Publishable values:
 | `related_object_field` | A field on a related record. |
 | `static_value` | A literal the workflow author types in the builder. |
 
-A value outside this table fails the build with `automation-step/input-source`; omitting the key
-altogether is allowed.
+A value outside this table fails the build with `automation-step/input-source`, and so does `null`;
+omit the key instead.
 
 `input_source` is used for **both** inputs and outputs — outputs use the same key, not
 `output_target`.
@@ -400,7 +416,8 @@ Intended to pre-fill the builder's mapping control (most often on a `boolean` st
 the builder, and it does not substitute a value at run time for an input the author left empty. An
 input you expected to default to `True` arrives as whatever the empty control produced.
 
-If a step needs a default, apply it in the script:
+If a step needs a default, apply it in the script. An input the author left unconfigured arrives
+as `None`, so compare against `None`:
 
 ```python
 retry_on_conflict = inputs.retry_on_conflict
@@ -493,7 +510,7 @@ failing `rule` id along with the step and the parameter at fault.
 |---|---|---|
 | `automation-step/data-type` | Every input and output carries a `data_type`, as a string, from the nine-value enum. | Use a [variable type name](#data_type-reference). The message suggests a replacement for the known mistakes: `integer`/`decimal` → `number`, `file`/`files`/`email`/`emails` → `string`. |
 | `automation-step/removed-field` | Step level: no `action_type`, `script_alias`, `plugin_description`, `overall_description`. Parameter level: no `script_alias`. | Delete the key. Per-step text goes in `action_description`; the plugin-level blurb goes in the manifest's [`agentic_description`](03-manifest-reference.md#agentic_description). |
-| `automation-step/undeclared-secret` | Every name in the step's `secrets` is declared in the manifest's `base_config.secrets`. | Add it to `base_config.secrets`, or drop it from the step. |
+| `automation-step/undeclared-secret` | `secrets` is an array of non-empty strings, each declared in the manifest's `base_config.secrets`. | Add it to `base_config.secrets`, or drop it from the step. |
 | `automation-step/input-source` | `input_source` is `variable`, `object_field`, `related_object_field` or `static_value`. | Fix the value, or omit the key. |
 | `automation-step/output-only-option` | `conflict_resolution` and `create_field_options` appear only on outputs. | Remove them from the input. |
 | `automation-step/output-target` | No output carries `output_target` (only outputs are checked; on an input the key is silently ignored — it is not one of the fields `automation-step/output-only-option` checks either). | Outputs declare `input_source`, same as inputs. |
@@ -508,9 +525,11 @@ Every rule is an **error** — there are no warnings in this set, and none of th
 
 - **Build and `dev`.** `data_type` is validated against the type list bundled in the packager, and
   every other rule against the fixed lists above.
-- **Publish.** The pipeline re-validates `data_type` against the *live* list read from the target
-  Kizen environment (`GET /api/automation2/automations/metadata`, keyed by
-  `variables.variable_from_field`). If that list cannot be read the publish fails as a **pipeline**
+- **PR check and publish.** Both the PR's Plugin Validation check and the deploy re-validate
+  `data_type` against the *live* list read from the first publishable environment in the
+  manifest's `release_environments` (`go` if none resolves), via
+  `GET /api/automation2/automations/metadata`, keyed by `variables.variable_from_field`. If that
+  list cannot be read the publish fails as a **pipeline**
   problem, not a plugin problem: retry the publish rather than editing the step.
 - **Already-published apps are never re-validated.** An app that shipped with `action_type`,
   `script_alias`, or a `files` `data_type` keeps running exactly as it did. Only the next publish
@@ -707,16 +726,17 @@ statements execute in order.
 
 Attribute access on a typed object built from your declared parameters.
 
-**An unmapped optional input is absent, not `None`.** Plain attribute access raises
-`AttributeError`. Read every non-required input defensively:
+**An unmapped optional input is `None`.** Every declared input is present on `inputs`; one the
+workflow author left unmapped is sent as `None`, so plain attribute access never raises. Check
+for `None` wherever the script needs a value:
 
 ```python
-channel = inputs.channel                                 # required: read directly
-tag = getattr(inputs, "connection_secret_tag", None)     # optional: always getattr
+channel = inputs.channel                  # required: always mapped
+tag = inputs.connection_secret_tag        # optional: None when unmapped
 ```
 
-This is the one place where a defensive read is correct rather than redundant — the attribute
-genuinely does not exist.
+`getattr(inputs, "name", fallback)` does **not** apply a default — the attribute exists, so it
+returns `None`, not `fallback`. Use an explicit `is None` check instead.
 
 ### `outputs`
 
@@ -1099,8 +1119,8 @@ record data.
 
 No `default` on `return_single_value`: the key is [dropped at publish](#default), and the input is
 `required: true`, so the builder always supplies a value and the script reads
-`inputs.return_single_value` directly. An optional flag would need
-`getattr(inputs, "flag", True)` instead.
+`inputs.return_single_value` directly. An optional flag would arrive as `None` when unmapped,
+so it would need an explicit `if flag is None: flag = True`.
 
 `src/automationSteps/dbRead/script.py`:
 
@@ -1134,7 +1154,7 @@ def load_connection():
 
     document = json.loads(secrets[key].translate(SMART_QUOTE_MAP))
 
-    tag = getattr(inputs, "connection_secret_tag", None)
+    tag = inputs.connection_secret_tag
     if tag:
         if tag not in document:
             raise ValueError(f"Connection Secret Tag {tag!r} is not present in the connection secret.")
@@ -1325,8 +1345,7 @@ message, and writes the delivery timestamp back to a record field.
 # Posts a message to a channel through the example_service proxy service. Auth is injected
 # server-side by the proxy; this script never sees a token.
 #
-# Optional inputs are read with getattr — an input the workflow author left unmapped is
-# absent from `inputs` entirely (AttributeError, not None).
+# An optional input the workflow author left unmapped arrives as None.
 
 import time
 from datetime import datetime, timezone
@@ -1413,7 +1432,7 @@ text = inputs.message
 
 # An `employee` input arrives as a team-member id (uuid.UUID). Resolve it to something the
 # external system understands before sending it.
-owner_id = getattr(inputs, "notify_owner", None)
+owner_id = inputs.notify_owner
 if owner_id:
     owner_resp = kizen.api.get(f"/team/{owner_id}")
     if owner_resp.ok:
@@ -1444,8 +1463,9 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
 
 ## Gotchas
 
-- **An unmapped optional input is absent, not `None`.** `inputs.optional_thing` raises
-  `AttributeError`. Use `getattr(inputs, "optional_thing", None)` for every non-required input.
+- **An unmapped optional input is `None`.** Every declared input is present on `inputs`, so
+  `inputs.optional_thing` never raises — but `getattr(inputs, "optional_thing", default)` returns
+  `None`, not `default`. Apply defaults with an explicit `is None` check.
 - **`data_type` takes variable type names, not field type names.** `files`, `file`, `integer`,
   `decimal`, `money`, `text`, `email` and `emails` fail the build with
   [`automation-step/data-type`](#build-time-validation). Use `number` and `string`; files fields
@@ -1499,7 +1519,8 @@ outputs.log(f"Delivered message {outputs.message_id} to channel {channel_id}.")
 - **Step configs are validated at build time.** The `automation-step/*` rules
   ([Build-time validation](#build-time-validation)) fail `build` and `dev` on a bad `data_type`,
   `input_source`, `conflict_resolution`, `create_field_options`, `runtime`, an undeclared secret,
-  an output-only key on an input, or a removed field. What they cannot check is whether the type
+  an output-only key on an input, `output_target` on an output, or a removed field. What they
+  cannot check is whether the type
   you declared matches the field you meant, so still wire a new step into a real workflow and save
   it before calling it done.
 - **Already-published apps are not re-validated.** An app that shipped before these rules keeps
