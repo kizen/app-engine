@@ -102,12 +102,27 @@ Global credentials live in `~/.kizenappbuilder`; per-repo state in `.kizenapp/`.
 
 | Command | What it does for you |
 |---|---|
-| `npx --yes @kizenapps/cli create` | **Interactive — needs a TTY.** Scaffolds a new plugin: `kizen.json` (version `1.0.0`, `entry: "src/"`, `releaseNotes/` wired), an empty `src/`, and `releaseNotes/`. No artifact templates — add directories yourself. |
-| `npx --yes @kizenapps/cli build` | Validates and packages the repo locally with `@kizenapps/packager` — the same rules CI runs — and writes the packaged result to `.kizenapp/bundle.json` (exactly what would be published). Run it before every push to catch `manifest/*`, `structure/*`, `imports/*`, `runtime/*` and `security/*` errors early. |
+| `npx --yes @kizenapps/cli create` | **Interactive — needs a TTY.** Scaffolds a new plugin: `kizen.json` (version `1.0.0`, `entry: "src/"`, `releaseNotes/` wired), `src/`, `releaseNotes/`, a placeholder `src/thumbnail.png`, and `.kizenapp/` + `.copilot-docs/` added to `.gitignore`. A multi-select picker then scaffolds working `hello*` artifact templates for any of seven surfaces — floating frame, block, data adornment, routable page, toolbar item, object settings item, JS action — each a real `config.json` + `script.js` (+ `styles.css`) you rename and edit. It also writes the [Copilot review files](#copilot-code-review). |
+| `npx --yes @kizenapps/cli build` | Validates and packages the repo locally with `@kizenapps/packager` — the same rules CI runs — and writes the packaged result to `.kizenapp/bundle.json` (exactly what would be published). Run it before every push: it catches `manifest/*`, `structure/*`, `imports/*`, `runtime/*`, `automation-step/*` ([step config validation](07-automation-steps.md#build-time-validation)) and `security/*` ([the security rules](06-auth-secrets-services.md#security-rules-the-build-enforces)) errors early. |
 | `npx --yes @kizenapps/cli dev` | Local dev runner: renders your artifacts against the real engine without publishing, so you can exercise blocks, views, frames, prompts, and run Python Agentic Workflow steps locally (it provisions a venv under `.kizenapp/`). |
 | `npx --yes @kizenapps/cli encrypt` | Produces the `{"encrypted": true, "value": "<base64>"}` envelope for a secret value (OAuth `client_secret`, etc.) to paste into `kizen.json`. Defaults to production keys; pass `--stage dev` when targeting dev environments. See [06-auth-secrets-services.md](06-auth-secrets-services.md). |
 | `npx --yes @kizenapps/cli icons` | Prints the platform icon set — the authoritative list of valid `icon` values for toolbar items, adornments, and minimized frame triggers. |
 | `npx --yes @kizenapps/cli report` | Dumps the whole plugin — manifest, file tree, and full source of every file except `kizen.json` (shown separately) and `LICENSE` — into a self-contained reference. Writes **two** files: the `.html` you name with `-o` (a human viewer) and a `.md` sibling with the same basename (what agents read). Defaults to `~/.kizenappbuilder/examples/<api_name>.{html,md}`. `services[].auth_credentials` values are masked to `*****` and `developer_business_id` is dropped; **nothing else is redacted**. Two reports generated this way are committed under [examples/](examples/README.md). |
+| `npx --yes @kizenapps/cli setup-copilot` | Writes the same [Copilot review files](#copilot-code-review) into an **existing** plugin repo — run it from the repo root (a `kizen.json` must be there). The four files are CLI-owned, so it overwrites them and prints `created` / `updated` / `unchanged` per file; it also adds the missing `.gitignore` entries. `--dry-run` prints the statuses without writing. |
+
+### Copilot code review
+
+`create` and `setup-copilot` both write four CLI-owned files: `.github/copilot-instructions.md`,
+`.github/instructions/security.instructions.md`,
+`.github/instructions/version-discipline.instructions.md`, and
+`.github/workflows/copilot-code-review.yml`. That workflow's `copilot-setup-steps` job clones this
+documentation set (`kizen/app-engine`, `docs/`) into `.copilot-docs/` before GitHub Copilot code
+review runs, so a review cites the current docs instead of a snapshot of the rules copied into the
+plugin repo — which is why the instruction files stay short and point at the corpus.
+
+Two consequences: the workflow only takes effect once it is on the repository's **default branch**
+(the PR that introduces it gets no review from it), and `.copilot-docs/` is gitignored because it
+is fetched per run, never committed.
 
 ---
 

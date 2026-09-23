@@ -46,6 +46,10 @@ Consequences that shape how plugin code must be written:
   `queueMicrotask`, `requestAnimationFrame`, `crypto`, `TextEncoder`, `URL`, `PerformanceObserver`,
   `location` (the worker's own, not the page's — use `this.location`) and `navigator`. The
   packager rejects a reference to an absent global at build time (`runtime/unavailable-global`).
+  Its list is longer than the one above — it also covers names like `open`, `print`, `history`,
+  `screen`, `parent`, `top`, `Image`, `Audio`, `HTMLElement`, `module`, `exports`, `global`,
+  `__dirname` and `setImmediate` — and it catches `self.X` / `globalThis.X` member reads of those
+  names too.
 - **What does persist:** the painted DOM from the last [`this.outputUI()`](#thisoutputuimarkup-options)
   (a repaint swaps it in place), `this.sessionData` (per browser session, per plugin), the
   per-user config store behind [`getUserConfig`/`setUserConfig`](#thisgetuserconfig), business
@@ -203,8 +207,10 @@ Value shapes per setup-assistant field type:
 | `number` | number; **absent** when the author left it blank |
 | `select` | the whole option object `{label, value}` — read `.value` |
 | `select` with `allow_multiple` | array of option objects |
+| `radio` | the selected option object `{label, value}` — read `.value`; **absent** when unset |
 | `custom_object` | `{objectId, objectName}` — read `.objectId` |
 | `field` | `{fieldId, fieldName, objectId, objectName}` (array when `allow_multiple`); note it is the field **id**, not api name |
+| `api_key` | never present — the value lives in Integration Secrets ([13 §5.15](13-setup-assistants.md#515-api_key)) |
 
 ```js
 const objectId = this.config?.targetObject?.objectId;

@@ -55,7 +55,7 @@ plugin publicly in the Marketplace; `published: false` publishes it unlisted
 ## Execution architecture: workers and the host bridge
 
 Plugin JavaScript never runs on the page's main thread and never touches the DOM. The engine
-(`@kizenapps/engine`, currently 1.9.1 — note the manifest `engine` field is a fixed `"1.0.0"`,
+(`@kizenapps/engine`, currently 1.10.0 — note the manifest `engine` field is a fixed `"1.0.0"`,
 see [03-manifest-reference.md](03-manifest-reference.md)) runs every script in a dedicated
 **web worker**:
 
@@ -227,7 +227,8 @@ button.
    `@kizenapps/cli` CLI (`npx --yes @kizenapps/cli <command>`): build/validate, and render surfaces against the real
    engine without publishing. See [02-getting-started.md](02-getting-started.md).
 2. **Validate** — every push runs manifest + structure validation (packager rules: required
-   fields, api_name format, per-artifact config requirements) as CI checks; PRs additionally
+   fields, api_name format, per-artifact config requirements) plus the imports, runtime,
+   automation-step and security rules as CI checks; PRs additionally
    enforce version discipline. Failures block. Rule catalog:
    [03-manifest-reference.md](03-manifest-reference.md) and
    [16-release-and-publish.md](16-release-and-publish.md).
@@ -312,9 +313,13 @@ Details: [06-auth-secrets-services.md](06-auth-secrets-services.md) and
   (`/external-integrations/proxy/{plugin}/{service}/…`); the proxy resolves the declared
   service, injects and refreshes OAuth tokens or stored secrets, and forwards only a strict
   header allowlist. Scripts and Python steps never see tokens. Secret values inside
-  `kizen.json` (e.g. OAuth `client_secret`) should be encrypted envelopes produced by
-  `npx --yes @kizenapps/cli encrypt` (`{"encrypted": true, "value": "…"}`); plaintext values still function
-  but are legacy and discouraged.
+  `kizen.json` (e.g. OAuth `client_secret`) must be encrypted envelopes produced by
+  `npx --yes @kizenapps/cli encrypt` (`{"encrypted": true, "value": "…"}`), a declared
+  `{{secret.KEY}}` reference, or an `integration_secret_api_name`. A plaintext `token`,
+  `password` or `client_secret` is a build error (`security/plaintext-credential`) and never
+  publishes — and any value that was already committed is compromised, so rotate it at the
+  provider rather than just deleting the line (see
+  [security rules the build enforces](06-auth-secrets-services.md#security-rules-the-build-enforces)).
 - **No inbound HTTP surface.** Plugins cannot register endpoints; external systems push data
   into Kizen only through the authenticated ingestion endpoints (Agentic Workflow webhook
   triggers, the Webhook SmartConnector, records upsert — see

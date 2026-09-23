@@ -158,7 +158,7 @@ legacy [`prompt`](#prompt-legacy). Owner: [10-views-modals-forms.md](10-views-mo
 ### Engine
 
 `@kizenapps/engine` — the runtime that executes plugin scripts in web workers and bridges
-them to the host app. Currently 1.9.1; note the manifest `engine` field is the fixed value
+them to the host app. Currently 1.10.0; note the manifest `engine` field is the fixed value
 `"1.0.0"` and does not select an engine version. Owner:
 [04-worker-runtime-api.md](04-worker-runtime-api.md).
 
@@ -209,7 +209,8 @@ true, the action appears in the object's [Perform Action](#perform-action) menu.
 
 ### Integration secret
 
-A business-level named secret value, filled in by an admin after install. Plugin secrets are
+A business-level named secret value, filled in by an admin after install — or by an `api_key`
+setup-assistant field ([13 §5.15](13-setup-assistants.md#515-api_key)). Plugin secrets are
 declared in `base_config.secrets` and read at runtime under the namespaced api_name
 `{plugin_api_name}__{secret_name}` (Python: `secrets["example_plugin__api_key"]`). Values
 are write-only through the API (only an obfuscated form is readable). Owner:
@@ -451,7 +452,10 @@ wholesale and stamps the [setup assistant hash](#setup-assistant-hash). Owner:
 
 A JS expression string gating visibility on config: on artifacts,
 `"Boolean({{config.key}}) && !{{userConfig.other}}"`; inside setup assistants, bare
-`{{key}}`. Evaluated in an isolated expression worker; false silently hides the artifact or
+`{{key}}`. Inside setup assistants (a field's `when`, an option's `disabled`),
+`{{plan.<type>.<key>}}` and `{{entitlement.<key>}}` are also available; in artifact when
+clauses they resolve to `null` ([13 §6](13-setup-assistants.md#6-when-inside-the-assistant)).
+Evaluated in an isolated expression worker; false silently hides the artifact or
 field. Accepted on seven surfaces — blocks, floating frames, data adornments, toolbar items,
 Agentic Workflow steps, object settings items, calendar sources — and **not** on actions, pages/views,
 or route scripts, where the key is ignored. Owner:

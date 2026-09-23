@@ -41,7 +41,8 @@
 | `actionOverrideCreate` (`action_override_create`) | install-time association setting | [08](08-actions.md#create-override-replacing-the-native-add-record-form) · [glossary](glossary.md#action_override_create) |
 | `actions/<name>/` | artifact directory | [03](03-manifest-reference.md#actionsname) · [08](08-actions.md#directory-layout) |
 | `actions` step (assistant) | assistant section | [13](13-setup-assistants.md#4-actions--the-record-action--object-mapping-step) |
-| `action_type` | step config field | [07](07-automation-steps.md#action_type) |
+| `action_type` | step config field — **rejected since packager 0.8.0** (`automation-step/removed-field`) | [07](07-automation-steps.md#build-time-validation) |
+| `agentic_description` | manifest field | [03](03-manifest-reference.md#agentic_description) |
 | `POST /api/activities` | REST endpoint | [05](05-platform-api.md#post-apiactivities) |
 | `GET /api/activities` | REST endpoint | [05](05-platform-api.md#get-apiactivities) |
 | `POST /api/activities/{activity_identifier}/log-activity` | REST endpoint | [05](05-platform-api.md#post-apiactivitiesactivity_identifierlog-activity) |
@@ -57,6 +58,7 @@
 | Agentic Workflow | vocabulary | [glossary](glossary.md#agentic-workflow) · [07](07-automation-steps.md) |
 | `allowed_values` | step parameter field | [07](07-automation-steps.md#allowed_values) |
 | `api_name` (manifest / per artifact) | manifest & artifact config field | [03](03-manifest-reference.md#api_name) · [03](03-manifest-reference.md#artifact-api_name-resolution) · [07](07-automation-steps.md#api_name) · [08](08-actions.md#api_name) · [09](09-blocks.md#api_name) · [12](12-routes-calendars-adornments-settings.md#api_name-route-script) · [12](12-routes-calendars-adornments-settings.md#api_name-calendar-source) · [12](12-routes-calendars-adornments-settings.md#api_name-object-settings-menu-item) · [glossary](glossary.md#api_name) |
+| `api_key` (assistant field type) | assistant field type | [13](13-setup-assistants.md#515-api_key) |
 | `this.applicationPath` | `this.*` data member | [04](04-worker-runtime-api.md#thisapplicationpath) |
 | `this.args` | `this.*` data member | [04](04-worker-runtime-api.md#thisargs) |
 | `assistant.json` | assistant config file | [13](13-setup-assistants.md#assistantjson-shape) |
@@ -70,6 +72,7 @@
 | `auth_type: "oauth"` | service field | [03](03-manifest-reference.md#auth_type-oauth) · [06](06-auth-secrets-services.md#auth_type-oauth-with-auth_level-user) · [06](06-auth-secrets-services.md#auth_type-oauth-with-auth_level-business) |
 | `auth_type: "password_token_exchange"` | service field | [06](06-auth-secrets-services.md#auth_type-password_token_exchange) |
 | `GET\|POST /api/automations/{automation_identifier}/webhook/{webhook_name}` | REST endpoint | [05](05-platform-api.md#getpost-apiautomationsautomation_identifierwebhookwebhook_name) |
+| `automation-step/*` (validation rules) | build rule family | [07](07-automation-steps.md#build-time-validation) |
 | `automationSteps/<name>/` | artifact directory | [03](03-manifest-reference.md#automationstepsname) · [07](07-automation-steps.md#directory-layout) |
 | `base_config` | manifest field | [03](03-manifest-reference.md#base_config) · [glossary](glossary.md#base_config) |
 | `base_config.disabled_keys` | manifest field | [13](13-setup-assistants.md#95-base_configdisabled_keys) |
@@ -99,6 +102,8 @@
 | `this.console` | `this.*` data member | [04](04-worker-runtime-api.md#thisconsole) |
 | `GET /api/constants/currencies` | REST endpoint | [05](05-platform-api.md#get-apiconstantscurrencies) |
 | `container` (assistant field type) | assistant field type | [13](13-setup-assistants.md#52-container) |
+| `.copilot-docs/` (fetched docs corpus, gitignored) | repo directory | [02](02-getting-started.md#copilot-code-review) |
+| `copilot-code-review.yml` (`.github/workflows/`) | scaffolded workflow | [02](02-getting-started.md#copilot-code-review) |
 | `this.copyToClipboard(text)` | `this.*` method | [04](04-worker-runtime-api.md#thiscopytoclipboardtext) |
 | `this.createDateObject(dateString)` | `this.*` method | [04](04-worker-runtime-api.md#thiscreatedateobjectdatestring) |
 | `create_field_options` (outputs only) | step parameter field | [07](07-automation-steps.md#create_field_options-outputs-only) |
@@ -124,7 +129,7 @@
 | Dashlet chrome contract (`dashletStyleConfig.dropShadow`) | concept | [09](09-blocks.md#the-dashlet-chrome-contract--paint-your-own-card) |
 | `dataAdornments/<name>/` | artifact directory | [03](03-manifest-reference.md#dataadornmentsname) · [12](12-routes-calendars-adornments-settings.md#declaration--directory-layout-2) |
 | `data-script` (event dispatch attribute) | identifier | [11](11-output-ui-iframes-frames.md#data-script-event-dispatch) · [glossary](glossary.md#data-script) |
-| `data_type` | step parameter field | [07](07-automation-steps.md#data_type) · [07](07-automation-steps.md#data_type-reference) |
+| `data_type` | step parameter field | [07](07-automation-steps.md#data_type) · [07](07-automation-steps.md#data_type-reference) · [07](07-automation-steps.md#build-time-validation) |
 | `this.debug` | `this.*` data member | [04](04-worker-runtime-api.md#thisdebug) |
 | `default_position` | frame config field | [11](11-output-ui-iframes-frames.md#default_position) |
 | `default` (step parameter) | step parameter field | [07](07-automation-steps.md#default) |
@@ -203,6 +208,7 @@
 | `label` (step parameter / settings item) | artifact config field | [07](07-automation-steps.md#label) · [12](12-routes-calendars-adornments-settings.md#label) |
 | `link` (assistant field type) | assistant field type | [13](13-setup-assistants.md#512-link) |
 | `this.location` | `this.*` data member | [04](04-worker-runtime-api.md#thislocation) |
+| `manifest/reserved-api-name` | validation rule | [03](03-manifest-reference.md#10-validation-rules) |
 | `manifest/setup-assistant-*` (validation rules) | validation rule | [13](13-setup-assistants.md#125-packaging-validation) · [03](03-manifest-reference.md) |
 | `match` / `ignore` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#match-ignore) |
 | `message_handler` (`message.js`) | artifact config field | [11](11-output-ui-iframes-frames.md#message_handler-routing) · [03](03-manifest-reference.md#floatingframesname) |
@@ -216,6 +222,7 @@
 | `npx --yes @kizenapps/cli` (the CLI) | CLI | [02](02-getting-started.md#the-cli-kizenappscli) · [glossary](glossary.md#cli-kizenappscli) |
 | `npx --yes @kizenapps/cli encrypt` | CLI command | [06](06-auth-secrets-services.md#the-encrypt-command) |
 | `npx --yes @kizenapps/cli report` | CLI command | [02](02-getting-started.md#the-cli-kizenappscli) · [examples](examples/README.md#regenerating) |
+| `npx --yes @kizenapps/cli setup-copilot` | CLI command | [02](02-getting-started.md#the-cli-kizenappscli) · [02](02-getting-started.md#copilot-code-review) |
 | `number` (assistant field type) | assistant field type | [13](13-setup-assistants.md#55-number) |
 | OAuth callback (only unauthenticated inbound path) | concept | [06](06-auth-secrets-services.md#6-the-oauth-callback) · [05](05-platform-api.md#11-inbound-ingestion) |
 | `this.objectId` / `this.entityId` | `this.*` data member | [04](04-worker-runtime-api.md#thisobjectid--thisentityid) |
@@ -228,6 +235,7 @@
 | `this.outputIframe(url, allow?, sandbox?, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thisoutputiframeurl-allow-sandbox-options) · [11](11-output-ui-iframes-frames.md#thisoutputiframeurl-allow-sandbox-options) |
 | `outputs.log(message)` | Python step global | [07](07-automation-steps.md#outputslogmessage) |
 | `outputs` (Python step global) | Python step global | [07](07-automation-steps.md#outputs) |
+| `overall_description` | step config field — **rejected since packager 0.8.0** (`automation-step/removed-field`); plugin-level text moved to manifest `agentic_description`, per-step text is `action_description` | [07](07-automation-steps.md#build-time-validation) |
 | `output_target` (do not use) | step parameter field | [07](07-automation-steps.md#output_target--do-not-use) |
 | `this.outputUI(markup, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thisoutputuimarkup-options) · [11](11-output-ui-iframes-frames.md#thisoutputuimarkup-options) |
 | `this.outputView(viewId, args?)` (unsupported) | `this.*` method | [04](04-worker-runtime-api.md#thisoutputviewviewid-args--not-supported) · [10](10-views-modals-forms.md#thisoutputviewviewid-args--unsupported) · [11](11-output-ui-iframes-frames.md#thisoutputviewviewid-args--unsupported) |
@@ -239,9 +247,10 @@
 | `this.patch(url, body?, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thispatchurl-body-options) |
 | `this.patchWithErrors(url, body, options?)` | `this.*` method | [04](04-worker-runtime-api.md#thispatchwitherrorsurl-body-options) |
 | `POST /api/permission-group` | REST endpoint | [05](05-platform-api.md#post-apipermission-group) |
+| `{{plan.*}}` / `{{entitlement.*}}` | `when` namespace (setup assistants only) | [13](13-setup-assistants.md#6-when-inside-the-assistant) |
 | `this.pluginApiName` | `this.*` data member | [04](04-worker-runtime-api.md#thispluginapiname) |
 | `{plugin_api_name}__{secret_name}` (secret naming) | naming convention | [06](06-auth-secrets-services.md#secret-storage-plugin_api_name__secret_name) |
-| `plugin_description` | step config field | [07](07-automation-steps.md#plugin_description) |
+| `plugin_description` | step config field — **rejected since packager 0.8.0** (`automation-step/removed-field`); plugin-level text moved to manifest `agentic_description`, per-step text is `action_description` | [07](07-automation-steps.md#build-time-validation) |
 | `/plugins/{plugin_api_name}/{page_api_name}` (page route) | URL convention | [10](10-views-modals-forms.md#routable-pages--pluginsplugin_api_namepage_api_name) |
 | `this.postFormData(url, data, createNewTab?)` | `this.*` method | [04](04-worker-runtime-api.md#thispostformdataurl-data-createnewtab) |
 | `kizen.api.post(path, data=None, json=None, headers=None, **kwargs)` | Python `kizen.api` | [07](07-automation-steps.md#methods) · [07](07-automation-steps.md#response-object) |
@@ -254,6 +263,7 @@
 | `this.put` (does not exist) | `this.*` method | [04](04-worker-runtime-api.md#there-is-no-thisput) |
 | `kizen.api.put(path, data=None, json=None, headers=None, **kwargs)` | Python `kizen.api` | [07](07-automation-steps.md#methods) · [07](07-automation-steps.md#response-object) |
 | `qr` (assistant field type) | assistant field type | [13](13-setup-assistants.md#511-qr) |
+| `radio` (assistant field type) | assistant field type | [13](13-setup-assistants.md#514-radio) |
 | Rate limits & retries | convention | [05](05-platform-api.md#rate-limits) · [07](07-automation-steps.md#rate-limits-and-retries) · [15](15-errors-and-observability.md#8-retries-and-rate-limits) |
 | `recommended_height` | block config field | [09](09-blocks.md#recommended_height) |
 | `POST /api/records/{object}/add` | REST endpoint | [05](05-platform-api.md#post-apirecordsobjectadd) |
@@ -282,12 +292,15 @@
 | `this.runEventScript(scriptName, args?)` | `this.*` method | [04](04-worker-runtime-api.md#thisruneventscriptscriptname-args) · [14](14-navigation-and-communication.md#thisruneventscriptscriptname-args) |
 | `this.communicate.runFrameScript(frameAPIName, scriptId, args?)` | `communicate.*` method | [04](04-worker-runtime-api.md#thiscommunicaterunframescriptframeapiname-scriptid-args) · [14](14-navigation-and-communication.md#thiscommunicaterunframescriptframeapiname-scriptid-args) |
 | `runtime` | step config field | [07](07-automation-steps.md#runtime) |
+| `runtime/unavailable-global` | validation rule | [03](03-manifest-reference.md#10-validation-rules) · [19](19-sharing-code-between-scripts.md#what-changes-for-existing-plugins) · [04](04-worker-runtime-api.md#1-execution-model) |
 | `scope` (service caller restriction) | service field | [06](06-auth-secrets-services.md#field-scope-caller-identity-restriction) |
-| `script_alias` | step parameter field | [07](07-automation-steps.md#script_alias) |
+| `script_alias` | step config & parameter field — **rejected since packager 0.8.0** (`automation-step/removed-field`) | [07](07-automation-steps.md#build-time-validation) |
 | `script` (step config) | step config field | [07](07-automation-steps.md#script) |
+| `secret` (assistant field prop) | assistant field prop | [13](13-setup-assistants.md#515-api_key) |
 | `{{secret.KEY}}` templating | service field syntax | [03](03-manifest-reference.md#secretkey-templating) · [06](06-auth-secrets-services.md#secretkey-templating-in-service-config) |
 | `secrets` (Python step global) | Python step global | [07](07-automation-steps.md#secrets-inside-a-step) · [06](06-auth-secrets-services.md#reading-secrets-python-steps-only) |
 | `secrets` (step config) | step config field | [07](07-automation-steps.md#secrets) |
+| `security/*` (validation rules) | build rule family | [06](06-auth-secrets-services.md#security-rules-the-build-enforces) |
 | `select` (dynamic / async options) | assistant field type | [13](13-setup-assistants.md#57-select-dynamic--async-options) |
 | `select` (static options) | assistant field type | [13](13-setup-assistants.md#56-select-static-options) |
 | `this.communicate.sendMessageToOwnFrame(payload, targetOrigin)` | `communicate.*` method | [04](04-worker-runtime-api.md#thiscommunicatesendmessagetoownframepayload-path) · [14](14-navigation-and-communication.md#thiscommunicatesendmessagetoownframepayload-targetorigin) |
@@ -312,6 +325,7 @@
 | `POST /api/smart-connectors/{connector_identifier}/webhook` | REST endpoint | [05](05-platform-api.md#post-apismart-connectorsconnector_identifierwebhook) |
 | `Stage` | step data type | [07](07-automation-steps.md#stage) |
 | `step_history_template` | step config field | [07](07-automation-steps.md#step_history_template) |
+| `structure/reserved-api-name` | validation rule | [03](03-manifest-reference.md#10-validation-rules) |
 | `GET /api/team` | REST endpoint | [05](05-platform-api.md#get-apiteam) |
 | `GET /api/team/{employee_id}` | REST endpoint | [05](05-platform-api.md#get-apiteamemployee_id) |
 | `POST /api/team/search` | REST endpoint | [05](05-platform-api.md#post-apiteamsearch) |
@@ -331,7 +345,7 @@
 | `views/<name>/` | artifact directory | [03](03-manifest-reference.md#viewsname) · [10](10-views-modals-forms.md#directory-layout-and-configjson) |
 | View-based setup assistant | concept | [13](13-setup-assistants.md#12-view-based-setup-assistants) · [glossary](glossary.md#view-based-setup-assistant) |
 | `this.wait(ms)` | `this.*` method | [04](04-worker-runtime-api.md#thiswaitms) |
-| `when` | artifact config field / gating clause | [03](03-manifest-reference.md#when-conditions) · [07](07-automation-steps.md#when) · [09](09-blocks.md#when) · [11](11-output-ui-iframes-frames.md#when) · [12](12-routes-calendars-adornments-settings.md#when-gating-on-these-surfaces) · [13](13-setup-assistants.md#6-when-inside-the-assistant) · [glossary](glossary.md#when-clause) |
+| `when` | artifact config field / gating clause (assistant-only `{{plan.*}}` / `{{entitlement.*}}` namespaces) | [03](03-manifest-reference.md#when-conditions) · [07](07-automation-steps.md#when) · [09](09-blocks.md#when) · [11](11-output-ui-iframes-frames.md#when) · [12](12-routes-calendars-adornments-settings.md#when-gating-on-these-surfaces) · [13](13-setup-assistants.md#6-when-inside-the-assistant) · [glossary](glossary.md#when-clause) |
 | `width` / `height` (floating frame) | frame config field | [11](11-output-ui-iframes-frames.md#width-height) |
 | `*WithErrors` tuple convention | convention | [15](15-errors-and-observability.md#5-the-witherrors-tuple-convention) |
 | Worker (execution model) | concept | [04](04-worker-runtime-api.md#1-execution-model) · [glossary](glossary.md#worker) |

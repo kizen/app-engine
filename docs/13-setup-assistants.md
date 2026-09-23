@@ -142,10 +142,11 @@ point at.
 
 At package time each string is resolved to the packaged action object (`{api_name, name, hint_object_name?}`,
 plus the minified script) and embedded into `base_config.setup_assistant.actions`. **A name that does
-not resolve to a packaged action fails packaging** with `structure/setup-assistant-action-ref`. This
-is the only structural validation performed against a **declarative** assistant's contents — nothing
-checks field types, prop names, or `services[].api_name`. The view-based form is validated more
-strictly ([§12.5](#125-packaging-validation)).
+not resolve to a packaged action fails packaging** with `structure/setup-assistant-action-ref`.
+Beyond this, a **declarative** assistant's fields get a handful of targeted checks — field-key shape,
+`api_key` secret references, and `select`/`radio` option lists
+([§12.5](#125-packaging-validation)) — but nothing checks field types, unknown props, or
+`services[].api_name`.
 
 The step renders, per action, a container labelled with the action's `name` containing:
 
@@ -178,12 +179,12 @@ assistant, including inside containers — it is the config key scripts read bac
 
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
-| `key` | string | packager + engine + renderer | Unique field id **and** the config key. Changing it is a breaking config migration. |
-| `type` | enum | packager + engine + renderer | One of the 11 types below. An unrecognized value renders an "invalid block" placeholder, not an error. |
+| `key` | string | packager + engine + renderer | Unique field id **and** the config key. Must not contain `.` — dotted accessors are reserved for the `plan`/`entitlement`/`config`/`userConfig` namespaces, and a dotted key fails the build with `manifest/setup-assistant-field-key-reserved`. Changing it is a breaking config migration. |
+| `type` | enum | packager + engine + renderer | One of the 13 types below. An unrecognized value renders an "invalid block" placeholder, not an error. |
 | `label` | string | packager + engine + renderer | Visible label. Ignored by `description`, `qr`, `image`. |
 | `when` | string | packager + engine + renderer | Visibility expression over other assistant keys. §6 |
-| `tooltip` | string | engine + renderer | Info icon / label hint next to the label. Not on `description`, `container`, `qr`, `image`, `link`. |
-| `required` | boolean | engine + renderer | Blocks save when the field is visible and empty. §5.0.1 |
+| `tooltip` | string | packager + engine + renderer | Info icon / label hint next to the label. Not on `description`, `container`, `qr`, `image`, `link`. |
+| `required` | boolean | packager + engine + renderer | Blocks save when the field is visible and empty. §5.0.1 |
 | `default` | string \| boolean \| number | packager + engine + renderer | Pre-filled value. Typed `string` in both type packages but booleans/numbers work and are used. |
 | `placeholder` | string | packager + engine + renderer | Empty-state text on input fields. **Overridden by `default` on `text`/`number`** — those render `default` as the placeholder when set. |
 | `allow_multiple` | boolean | packager + engine + renderer | Multi-select. Meaningful on `select`, `field`, `custom_object`. |
@@ -199,7 +200,9 @@ Validation runs once, on save (there is no per-keystroke validation):
 - Fields whose `when` currently evaluates false are **excluded** from validation entirely.
 - `required: true` + empty ⇒ `This field is required`. "Empty" is type-aware: no id for
   `custom_object`, no field id for `field`, whitespace-only for `text`, `NaN`/blank for `number`,
-  empty array for any `allow_multiple` variant, `false` for `boolean`.
+  empty array for any `allow_multiple` variant, `false` for `boolean`, no option selected for
+  `radio`, and — for `api_key` — no stored secret (`hasValue` false) **and** a blank or
+  whitespace-only entry.
 - `validation_pattern` is compiled with `new RegExp(...)` and tested against the value (falling back
   to `default`, then `""`). Failure message: `Value must match the pattern <pattern>`. Only checked
   when `required` passed — a field with both gets the required message first.
@@ -268,8 +271,8 @@ Checkbox. Saved value: raw `true` / `false`.
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
 | `default` | boolean | packager + engine + renderer | Initial state. Absent ⇒ `false`. |
-| `tooltip` | string | engine + renderer | Info icon beside the label. |
-| `required` | boolean | engine + renderer | Must be checked to save. |
+| `tooltip` | string | packager + engine + renderer | Info icon beside the label. |
+| `required` | boolean | packager + engine + renderer | Must be checked to save. |
 | `expanded`, `expandedLabel`, `indentLevel` | boolean / string / number | renderer only | Alternate stacked layout. Undeclared in both type packages; used by the built-in action-mapping step. Avoid in authored assistants. |
 
 ```json
@@ -292,9 +295,9 @@ Single-line string. Saved value: the string.
 |---|---|---|---|
 | `default` | string | packager + engine + renderer | Pre-filled value. Also used as the placeholder text. No `{{}}` interpolation. |
 | `placeholder` | string | packager + engine + renderer | Only visible when `default` is absent. |
-| `required` | boolean | engine + renderer | |
+| `required` | boolean | packager + engine + renderer | |
 | `validation_pattern` | string | engine + renderer | Regex, checked on save. |
-| `tooltip` | string | engine + renderer | |
+| `tooltip` | string | packager + engine + renderer | |
 
 ```json
 {
@@ -321,8 +324,8 @@ Numeric input. Saved value: a `Number`.
 |---|---|---|---|
 | `default` | number | packager + engine + renderer | Pre-filled; also the placeholder. |
 | `placeholder` | string | packager + engine + renderer | |
-| `required` | boolean | engine + renderer | |
-| `tooltip` | string | engine + renderer | |
+| `required` | boolean | packager + engine + renderer | |
+| `tooltip` | string | packager + engine + renderer | |
 | `validation_pattern` | string | engine + renderer | Applies to the raw string. |
 
 Left blank, **the key is absent from the saved config** — not `0`, not `null`. Read it defensively:
@@ -337,12 +340,12 @@ Dropdown. Saved value: the whole `{label, value}` option object, or an array of 
 
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
-| `options` | `{label, value}[]` | packager + engine + renderer | Static option list. Presence of `options` alone does not make the select dynamic. |
+| `options` | `{label, value}[]` | packager + engine + renderer | Static option list. Presence of `options` alone does not make the select dynamic. An empty array fails the build (`manifest/setup-assistant-options-empty`), as do two options sharing a `value` (`manifest/setup-assistant-option-duplicate-value`). |
 | `allow_multiple` | boolean | packager + engine + renderer | Multi-select; value becomes an array. |
 | `placeholder` | string | packager + engine + renderer | |
-| `required` | boolean | engine + renderer | |
-| `tooltip` | string | engine + renderer | |
-| `default` | string | packager + engine + renderer | Raw fallback value when nothing is selected. |
+| `required` | boolean | packager + engine + renderer | |
+| `tooltip` | string | packager + engine + renderer | |
+| `default` | string | packager + engine + renderer | Raw fallback value when nothing is selected. With static `options` it must equal one option's `value`, or the build fails (`manifest/setup-assistant-option-default-mismatch`). |
 
 ```json
 {
@@ -425,7 +428,7 @@ Kizen field picker, scoped to an object. Saved value:
 
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
-| `object_id` | string | packager + engine + renderer | The object to pick fields from. Either a literal object id, or `"{{someKey}}"` referencing a **`custom_object`** field in the same assistant. |
+| `object_id` | string | packager + engine + renderer | The object to pick fields from. Either a literal object id, or `"{{someKey}}"` referencing a **`custom_object`** field in the same assistant. If that `custom_object` is `allow_multiple`, the first selected object is used. |
 | `match_hint` | string | engine + renderer | Field **name**. Pre-selects the matching field on the resolved object. |
 | `allow_multiple` | boolean | packager + engine + renderer | Value becomes an array of the same shape. |
 | `required`, `tooltip`, `placeholder`, `when` | | as above | |
@@ -442,7 +445,8 @@ Kizen field picker, scoped to an object. Saved value:
 
 `{{...}}` in `object_id` is **not** the expression worker — it is a direct state lookup that only
 resolves keys whose type is `custom_object`. Pointing it at a `text` or `select` key silently yields
-no object and the picker stays empty.
+no object and the picker stays empty. Pointing it at an `allow_multiple` `custom_object` resolves to
+the first selected object only.
 
 Note the saved value carries the field **id**, not the field api_name.
 
@@ -540,10 +544,10 @@ Saved value: the whole `{label, value}` option object, same shape as `select`.
 
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
-| `options` | `{label, value, disabled?}[]` | packager + engine + renderer | The options rendered as one joined segmented control. Any number is legal; the control wraps rather than overflowing. |
+| `options` | `{label, value, disabled?}[]` | packager + engine + renderer | The options rendered as one joined segmented control. An explicit empty array, two options sharing a `value`, or a `default` that matches no option is a build error (§12.5); omitting `options` altogether is not caught and fails at render time. Beyond that any number is legal; the control wraps rather than overflowing. |
 | `default` | string | packager + engine + renderer | The **initially-selected** option's value — unlike `select`'s `default`, which is only a validation-time fallback, this is what actually renders selected before the user touches the field. |
-| `required` | boolean | engine + renderer | |
-| `tooltip` | string | engine + renderer | |
+| `required` | boolean | packager + engine + renderer | |
+| `tooltip` | string | packager + engine + renderer | |
 
 An option's own `disabled` is a `when`-style expression (§6). When it evaluates true:
 
@@ -566,6 +570,11 @@ An option's own `disabled` is a `when`-style expression (§6). When it evaluates
 
 Read it as `this.config.billingMode?.value`, same as `select`.
 
+Before the first save, the `default` fallback that artifact `when` clauses see (§9.4) is the bare
+value string (`"kizen"`), not an option object — so `{{config.billingMode}}?.value` is `undefined`
+until someone saves the assistant. Write artifact expressions that tolerate both shapes, e.g.
+`({{config.billingMode}}?.value ?? {{config.billingMode}}) === 'kizen'`.
+
 ---
 
 ### 5.15 `api_key`
@@ -575,9 +584,11 @@ Renders a masked, read-only field once the secret has a value.
 
 | Prop | Type | Recognized by | Meaning |
 |---|---|---|---|
-| `secret` | string | packager + engine + renderer | Must name an entry already declared in `base_config.secrets` (§9.5). Install pre-creates an empty Integration Secret row for it; this field fills that row, it never creates one. |
-| `required` | boolean | engine + renderer | Satisfied once the secret already has a value — reopening a finished setup never demands a key the user can't read back. |
-| `tooltip` | string | engine + renderer | |
+| `secret` | string | packager + engine + renderer | Must name an entry already declared in `base_config.secrets` ([declaring secrets](06-auth-secrets-services.md#declaring-secrets-base_configsecrets)). A missing `secret` fails the build with `manifest/setup-assistant-api-key-missing-secret`; one not in `base_config.secrets` fails with `manifest/setup-assistant-undeclared-secret`. The field normally fills the empty Integration Secret row install pre-created for it; if that row is missing, the host creates it on save. |
+| `required` | boolean | packager + engine + renderer | Satisfied once the secret already has a value — reopening a finished setup never demands a key the user can't read back. |
+| `tooltip` | string | packager + engine + renderer | |
+| `placeholder` | string | packager + engine + renderer | Empty-state text on the input. Default `Enter API key`. |
+| `default` | — | — | **Not allowed.** A literal `default` would put a plaintext credential in the manifest; it fails the build with `manifest/setup-assistant-api-key-default`. |
 
 Stored/in-assistant shape is deliberately not the plaintext:
 
@@ -602,19 +613,26 @@ Behavior worth knowing:
 
 - A fresh value never lands in `__kizen_clean_config` (§9.3) or `__kizen_setup_assistant_values` as
   plaintext — `getProcessedAssistantConfig` extracts it into `secretsToCreate`, sanitizing the stored
-  copy down to `{ hasValue }` in the same pass.
+  copy down to `{ type: 'api_key', hasValue: true }` in the same pass.
 - A field hidden by `when` at save time (per the host's `includedKeys`, from `validateForm()`) has its
-  plaintext stripped like any other save, but its existing `hasValue` is preserved rather than dropped
-  - so the field doesn't look empty if/when it's shown again; its secret is never overwritten.
+  plaintext stripped like any other save, but its existing `hasValue` is preserved rather than dropped,
+  so the field doesn't look empty if/when it's shown again; its secret is never overwritten.
 - A user without permission to manage Integration Secrets gets a read-only explanation instead of an
   editable — or worse, silently non-functional — input.
 
 Persisting the extracted secrets is the host's job. Pass `saveSecret` (and `pluginApiName`) directly to
-`getProcessedAssistantConfig(currentAssistantConfig, setupAssistantConfig, { pluginApiName, saveSecret, includedKeys })` -
-it persists each secret via your callback in the same pass that builds the config, so you don't need a
-second, separate call (and a second sanitization pass) just to save the secrets `secretsToCreate`
-reports. Both `pluginApiName` and `saveSecret` are optional - omit `saveSecret` to get `secretsToCreate`
-back without the function persisting anything itself.
+`await getProcessedAssistantConfig(currentAssistantConfig, setupAssistantConfig, { pluginApiName, saveSecret, includedKeys })` -
+the function is async and returns a Promise. It persists each secret via your callback in the same pass
+that builds the config, so you don't need a second, separate call (and a second sanitization pass) just
+to save the secrets `secretsToCreate` reports. Both options are optional - omit `saveSecret` to get
+`secretsToCreate` back without the function persisting anything itself - but pass `pluginApiName`
+whenever you pass `saveSecret`, or the callback receives `pluginApiName: ''`.
+
+- `saveSecret` calls are awaited one at a time, in field order. A rejection rejects the whole call,
+  and secrets already saved earlier in the loop are not rolled back.
+- An `api_key` field holding a fresh value but declaring no `secret` throws
+  `api_key field "<key>" does not declare a secret`. The packager's
+  `manifest/setup-assistant-api-key-missing-secret` rule normally catches this at build time.
 
 ---
 
@@ -645,8 +663,8 @@ repeat the parent condition on every child.
 > addressed with a scope prefix: `{{config.enableReports}}` / `{{userConfig.enableReports}}`. Mixing
 > them up is the single most common setup-assistant mistake.
 
-Two more namespaces are always prefixed, in **both** the assistant's own `when`/option-`disabled` and
-artifact `when` clauses — there is no bare form:
+Two more namespaces are available **only inside the assistant** — in a field's `when` and an option's
+`disabled` — and are always prefixed; there is no bare form:
 
 | Accessor | Reads |
 |---|---|
@@ -654,9 +672,12 @@ artifact `when` clauses — there is no bare form:
 | `{{entitlement.<key>}}` | One flat segment, same rule. |
 
 Both are read-only — they never reach plugin config or the assistant's saved values, no matter what
-the expression does with them. An unknown key under either resolves to `null`, so an expression
-written against a newer flag than the current business has falls to the hidden/disabled branch
-instead of throwing.
+the expression does with them. An unknown key under either resolves to `null` rather than throwing,
+so write the expression so that `null` lands on the branch you want: an expression written against a
+newer flag than the current business has sees `null`, not an error.
+
+Artifact `when` clauses (§9.4) recognize the `{{plan.*}}` / `{{entitlement.*}}` syntax, but the host
+supplies no plan or entitlement state there, so every such accessor resolves to `null`.
 
 ---
 
@@ -788,9 +809,10 @@ attached to that field:
 Rules:
 
 - **Arrow-function expressions only.** The packager wraps the file's source into a self-invoking call
-  of the form `(<yourFunction>)({ state, args, utils })`. A file containing statements, a named
-  function declaration, or an `export` will not package into anything runnable. Leading `//` comments
-  are fine; a single trailing `;` and trailing newline are stripped.
+  of the form `(<yourFunction>)({ state, args, utils })`. A file containing statements or a named
+  function declaration will not package into anything runnable, and an `export` is a build error
+  (`imports/script-export`). Leading `//` comments are fine; a single trailing `;` and trailing
+  newline are stripped.
 - Destructure `{ state }` — that is the only argument you need. `args` is always `{}` for assistant
   scripts and `utils` is an empty object.
 - Files are matched by directory name to field `key`, including keys **nested inside containers**.
@@ -800,7 +822,8 @@ Rules:
   apply; an `import` here is a build error (`imports/assistant-script`). Inline what they need.
 - Each script is evaluated inside an **isolated expression worker** — the same one-shot module worker
   that runs `when` (§6), spawned and terminated per evaluation. The usual worker global constraints
-  therefore apply (no `window`, `document`, DOM, or `localStorage`), and there is no `this`, no
+  therefore apply (no `window`, `document`, DOM, or `localStorage` — referencing `window` or
+  `document` fails the build with `runtime/unavailable-global`), and there is no `this`, no
   `this.getServiceUrl`, no runtime-context API at all — so none of the `this.*` calls shown in §13
   or §16 (which are ordinary artifact scripts) are available here, and conversely `state` exists only
   in these five files. Build proxy URLs by hand:
@@ -842,7 +865,9 @@ On save the assistant:
 
 **A field hidden by `when` at save time has its key removed from both stores.** Toggling a feature off
 and saving does not leave a stale value behind — it deletes it. Toggling it back on restores the
-field's `default`, not the previous answer.
+field's `default`, not the previous answer. The one exception is `api_key` (§5.15): a hidden
+`api_key` field keeps `{ type: 'api_key', hasValue }` in `__kizen_setup_assistant_values`, and its
+secret is not written.
 
 ### 9.2 Storage per scope
 
@@ -859,9 +884,10 @@ field's `default`, not the previous answer.
 | `text` | `string` (falls back to `default` when blank) |
 | `number` | `Number`. **Key absent** when blank or unparseable. |
 | `select` | `{label, value}` — or `{label, value}[]` when `allow_multiple` |
+| `radio` | `{label, value}` — the selected option object; read `.value`. **Key absent** when nothing is selected. |
 | `custom_object` | `{objectId, objectName}` |
 | `field` | `{fieldId, fieldName, objectId, objectName}` — array when `allow_multiple` |
-| `description`, `container`, `qr`, `image`, `link` | never present — these types produce no value |
+| `description`, `container`, `qr`, `image`, `link`, `api_key` | never present — these types produce no value (an `api_key` value lives only in Integration Secrets) |
 
 A key whose value did not clean successfully is simply absent. `this.config` is a proxy that returns
 `undefined` for unknown keys, so `this.config.neverSet` never throws.
@@ -974,7 +1000,9 @@ plugin-app record, then runs a post-enable chain:
 
 So the full first-run experience for a plugin with all three is: import → assistant → secret 1 →
 secret 2 → done. See [auth, secrets & services](06-auth-secrets-services.md) for how those secrets are
-named (`<plugin_api_name>__<secret_name>`) and consumed.
+named (`<plugin_api_name>__<secret_name>`) and consumed. An [`api_key` field](#515-api_key) can
+fill a declared secret from inside the assistant instead, so the user enters it alongside the rest of
+setup.
 
 ### 11.2 Marketplace detail panels
 
@@ -1149,7 +1177,9 @@ whether `this.config` is already populated.
 
 ### 12.5 Packaging validation
 
-Unlike the declarative form, the view-based form is checked at package time (§4). Six rules:
+Both forms are checked at package time. The first six rules below apply to the assistant's shape and
+to the view-based form; the last seven apply only to a declarative assistant's `fields`, recursing
+into `container` children:
 
 | Rule | Severity | Fires when |
 |---|---|---|
@@ -1159,6 +1189,13 @@ Unlike the declarative form, the view-based form is checked at package time (§4
 | `manifest/setup-assistant-parse` | error | `assistant.json` is not valid JSON, or parses to a non-object |
 | `manifest/setup-assistant-orphaned-field-scripts` | warning | `view` is set but the assistant directory still ships per-field scripts |
 | `manifest/setup-assistant-disabled-keys-ignored` | warning | `base_config.disabled_keys` is non-empty while any assistant on the plugin is view-based |
+| `manifest/setup-assistant-field-key-reserved` | error | A field `key` contains `.` |
+| `manifest/setup-assistant-api-key-missing-secret` | error | An `api_key` field has no `secret` |
+| `manifest/setup-assistant-undeclared-secret` | error | An `api_key` field's `secret` is not in `base_config.secrets` |
+| `manifest/setup-assistant-api-key-default` | error | An `api_key` field sets a literal `default` |
+| `manifest/setup-assistant-options-empty` | error | A `radio` or `select` field declares `options: []` |
+| `manifest/setup-assistant-option-duplicate-value` | error | Two options on one `radio` or `select` share a `value` |
+| `manifest/setup-assistant-option-default-mismatch` | error | A `radio` or `select` field's `default` matches no option `value` |
 
 Two of these are worth understanding rather than just fixing:
 
@@ -1418,41 +1455,36 @@ Three layers touch an assistant field, and they do not agree:
 
 | Layer | What it is | What it does with fields |
 |---|---|---|
-| **Packager type** (`SetupAssistantField` in `@kizenapps/packager`) | Compile-time TypeScript only | Nothing at runtime. Knows 8 types and 11 props. |
-| **Engine type** (`AssistantField` in `@kizenapps/engine`) | Compile-time TypeScript only | Nothing at runtime. Knows 11 types and ~30 props. |
+| **Packager type** (`SetupAssistantField` in `@kizenapps/packager`) | Compile-time TypeScript only | Nothing at runtime. Knows 10 types and 15 props. |
+| **Engine type** (`AssistantField` in `@kizenapps/engine`) | Compile-time TypeScript only | Nothing at runtime. Knows 13 types and 36 props. |
 | **Renderer** (the Kizen app's assistant UI) | Actually renders the form | The authority. Reads exactly the props documented per type above. |
 
 **The practical rule: the runtime set is what renders; untyped props pass through packaging
 untouched.** The packager's assistant pipeline is untyped internally — it spreads each field object,
-injects any matching per-field scripts, and emits it. It performs **no field-level validation
-whatsoever**. A field with a misspelled prop, an unknown `type`, or a prop from a newer engine
-packages and publishes cleanly and fails (or silently no-ops) at render time.
+injects any matching per-field scripts, and emits it. Its field-level validation is narrow: it checks
+field-key shape, `api_key` secret references, and `select`/`radio` option lists
+([§12.5](#125-packaging-validation)); everything else passes through. A field with a misspelled prop,
+an unknown `type`, or a prop from a newer engine packages and publishes cleanly and fails (or silently
+no-ops) at render time.
 
-Concretely, as of engine 1.9.3:
+Concretely, as of engine 1.10.0:
 
-- Types `qr`, `image`, `link`, `radio`, and `api_key` render, and are in the engine type, but are
-  **missing from the packager type**. `qr`/`image`/`link` are in everyday use; `radio`/`api_key` are
-  new (§5.14, §5.15) and packaging has not caught up to them yet.
+- Types `qr`, `image`, and `link` render, and are in the engine type, but are **missing from the
+  packager type**, even though they are in everyday use.
 - Props `getFetchUrl`, `optionMapper`, `getHeaders`, `getBody`, `getContextUrl`, `fetchMethod`,
-  `typeahead`, `autoSelect`, `required`, `tooltip`, `dependencies`, `validation_pattern`, `match_hint`,
-  `src`, `link`, `title`, `width`, `height`, `href`, `text`, `size`, `value`, `include`, and `secret`
-  all render but are **missing from the packager type**. (The packager *injects* the five script props
-  itself yet does not declare them.)
-- `services` is in the engine config type and is honored by the renderer, but is absent from the
-  packager config type. It passes through untyped.
+  `typeahead`, `autoSelect`, `dependencies`, `validation_pattern`, `match_hint`, `src`, `link`,
+  `title`, `width`, `height`, `href`, `text`, `size`, `value`, and `include` all render but are
+  **missing from the packager type**. (The packager *injects* the five script props itself yet does
+  not declare them.)
+- `services` is typed in both the engine and packager config types.
 - `actions` is deliberately different per layer: `string[]` when you author it, expanded to
   `{api_name, name, hint_object_name?}[]` at package time, which is what the renderer consumes. **Do
   not author objects.**
 
 Consequence for tooling: typechecking your authored `assistant.json` against the packager's exported
-types will produce false errors on `qr`/`image`/`link`/`tooltip`/`required` and most other props.
-Don't. Validate against the engine's `AssistantField` if you want types at all.
-
-This authored-type-lags-runtime pattern is not unique to assistants — Agentic Workflow step outputs are the
-same story, where the packager's `conflict_resolution` union omits `update_if_blank` even though the
-workflow builder offers `overwrite`, `update_if_blank`, `add_only`, `remove_only`, and
-`overwrite_except_null`. Treat every packager type as advisory. See
-[Agentic Workflow steps](07-automation-steps.md).
+types will produce false errors on `qr`/`image`/`link` and most type-specific props. Don't. Validate
+against the engine's `AssistantField` if you want types at all. Treat every packager type as
+advisory.
 
 ---
 
@@ -1813,9 +1845,10 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
   packaging fails with `structure/setup-assistant-action-ref`.
 - **Nothing validates `services[].api_name`.** A typo silently removes the entire OAuth prerequisite
   gate — setup looks complete while every proxy call fails.
-- **The assistant gets essentially zero packaging validation.** Unknown `type` values render an
-  "invalid block" placeholder; misspelled props are ignored. Both publish cleanly. Test the rendered
-  assistant, don't trust the build.
+- **The assistant gets only narrow packaging validation.** The build checks field-key shape, `api_key`
+  secret references, and `select`/`radio` option lists (§12.5), but unknown `type` values render an
+  "invalid block" placeholder and misspelled props are ignored — both publish cleanly. Test the
+  rendered assistant, don't trust the build.
 - **Any edit to the assistant re-prompts every business on next enable**, because the hash covers the
   whole definition including labels and ordering. That is the feature; just know a typo fix in a
   tooltip triggers it.
@@ -1833,8 +1866,9 @@ const calendarIds = (this.userConfig.myCalendars ?? []).map((c) => c.value);
   no `window`/`document` either. Build
   `/external-integrations/proxy/${state.pluginApiName}/<service>/<path>` by hand, and always use
   `state.pluginApiName` — preview builds suffix the api_name and a hardcoded literal 404s.
-- **Per-field script files must be arrow-function expressions.** Statements, function declarations, or
-  `export` produce a file that packages but cannot run.
+- **Per-field script files must be arrow-function expressions.** Statements or function declarations
+  produce a file that packages but cannot run; an `export` fails the build with
+  `imports/script-export`, and a `window`/`document` reference with `runtime/unavailable-global`.
 - **Guard dependent async selects.** `getFetchUrl` runs before the parent field is picked; return a
   valid URL (with a sentinel or a safe default) or the request errors and the dropdown is empty.
 - **Options-fetch failures are silent** — an empty dropdown, no toast. Only a `getContextUrl` failure

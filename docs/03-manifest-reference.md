@@ -70,6 +70,7 @@ example-plugin/
   "version": "2.3.0",
   "published": true,
   "description": "Syncs example records and exposes a dashboard block.\n\nRequires an Example account.",
+  "agentic_description": "Example Plugin — syncs example records into Agentic Workflows.",
   "external_link": "https://developer.example.com/kizen",
   "engine": "1.0.0",
   "entry": "src/",
@@ -162,9 +163,11 @@ Full discipline and the bump-size matrix live in
 
 ### `description`
 
-Marketplace body copy. Multiline is fine — embed `\n\n` for paragraphs. It also becomes the
-`overall_description` shown alongside plugin-provided Agentic Workflow steps in some surfaces,
-so keep it about the plugin, not about one feature.
+Marketplace body copy. Multiline is fine — embed `\n\n` for paragraphs. Keep it about the plugin,
+not about one feature.
+
+It does **not** feed the Agentic Workflow builder. That blurb is its own optional field,
+[`agentic_description`](#agentic_description).
 
 ### `engine`
 
@@ -172,7 +175,7 @@ Must be exactly `"1.0.0"`. The allowed-value list has a single entry; any other 
 with `manifest/engine-version`.
 
 This is a **frozen constant, not a capability selector.** The engine library itself is
-versioned independently (currently 1.9.1) and nothing at runtime branches on this field. New
+versioned independently (currently 1.10.0) and nothing at runtime branches on this field. New
 manifest or runtime capabilities never require an engine bump.
 
 ### `entry`
@@ -192,6 +195,7 @@ Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but n
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
+| `agentic_description` | string | none | Plugin-level blurb shown above this plugin's steps in the Agentic Workflow builder. |
 | `published` | boolean | `true` at the backend | `true` = listed in the Marketplace; `false` = published but unlisted. |
 | `release_notes_directory` | string | none | Directory holding `<version>.md` release-notes files. |
 | `release_branches` | string[] | repo default branch | Branches whose pushes produce a real release. |
@@ -203,6 +207,21 @@ Prefix matching is **segment-aware**: an `entry` of `src` claims `src/...` but n
 | `services` | object[] | `[]` | External service declarations for the request proxy. |
 | `developer_business_id` | string \| object | none | Business that owns dev/preview builds. |
 | `block_loading_for_setup` | boolean | computed | Set by the packager; do not author. |
+
+### `agentic_description`
+
+The plugin-level description the Agentic Workflow builder renders above this plugin's steps — the
+slot a per-step `plugin_description` used to fill. Optional, but when the key is present it must be
+a non-empty string or the build fails with `manifest/agentic-description`.
+
+Write it about the plugin as a whole: it is shown once, for every step the plugin publishes.
+Step-specific detail belongs in each step's
+[`action_description`](07-automation-steps.md#action_description).
+
+This is the only authoring path to that blurb: the per-step `plugin_description` and
+`overall_description` fields are
+[rejected at build time](07-automation-steps.md#build-time-validation). An app published before
+they were removed keeps showing the `overall_description` it shipped with until it republishes.
 
 ### `published`
 
@@ -334,16 +353,24 @@ Untyped JSON object that becomes the plugin's baseline configuration at publish 
 
 **`secrets`** — each entry becomes an integration secret named `{api_name}__{secret}` (so
 `api_key` on `example_plugin` becomes `example_plugin__api_key`). The secret rows are created
-empty when a business installs the plugin; an admin fills the values in the app. Scripts never
+empty when a business installs the plugin; an admin fills the values in the app, or through an
+[`api_key` setup-assistant field](13-setup-assistants.md#515-api_key) whose `secret` names the
+entry. Scripts never
 see the values directly for proxied services — the proxy injects them server-side — while
 Agentic Workflow step code reads them as `secrets['example_plugin__api_key']`.
 
-Publish-time validation enforces the declarations both ways:
+Every secret a plugin references must be declared here. The build catches most undeclared
+references:
 
-- every secret named in an Agentic Workflow step's `secrets` array must appear in
-  `base_config.secrets`;
-- every `{{secret.KEY}}` token used inside `services[].auth_credentials` or
-  `services[].base_service_url` must appear in `base_config.secrets`.
+- a secret named in an Agentic Workflow step's `secrets` array
+  (`automation-step/undeclared-secret`);
+- a `services[].auth_credentials` `token`, `password` or `client_secret` whose whole value is
+  `{{secret.KEY}}` (`security/undeclared-secret-reference`);
+- the `secret` of an `api_key` setup-assistant field (`manifest/setup-assistant-undeclared-secret`).
+
+Publish additionally rejects a `{{secret.KEY}}` anywhere else in `services[].base_service_url`,
+`services[].custom_headers` or any `services[].auth_credentials` value, including an embedded
+reference such as `"Bearer {{secret.X}}"`, when `KEY` is not in `base_config.secrets`.
 
 Entries must be unique, non-empty strings.
 
@@ -443,8 +470,10 @@ Manifest-level facts worth knowing here:
   build expands each string into the full action definition inside `base_config`.
 - `services[].api_name` is **not validated anywhere**. A typo silently removes the
   authorization prerequisite step instead of failing the build.
-- Field-level content receives essentially no build-time validation — malformed assistants
-  publish successfully and fail at runtime.
+- Field-level validation is limited to the seven setup-assistant field rules in
+  [§10](#build-time-rules) (dotted keys, `api_key` secrets and defaults, and radio/select
+  options). Everything else passes through — malformed assistants publish successfully and fail
+  at runtime.
 
 Field types, value shapes, async selects, the re-prompt behavior and host mount points are all
 covered in [Setup assistants](13-setup-assistants.md). This page stops at the manifest
@@ -662,13 +691,17 @@ above for you to paste into `kizen.json`. The publish pipeline decrypts them ser
 the plugin reaches any environment, so committing the ciphertext to a public repository is
 safe.
 
-Plaintext credential strings still function, but they are legacy: anyone with repository access
-reads them. Encrypt every credential in a repo that is or may become public.
+**A plaintext credential fails the build.** `security/plaintext-credential` rejects a bare string
+in `auth_credentials.token`, `.password` or `.client_secret` — `client_id` is exempt, since it is
+not a secret. Supply an encrypted envelope, a `{{secret.KEY}}` reference, or
+`integration_secret_api_name` instead, and rotate anything that was already committed in the clear.
+The rule and its siblings are enumerated in
+[security rules the build enforces](06-auth-secrets-services.md#security-rules-the-build-enforces).
 
 ### `{{secret.KEY}}` templating
 
-Inside `auth_credentials` and `base_service_url` you may reference a declared integration
-secret by token:
+Inside `auth_credentials`, `base_service_url` and `custom_headers` you may reference a declared
+integration secret by token:
 
 ```json
 {
@@ -682,8 +715,9 @@ secret by token:
 
 Tokens are resolved per request from the installing business's integration secrets, which is
 how one service definition serves per-tenant hosts. Every key used must appear in
-`base_config.secrets`, or publish fails. An unresolvable token at request time surfaces as a
-`400` from the proxy.
+`base_config.secrets`, or publish fails (a whole-value reference in `token`, `password` or
+`client_secret` fails the build first, as `security/undeclared-secret-reference`). An
+unresolvable token at request time surfaces as a `400` from the proxy.
 
 ---
 
@@ -773,8 +807,11 @@ src/                                  # = entry
 | `views/` | `routable_pages` | no | [10-views-modals-forms.md](10-views-modals-forms.md) |
 | `setupAssistant/`, `userSetupAssistant/` | folded into `base_config` | n/a | [13-setup-assistants.md](13-setup-assistants.md) |
 
-Directories other than these are ignored — a `helpers/` or `docs/` folder under `entry` is
-harmless.
+Directories other than these are not packaged as components — but a `helpers/` or `docs/`
+folder under `entry` is not invisible. Every `.js` file in it is still parsed and scanned by the
+`security/*` rules, and it is treated as a shared-module candidate: one that uses `import` or
+`export` is checked by `runtime/unavailable-global` and warns with `imports/unused-module` when no
+script imports it.
 
 ### Artifact `api_name` resolution
 
@@ -855,27 +892,25 @@ Plugin-provided Agentic Workflow steps, written in Python.
 |---|---|---|
 | `name` | string | Step name in the workflow builder. |
 | `api_name` | string | Step identity (published as `action_step_api_name`). Set it explicitly. |
-| `plugin_description` | string | Plugin-wide blurb (published as `overall_description`). |
 | `action_description` | string | What this step does. |
-| `action_type` | string | Legacy step type id; stored, never read at runtime. |
-| `runtime` | string | `"python 3.13"` / `"python-3-13"` (also 3.12). Normalized at package time. |
+| `runtime` | string | `"python 3.13"` (the default) or `"python 3.12"`. Normalized at package time. |
 | `secrets` | string[] | Bare secret names this step may read; each must be in `base_config.secrets`. |
 | `inputs` | object[] | Input parameter declarations. |
 | `outputs` | object[] | Output parameter declarations. |
 | `when` | string | Availability condition over install config. |
-| `step_history_template` | string | Optional template for the step's history line. |
+| `step_history_template` | string | Dropped by the packager; has no effect. |
 
 Parameter entry shape: `{name, label, data_type, required, input_source, hint_field_name,
-hint_related_object_field_name, script_alias}`; outputs add `conflict_resolution` and
-`create_field_options`.
+hint_related_object_field_name}`; outputs add `conflict_resolution` and `create_field_options`.
+
+`action_type`, `script_alias`, `plugin_description` and `overall_description` are **removed from
+the publish contract** — a config that still sets one fails the build.
 
 ```json
 {
   "name": "Fetch Example Record",
   "api_name": "fetch_example_record",
-  "plugin_description": "Example Plugin steps.",
   "action_description": "Fetches a record from the Example API and writes the result back.",
-  "action_type": "example_plugin_fetch_record",
   "runtime": "python 3.13",
   "secrets": ["api_key"],
   "inputs": [
@@ -890,7 +925,7 @@ hint_related_object_field_name, script_alias}`; outputs add `conflict_resolution
   ],
   "outputs": [
     {
-      "name": "status",
+      "name": "sync_status",
       "label": "Sync Status",
       "data_type": "string",
       "required": false,
@@ -906,9 +941,15 @@ hint_related_object_field_name, script_alias}`; outputs add `conflict_resolution
 Files: `config.json`, `script.py`. **`script.py` is shipped raw, not minified**, and a
 `"script"` key in `config.json` is ignored — the file on disk always wins.
 
+Step configs are validated at build time by the `automation-step/*` rules: `data_type`,
+`input_source`, `conflict_resolution`, `create_field_options`, `runtime`, the `secrets` subset,
+output-only keys on an input, `output_target` on outputs, the removed fields, and the shape of
+`inputs`/`outputs`. A wrong
+value fails `build` and `dev`, not the builder.
+
 `data_type` must be a **variable** type, not a field type. The authoring surface, the runtime
-contract, the `data_type` enum and conflict-resolution values are documented in
-[07-automation-steps.md](07-automation-steps.md).
+contract, the `data_type` enum, conflict-resolution values and the full rule table are documented
+in [07-automation-steps.md](07-automation-steps.md#build-time-validation).
 
 ### `blocks/<name>/`
 
@@ -1245,7 +1286,10 @@ Rules and consequences:
 ## 10. Validation rules
 
 Two gates fail a plugin: the packager's rule set (build time, before anything is sent) and the
-backend's publish validation. Warnings never fail a build.
+backend's publish validation. The build-time set spans six rule families — `manifest/*` and
+`structure/*` under build-time rules, `imports/*`, `runtime/*` and `security/*` under script
+rules, and `automation-step/*`, which its owning doc enumerates.
+Warnings never fail a build.
 
 ### Build-time rules
 
@@ -1255,13 +1299,16 @@ backend's publish validation. Warnings never fail a build.
 | `manifest/parse` | error | `kizen.json` is not valid JSON. |
 | `manifest/shape` | error | A manifest entry is not a JSON object. |
 | `manifest/required-field` | error | `version`, `api_name`, `name`, `description`, `engine` or `entry` missing/empty — or an optional field present with the wrong type. |
+| `manifest/agentic-description` | error | `agentic_description` is present but not a non-empty string. |
 | `manifest/version-format` | error | `version` is not `\d+.\d+.\d+`. |
 | `manifest/api-name-format` | error | `api_name` fails `/^[a-z_][a-z0-9_]+$/`. |
+| `manifest/reserved-api-name` | error | `api_name` is one of the 46 reserved names (field types, default Contact and object fields, and `notes`) that publish rejects with "API Name is reserved". |
 | `manifest/engine-version` | error | `engine` is not `"1.0.0"`. |
 | `manifest/entry-path` | error | `entry` fails `/^[a-zA-Z][a-zA-Z0-9_\-/]*$/`. |
 | `manifest/release-notes-directory-path` | error | `release_notes_directory` fails the same path pattern. |
 | `manifest/release-branches` | error | Not an array of non-empty strings. |
 | `manifest/release-environments` | error | Not an array, or contains an unknown environment/alias. |
+| `manifest/services-shape` | error | `services` is present but not an array, or one of its entries is not a JSON object. |
 | `manifest/developer-business-id` | error | Wrong shape, alias keys in the object form, or an empty id. |
 | `manifest/developer-business-id-environments` | **warning** | Flat string id with two or more resolved release environments. |
 | `manifest/duplicate-api-name` | error | Two entries in a multi-plugin manifest share an `api_name`. |
@@ -1272,10 +1319,18 @@ backend's publish validation. Warnings never fail a build.
 | `manifest/setup-assistant-view-not-found` | error | `view` matches no view in the plugin; a distinct message when the name matches a `pages/` component instead. |
 | `manifest/setup-assistant-orphaned-field-scripts` | **warning** | `view` is set but the assistant directory still ships per-field scripts, which are silently ignored. |
 | `manifest/setup-assistant-disabled-keys-ignored` | **warning** | `base_config.disabled_keys` is non-empty while at least one assistant on the plugin is view-based. |
+| `manifest/setup-assistant-field-key-reserved` | error | A declarative assistant field `key` contains a `.`. |
+| `manifest/setup-assistant-api-key-missing-secret` | error | An `api_key` field has no `secret` naming the `base_config.secrets` entry that supplies it. |
+| `manifest/setup-assistant-undeclared-secret` | error | An `api_key` field's `secret` is not in `base_config.secrets`. |
+| `manifest/setup-assistant-api-key-default` | error | An `api_key` field sets a literal `default`, storing a plaintext credential in the manifest. |
+| `manifest/setup-assistant-options-empty` | error | A `radio` or `select` field has `options: []`. |
+| `manifest/setup-assistant-option-duplicate-value` | error | Two options of a `radio` or `select` field share a `value`. |
+| `manifest/setup-assistant-option-default-mismatch` | error | A `radio` or `select` field's `default` matches none of its options' values. |
 | `structure/missing-config` | error | An artifact directory has no `config.json` (all types except `views/`). |
 | `structure/config-content` | error | `config.json` is empty. |
 | `structure/config-parse` | error | `config.json` is not valid JSON. |
 | `structure/api-name-format` | error | An artifact `api_name` — explicit or derived from the directory name — fails the api_name pattern. |
+| `structure/reserved-api-name` | error | An Agentic Workflow step's `api_name` (explicit or derived from its directory name), or the `name` of one of its `inputs[]`/`outputs[]`, is a reserved name — for example `files`, `email`, `status`, `name`, `first_name`, `owner` or `notes`. |
 | `structure/duplicate-api-name` | error | Two artifacts in the same directory resolve to the same `api_name`. |
 | `structure/duplicate-component-name` | error | The same name is used under both `pages/` and `views/`. |
 | `structure/fixed-frame-minimized-style` | error | Floating frame with a `*-fixed` position and `minimized_style` other than `circle`. |
@@ -1289,12 +1344,18 @@ backend's publish validation. Warnings never fail a build.
 `base_config.disabled_keys` — outside either assistant — and the host applies the same array to both. A plugin with one view-based and one declarative assistant
 still legitimately needs it; remove it only once no assistant on the plugin is declarative.
 
+One more family runs in the same pass, documented where the surface it checks is documented:
+
+| Family | Severity | Checks | Reference |
+|---|---|---|---|
+| `automation-step/*` | error | Every Agentic Workflow step `config.json`: `data_type`, `input_source`, `conflict_resolution`, `create_field_options`, `runtime`, the `secrets` subset, output-only keys on inputs, `output_target` on outputs, removed fields, and the shape of `inputs`/`outputs`. | [07-automation-steps.md](07-automation-steps.md#build-time-validation) |
+
 ### Script rules
 
 These parse every `.js` file under `entry`. The message carries the file and 1-based
 `line:column`. The `imports/*` rules are explained in
 [19-sharing-code-between-scripts.md](19-sharing-code-between-scripts.md#diagnostics); the
-`security/*` rules in [06-auth-secrets-services.md](06-auth-secrets-services.md).
+`security/*` rules in [06-auth-secrets-services.md](06-auth-secrets-services.md#security-rules-the-build-enforces).
 
 | Rule | Severity | Trigger |
 |---|---|---|
@@ -1307,7 +1368,7 @@ These parse every `.js` file under `entry`. The message carries the file and 1-b
 | `imports/unsupported-export` | error | `export default`, `export { x as default }`, a re-export, `export *`, a string export name, or `__proto__` as an export name. |
 | `imports/top-level-await` | error | `await` at the top level of a shared file. |
 | `imports/top-level-return` | error | `return` at the top level of a shared file. |
-| `imports/mutable-export` | **warning** | An exported `let`/`var`/`function`/`class` is reassigned after initialization, so importers read a stale snapshot. |
+| `imports/mutable-export` | **warning** | An exported `let`/`var`/`function`/`class` is reassigned later at run time — inside a function reachable from an export, or in a timer, promise or listener callback — so importers read a stale snapshot. A top-level reassignment is not flagged. |
 | `imports/script-export` | error | `export` in a component script. |
 | `imports/assistant-script` | error | `import` in a setup-assistant per-field script. |
 | `imports/module-parse` | error | An imported shared file fails to parse. |
@@ -1316,14 +1377,16 @@ These parse every `.js` file under `entry`. The message carries the file and 1-b
 | `imports/unused-module` | **warning** | A shared file that no script imports. |
 | `runtime/unavailable-global` | error | A free reference to a browser-page or Node.js global that does not exist in the Web Worker runtime — `window`, `document`, `localStorage`, `alert`, `requestIdleCallback`, `MutationObserver`, `importScripts`, `require`, `process`, `Buffer`, … `typeof window` feature checks are exempt; a locally declared binding of the same name is not a reference. |
 | `security/plaintext-credential` | error | `services[].auth_credentials.{token,password,client_secret}` holds a plaintext value instead of an encrypted envelope or a `{{secret.KEY}}` reference. |
+| `security/undeclared-secret-reference` | error | The whole value of `services[].auth_credentials.{token,password,client_secret}` is exactly `{{secret.KEY}}` and `KEY` is not in `base_config.secrets`. |
 | `security/malformed-envelope` | error | An `{"encrypted": true, "value": …}` envelope that cannot be deserialized. |
 | `security/dynamic-code` | error | `eval(...)`, `Function(...)`, `new Function(...)`, or `setTimeout`/`setInterval` with a string argument. |
 | `security/dangerously-skip-proxy` | **warning** | A script uses `__dangerouslySkipProxy`, so its requests leave the browser directly. |
 | `security/script-parse` | **warning** | A script could not be parsed, so the dynamic-code scan did not run on it. |
 
 Run these locally with `npx --yes @kizenapps/cli build` before pushing. The local CLI can lag the pipeline's
-rule set by a release, so a clean local build is a strong signal but not a guarantee. The CLI
-prints errors only — warnings (`imports/mutable-export`, `imports/unused-module`,
+rule set by a release, so a clean local build is a strong signal but not a guarantee. A passing
+local build prints no warnings; the CLI lists them only alongside errors when the build fails.
+Warnings (`imports/mutable-export`, `imports/unused-module`,
 `manifest/developer-business-id-environments`, …) surface on the pull-request check.
 
 ### Version-discipline rules (pull requests)
@@ -1346,8 +1409,7 @@ Errors the backend raises that no local build catches:
 | Duplicate version | A non-`0.0.0` version already exists for this plugin. |
 | Dev build must be unlisted | `version` is `0.0.0` without `published: false`. |
 | Missing developer business | A preview/dev build without `developer_business_id`. |
-| Undeclared step secret | An Agentic Workflow step lists a secret absent from `base_config.secrets`. |
-| Undeclared secret token | A `{{secret.KEY}}` token in `services` references a secret absent from `base_config.secrets`. |
+| Undeclared secret token | A `{{secret.KEY}}` the build does not check — in `base_service_url`, `custom_headers` or an `auth_credentials` key other than `token`/`password`/`client_secret`, or embedded in a longer string — references a secret absent from `base_config.secrets`. |
 | Invalid `base_config.secrets` | Not a list of unique non-empty strings. |
 | Invalid service accounts | `integration_service_accounts` entries with short api_names or colliding suffixes. |
 | Service validation | A `services` entry fails auth-shape validation for its `auth_type`. |
@@ -1365,14 +1427,9 @@ error as a build failure:
 
 - `ManifestFileContent` omits `external_link` and `required_entitlement`, both of which are
   real and required in practice.
-- `SetupAssistantConfig`/`SetupAssistantField` omit the `qr`, `image` and `link` field types
-  and about twenty real props (`required`, `tooltip`, `match_hint`, `dependencies`,
-  `validation_pattern`, async-select script hooks, …) plus the `services` key. The engine's
-  runtime field type is the real vocabulary.
-- `AutomationStep.outputs[].conflict_resolution` omits values the platform accepts (for
-  example `update_if_blank`).
-- Nothing validates Agentic Workflow step `inputs`/`outputs` at build time — mistakes there
-  surface at publish or when an admin saves the workflow.
+- `SetupAssistantField` omits the `qr`, `image` and `link` field types and many real props
+  (`match_hint`, `dependencies`, `validation_pattern`, async-select script hooks, …). The
+  engine's runtime field type is the real vocabulary.
 
 ---
 

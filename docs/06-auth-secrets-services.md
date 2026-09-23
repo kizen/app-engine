@@ -148,8 +148,10 @@ namespaced runtime name.
 ```
 
 Rules:
-- Publish rejects the plugin if a `{{secret.KEY}}` token references a secret not listed in
-  `base_config.secrets`.
+- A `{{secret.KEY}}` token must reference a secret listed in `base_config.secrets`. The build
+  catches this first when the whole value of `auth_credentials.token`, `.password` or
+  `.client_secret` is the reference (`security/undeclared-secret-reference`); publish rejects every
+  other undeclared reference.
 - At request time, an **unresolved** secret (declared but never filled in by an admin) makes the
   proxy return **HTTP 400**. That is the signature of "installed but not configured".
 
@@ -219,7 +221,8 @@ supplying `X-Proxy-Authorization`.
 > Unverified: some manifests in the wild declare `basic_auth_token_provided` with
 > `auth_credentials: { "token-field-name": "x-api-key", "token": "..." }`, apparently intending a
 > custom header. This shape is not part of the verified backend contract and is not documented as
-> supported. It also commits a live token to the repo in plaintext. Do not copy it.
+> supported. It also commits a live token to the repo in plaintext, which the build rejects
+> (`security/plaintext-credential`). Do not copy it.
 
 ### `auth_type: "oauth"` with `auth_level: "user"`
 
@@ -740,10 +743,15 @@ Full step runtime contract: [Agentic Workflow steps](07-automation-steps.md).
 ```
 
 A list of unique, non-empty bare names. This is the complete set of secrets the plugin may use.
-Publish validation rejects the package if:
+Each of these must name a declared secret:
 
-- an Agentic Workflow step's own `secrets` array names something not in `base_config.secrets`;
-- a `{{secret.KEY}}` template in `services[]` references something not in `base_config.secrets`.
+- an Agentic Workflow step's own `secrets` array. The build catches an undeclared name
+  (`automation-step/undeclared-secret`), and publish rejects it too;
+- a `{{secret.KEY}}` template in `services[]`. The build catches a `token`, `password` or
+  `client_secret` whose whole value is the reference (`security/undeclared-secret-reference`);
+  publish catches the rest;
+- an `api_key` setup-assistant field's `secret`. The build catches an undeclared one
+  (`manifest/setup-assistant-undeclared-secret`).
 
 ### Secret storage: `{plugin_api_name}__{secret_name}`
 
@@ -769,7 +777,8 @@ integration secrets that are still empty and **chaining an edit modal for each o
 schema import and the setup assistant — so the normal first run is import → assistant → secret 1 →
 secret 2 → done. See
 [the business install flow](13-setup-assistants.md#111-business-install-flow) for the full
-ordering.
+ordering. An [`api_key` setup-assistant field](13-setup-assistants.md#515-api_key) can also fill
+a declared secret from inside the assistant.
 
 Two gaps in that safety net are worth designing around, because both leave a row empty with no
 further prompt:
@@ -914,8 +923,7 @@ Step `config.json`:
   "name": "connection_secret_tag",
   "label": "Connection Secret Tag",
   "data_type": "string",
-  "required": false,
-  "script_alias": "connection_secret_tag"
+  "required": false
 }
 ```
 
@@ -924,7 +932,7 @@ Step script:
 ```python
 document = json.loads(raw)
 
-tag = getattr(inputs, "connection_secret_tag", None)
+tag = inputs.connection_secret_tag
 if tag:
     if tag not in document:
         raise ValueError(f"Connection secret tag '{tag}' not found in the connection secret.")
@@ -1044,11 +1052,13 @@ nothing and makes the manifest unreadable in review.
 Envelopes belong in `kizen.json` only. **Do not** put them in step scripts, block configs, or any
 artifact `config.json`; nothing decrypts those.
 
-### Plaintext is legacy
+### Plaintext fails the build
 
-Plaintext secret values in `kizen.json` still function — the publish pipeline accepts them. They
-are discouraged, and in a public repo they are a live credential leak. Rotate at the provider and
-re-encrypt any plaintext secret you inherit; changing the value republishes as an
+A plaintext `token`, `password` or `client_secret` in `auth_credentials` is a build **error**
+(`security/plaintext-credential`, see
+[security rules the build enforces](#security-rules-the-build-enforces)) — it never reaches the
+backend, which would otherwise accept it. Any plaintext secret you inherit is already leaked, so
+rotate at the provider and encrypt the new value; changing the value republishes as an
 `auth_credentials` change, which invalidates existing OAuth connections (see
 [token invalidation](#token-invalidation-on-publish-and-upgrade)) — plan the rotation accordingly.
 
@@ -1156,7 +1166,8 @@ do not proxy the download.
    and not possible — plugins have no inbound HTTP surface to receive a callback (see
    [§6](#6-the-oauth-callback)), and there is nowhere to persist a refresh token. Declare an
    `oauth` service.
-2. **Plaintext OAuth client secrets in `kizen.json`.** Legacy. Encrypt them ([§4](#4-encrypted-manifest-secrets)).
+2. **Plaintext OAuth client secrets in `kizen.json`.** A build error, and already leaked once
+   committed. Encrypt them ([§4](#4-encrypted-manifest-secrets)).
 3. **Vendor tokens committed in `auth_credentials`.** A committed token is a leaked token. Use a
    secret plus `integration_secret_api_name` or `{{secret.KEY}}`.
 4. **Packing multiple values into a delimited string secret** (`business:user:key`). Use a JSON
@@ -1202,10 +1213,67 @@ Design implication: a plugin that needs to react to an external event is built a
 
 ---
 
+## Security rules the build enforces
+
+`npx --yes @kizenapps/cli build` (and `dev`) and the publish pipeline in CI run the same
+`@kizenapps/packager` rule set, so every rule below fails locally before CI sees the commit.
+Scope: `kizen.json`, plus every `.js` file under a manifest entry's directory. Python step
+scripts, CSS, HTML and any JavaScript outside `entry` are **not** scanned. Errors fail the
+build; warnings never do. A passing local build does not print warnings — they are shown only
+alongside errors when a build fails. Read them on the PR's Security Scan and Plugin
+Validation checks.
+
+| Rule | Severity | What it checks | Fix |
+|---|---|---|---|
+| `security/plaintext-credential` | error | On every `services[]` entry, `auth_credentials.token`, `.password` and `.client_secret`: the value is a non-empty string that is not a `{{secret.KEY}}` reference, an object without `encrypted: true`, or any other JSON type (number, boolean, array, `null`). | Replace it with an [encrypted envelope](#the-envelope-format), a declared `{{secret.KEY}}`, or `auth_credentials.integration_secret_api_name` — then rotate the exposed value at the provider. |
+| `security/undeclared-secret-reference` | error | A value in one of those three fields that is exactly `{{secret.KEY}}` (the whole string) whose `KEY` is absent from `base_config.secrets`, so nothing supplies it at install time. An embedded reference such as `"Bearer {{secret.X}}"` in `token` is reported as `security/plaintext-credential` instead. | Declare it: `"base_config": { "secrets": ["KEY"] }`. |
+| `security/malformed-envelope` | error | An `{ "encrypted": true, … }` object in one of those three fields whose `value` is missing, is not a string, or does not deserialize as an envelope. | Re-run `npx --yes @kizenapps/cli encrypt` and replace the whole `{ "encrypted": true, "value": "..." }` object. |
+| `security/dynamic-code` | error | In any scanned script: `eval(...)`, `Function(...)`, `new Function(...)`, or `setTimeout` / `setInterval` whose first argument is a string literal or a template literal. | Remove it — `JSON.parse` for data, a declared function for behavior. |
+| `security/script-parse` | **warning** | A scanned script the parser rejects, or one that throws part-way through the walk, so the dynamic-code scan did not run (or did not finish) on that file. | Fix the syntax error, or move the file outside the entry directory if it is not plugin code. |
+| `security/dangerously-skip-proxy` | **warning** | The literal text `__dangerouslySkipProxy` on any line of a scanned script. | Go through the proxy, or review the bypass deliberately and record why. |
+
+What the rules deliberately do *not* do:
+
+- **`client_id` is exempt.** It is public by design; a plaintext `client_id` never trips a rule.
+  Encrypt it only when the provider treats it as semi-sensitive.
+- **An empty string is skipped.** `"token": ""` is not flagged — the rules catch committed values,
+  not missing ones.
+- **`{{secret.KEY}}` references elsewhere in `services` are checked only at publish.** A reference
+  in `base_service_url`, `custom_headers`, any other `auth_credentials` key, or embedded inside a
+  larger string is not matched against `base_config.secrets` until publish.
+- **Removing a plaintext credential does not undo the exposure.** A credential that reached a
+  commit is compromised: rotate it at the provider. The value stays in git history, and for a
+  public repo it is world-readable from the moment it is pushed. Fixing the build is not the fix.
+- **`security/dynamic-code` is parser-based and matches literal usage only.** A call reached
+  through a computed property or a reassigned reference is not detected, so obfuscated dynamic
+  code remains a human-review concern. There is no escape hatch in the other direction either: a
+  vendored third-party bundle containing `eval` or `new Function` fails the build intentionally.
+  Do not vendor code that needs them.
+- **`security/dangerously-skip-proxy` matches text, not syntax.** The identifier in a comment or a
+  string counts. The packager reports it as "Requests that skip the Kizen proxy leave the browser
+  directly."; in the engine the flag is an `outputUI` / `outputIframe` option that embeds a URL
+  directly instead of through the frame proxy, giving up origin isolation, permission scoping and
+  message attribution (see [output UI, iframes & frames](11-output-ui-iframes-frames.md)). It is a
+  warning, not an error, precisely because it exists to put the bypass in front of a human
+  reviewer — nothing about a passing build endorses it.
+
+### Not checked by the build
+
+Nothing in the rule set traces where a credential goes once code holds it. Exfiltration is a
+hand-review item, and all of it builds clean: a secret or a decrypted value written to
+`console.log`, interpolated into a thrown error message, passed to an analytics or telemetry
+call, or sent in an outbound request to any host other than the service it belongs to. Review
+every diff that touches a credential for those four paths.
+
+---
+
 ## Gotchas
 
-- **Nothing validates `services` locally.** The packager passes the array through untyped. A typo in
-  `auth_type` or a missing `token_url` surfaces at publish or at the first proxy call.
+- **Local validation of `services` covers shape and credentials only.** The packager checks that
+  `services` is an array of objects (`manifest/services-shape`) and checks `auth_credentials`
+  against the [security rules](#security-rules-the-build-enforces); otherwise it passes the array
+  through untyped. A typo in `auth_type` or a missing `token_url`
+  surfaces at publish or at the first proxy call.
 - **`integration_secret_api_name` takes the namespaced name** (`example_plugin__api_key`) while
   `base_config.secrets` and `{{secret.KEY}}` take the bare name (`api_key`). Mixing them up fails
   silently until a call is made.
@@ -1262,3 +1330,14 @@ Design implication: a plugin that needs to react to an external event is built a
 - **`npx --yes @kizenapps/cli encrypt` defaults to `--stage prod`.** An envelope encrypted for the wrong stage
   will not decrypt at publish.
 - **Envelopes are bound to one plugin api_name.** They do not transfer between plugins.
+- **A plaintext `token` / `password` / `client_secret` fails the build; `client_id` does not.**
+  `client_id` is exempt by design, and an empty string in a sensitive field is skipped rather
+  than flagged.
+- **Deleting a committed credential is not rotating it.** The build goes green and the value is
+  still in git history. Rotate at the provider.
+- **The two security warnings never fail a build.** `security/dangerously-skip-proxy` and
+  `security/script-parse` do not fail the build, and a passing local build does not print them —
+  read them on the PR's Security Scan and Plugin Validation checks. A `security/script-parse`
+  warning means the dynamic-code scan never ran on that file.
+- **Nothing checks where a credential goes after you read it.** `console.log`, error messages,
+  analytics calls and off-service outbound requests all build clean.
