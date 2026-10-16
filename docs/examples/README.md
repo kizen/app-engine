@@ -79,7 +79,8 @@ Each report is a snapshot of one version — the heading tells you which (`Kitch
 `Google Calendar v2.0.1`). Plugins keep moving after that. When a report and the live docs disagree
 about a contract, trust the numbered docs in [`../`](../) and check the plugin repo; when a report
 and your own memory of an API disagree, trust the report, because it compiled. The exception is the
-kitchen sink's Agentic Workflow step configs: that report predates packager 0.8.0's
-`automation-step/*` rules, so they still use the removed `action_type`, `plugin_description` and
-`script_alias` fields and a `data_type` of `"email"`. Don't copy those configs verbatim — see
+kitchen sink's Agentic Workflow step configs: they were edited by hand after the snapshot to drop
+the fields packager 0.8.0 removed (`action_type`, `plugin_description`, `script_alias`) and to use
+`string` where `"email"` was, so they match the current `automation-step/*` rules but were not
+recompiled. The plugin-level blurb now sits in the manifest's `agentic_description`. See
 [07-automation-steps.md](../07-automation-steps.md#build-time-validation).

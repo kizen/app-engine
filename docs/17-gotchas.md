@@ -16,8 +16,8 @@ See also: [18-recipes.md](18-recipes.md) for end-to-end worked examples,
 
 - **The manifest `engine` field must be exactly `"1.0.0"` — it is a fixed value, not a version choice.**
   The packager validates against an exact-match allowlist of `['1.0.0']`, and nothing at runtime
-  branches on it. The engine library itself is at 1.10.0; do not try to express engine requirements
-  through this field. → [03-manifest-reference.md](03-manifest-reference.md)
+  branches on it. The engine library is versioned separately (see its package.json); do not try to
+  express engine requirements through this field. → [03-manifest-reference.md](03-manifest-reference.md)
 
 - **`kizen.json` can be a top-level JSON array (multi-plugin repo) — parse and tool accordingly.**
   Each entry is a full manifest and needs a unique `api_name` (error `manifest/duplicate-api-name`)

@@ -654,7 +654,8 @@ form to fill in.
 1. **Plugin description.** The plugin's manifest
    [`agentic_description`](03-manifest-reference.md#agentic_description) is rendered above the
    action picker — once, plugin-wide. No step field feeds it any more; an app published before the
-   fields were removed still shows the `overall_description` it shipped with until it republishes.
+   fields were removed shows no plugin-level description until it republishes with
+   `agentic_description`.
 2. **Action select.** Every step your plugin publishes, by `name`, that passes its `when` gate.
 3. **Action description.** Once an action is selected, its `action_description` appears.
 4. **Pre-configured input and output lists.** This is the key difference from a generic code step:

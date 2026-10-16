@@ -158,8 +158,8 @@ legacy [`prompt`](#prompt-legacy). Owner: [10-views-modals-forms.md](10-views-mo
 ### Engine
 
 `@kizenapps/engine` — the runtime that executes plugin scripts in web workers and bridges
-them to the host app. Currently 1.10.0; note the manifest `engine` field is the fixed value
-`"1.0.0"` and does not select an engine version. Owner:
+them to the host app. Its version is the `version` in its package.json; note the manifest
+`engine` field is the fixed value `"1.0.0"` and does not select an engine version. Owner:
 [04-worker-runtime-api.md](04-worker-runtime-api.md).
 
 ### Entitlement
