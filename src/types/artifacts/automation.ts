@@ -1,6 +1,6 @@
 export interface AutomationStepConfig<T = unknown> {
   name: string;
-  overallDescription: string;
+  agenticDescription: string;
   actions: Record<string, T>;
   thumbnail?: string;
   when?: string;

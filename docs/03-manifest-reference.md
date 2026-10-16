@@ -175,7 +175,7 @@ Must be exactly `"1.0.0"`. The allowed-value list has a single entry; any other 
 with `manifest/engine-version`.
 
 This is a **frozen constant, not a capability selector.** The engine library itself is
-versioned independently (currently 1.10.0) and nothing at runtime branches on this field. New
+versioned independently (see its package.json) and nothing at runtime branches on this field. New
 manifest or runtime capabilities never require an engine bump.
 
 ### `entry`
@@ -221,7 +221,7 @@ Step-specific detail belongs in each step's
 This is the only authoring path to that blurb: the per-step `plugin_description` and
 `overall_description` fields are
 [rejected at build time](07-automation-steps.md#build-time-validation). An app published before
-they were removed keeps showing the `overall_description` it shipped with until it republishes.
+they were removed shows no plugin-level description until it republishes with `agentic_description`.
 
 ### `published`
 

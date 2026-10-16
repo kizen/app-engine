@@ -17,6 +17,7 @@ Installation requires the developer program entitlement.
   "external_link": "https://developer.kizen.com",
   "description": "Exercises every surface the Kizen plugin engine supports: actions, Python automation steps, floating frames, pages, blocks, toolbar items, data adornments, object settings items, calendar sources, route scripts, views, and both setup assistants.\n\nBuilt for two audiences. QA installs it to smoke-test engine changes across every surface, including deliberate failure paths. External developers read it as a working, commented reference for each capability.\n\nInstallation requires the developer program entitlement.",
   "entry": "src/",
+  "agentic_description": "Kitchen Sink demo automation steps for the plugin engine: a round trip of every supported data_type, a dad joke fetch, a step that always fails, and an api_key secret call.",
   "engine": "1.0.0",
   "release_notes_directory": "releaseNotes/",
   "release_branches": [
@@ -1248,9 +1249,7 @@ return newRecordId;
 ```json
 {
   "name": "All Types Round Trip",
-  "plugin_description": "Kitchen Sink demo automation step covering every automation-step data_type the plugin engine supports.",
   "action_description": "Reads one input of each supported data_type, logs the Python type it deserialized to, and writes it straight back out on the matching output. Scalar types (string, number, boolean, date, datetime, uuid) round-trip unmodified. Reference types (employee, entity) and phone_number are asymmetric: the script sees a scalar (an id string / E.164 string), but the write path re-hydrates a record or re-validates — so the value only survives if it is a valid id/number for the target field.",
-  "action_type": "kitchen_sink_all_types_round_trip",
   "runtime": "python 3.13",
   "inputs": [
     {
@@ -1260,18 +1259,16 @@ return newRecordId;
       "required": true,
       "input_source": "object_field",
       "hint_field_name": "target",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_string"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_email",
       "label": "Email In",
-      "data_type": "email",
+      "data_type": "string",
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "email",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_email"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_boolean",
@@ -1280,8 +1277,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "is_active",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_boolean"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_number",
@@ -1290,8 +1286,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "amount",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_number"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_date",
@@ -1300,8 +1295,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "start_date",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_date"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_datetime",
@@ -1310,8 +1304,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "last_synced_at",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_datetime"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_phone_number",
@@ -1320,8 +1313,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "business_phone",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_phone_number"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_employee",
@@ -1330,8 +1322,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "owner",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_employee"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_entity",
@@ -1340,8 +1331,7 @@ return newRecordId;
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "related_contact",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_entity"
+      "hint_related_object_field_name": null
     },
     {
       "name": "input_uuid",
@@ -1350,8 +1340,7 @@ return newRecordId;
       "required": false,
       "input_source": "variable",
       "hint_field_name": "external_id",
-      "hint_related_object_field_name": null,
-      "script_alias": "input_uuid"
+      "hint_related_object_field_name": null
     }
   ],
   "outputs": [
@@ -1363,19 +1352,17 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "target",
       "hint_related_object_field_name": null,
-      "script_alias": "output_string",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
     {
       "name": "output_email",
       "label": "Email Out",
-      "data_type": "email",
+      "data_type": "string",
       "required": false,
       "input_source": "object_field",
       "hint_field_name": "email",
       "hint_related_object_field_name": null,
-      "script_alias": "output_email",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1387,7 +1374,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "is_active",
       "hint_related_object_field_name": null,
-      "script_alias": "output_boolean",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1399,7 +1385,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "amount",
       "hint_related_object_field_name": null,
-      "script_alias": "output_number",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1411,7 +1396,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "start_date",
       "hint_related_object_field_name": null,
-      "script_alias": "output_date",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1423,7 +1407,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "last_synced_at",
       "hint_related_object_field_name": null,
-      "script_alias": "output_datetime",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1435,7 +1418,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "business_phone",
       "hint_related_object_field_name": null,
-      "script_alias": "output_phone_number",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1447,7 +1429,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "owner",
       "hint_related_object_field_name": null,
-      "script_alias": "output_employee",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     },
@@ -1459,7 +1440,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "related_contact",
       "hint_related_object_field_name": null,
-      "script_alias": "output_entity",
       "conflict_resolution": "update_if_blank",
       "create_field_options": false
     },
@@ -1471,7 +1451,6 @@ return newRecordId;
       "input_source": "object_field",
       "hint_field_name": "external_id",
       "hint_related_object_field_name": null,
-      "script_alias": "output_uuid",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     }
@@ -1485,8 +1464,8 @@ return newRecordId;
 ```python
 # Kitchen Sink App · Automation Step · All Types Round Trip
 #
-# Exercises every `data_type` an automation-step input/output supports (10 in total):
-#     string | boolean | number | date | datetime | email | phone_number | employee | entity | uuid
+# Exercises every `data_type` an automation-step input/output supports (9 in total):
+#     string | boolean | number | date | datetime | phone_number | employee | entity | uuid
 #
 # For each input the script:
 #   1. reads the value
@@ -1495,10 +1474,10 @@ return newRecordId;
 #   3. writes it straight back out on the matching output, unmodified — chain this step into
 #      itself in a workflow to confirm values survive the round trip byte-for-byte
 #
-# Reading optional inputs: an input the workflow author leaves unmapped is absent from
-# `inputs` entirely — the attribute doesn't exist (it is not None), so plain attribute access
-# raises AttributeError. Use getattr(inputs, name, None) for any input that isn't declared
-# `required: true`. Only `input_string` is required here, so only it is read directly.
+# Reading optional inputs: an input the workflow author leaves unmapped is present on `inputs`
+# with the value None, so plain attribute access never raises. The getattr(..., None) reads below
+# are therefore a harmless safeguard; only `input_string` is `required: true`, so only it is read
+# directly.
 #
 # `input_uuid` is wired with input_source="variable" (the rest use "object_field") to show
 # that hint_field_name works for variables too: the automation builder pre-selects the
@@ -1530,9 +1509,7 @@ outputs.log("All 10 data types round-tripped successfully.")
 ```json
 {
   "name": "Dad Joke",
-  "plugin_description": "Kitchen Sink demo automation step. Fetches a random dad joke from a free API.",
   "action_description": "Calls icanhazdadjoke.com directly and writes a random dad joke to the target output.",
-  "action_type": "kitchen_sink_dad_joke",
   "runtime": "python 3.13",
   "inputs": [],
   "outputs": [
@@ -1544,7 +1521,6 @@ outputs.log("All 10 data types round-tripped successfully.")
       "input_source": "object_field",
       "hint_field_name": "target",
       "hint_related_object_field_name": null,
-      "script_alias": "target",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     }
@@ -1578,9 +1554,7 @@ outputs.log(f"Received joke: {response.text}")
 ```json
 {
   "name": "Fail On Purpose",
-  "plugin_description": "Kitchen Sink demo automation step for exercising the negative path: this step always fails.",
   "action_description": "Always fails, in the mode you pick (raise, http_error, or timeout)",
-  "action_type": "kitchen_sink_fail_on_purpose",
   "runtime": "python 3.13",
   "inputs": [
     {
@@ -1589,8 +1563,7 @@ outputs.log(f"Received joke: {response.text}")
       "data_type": "string",
       "required": true,
       "input_source": "static_value",
-      "allowed_values": ["raise", "http_error", "timeout"],
-      "script_alias": "failure_mode"
+      "allowed_values": ["raise", "http_error", "timeout"]
     }
   ],
   "outputs": []
@@ -1641,9 +1614,7 @@ else:
 ```json
 {
   "name": "Secret API Call (429 Retry Demo)",
-  "plugin_description": "Kitchen Sink demo automation step exercising the api_key integration secret end-to-end from Python.",
   "action_description": "Builds a Basic-auth Authorization header from the api_key integration secret and calls httptest (hypothesis.sh/api/httptest) directly with requests. Trips its always-429 status endpoint first to exercise exponential-backoff retry with Retry-After handling, then calls the header-echo endpoint to confirm the secret made it.",
-  "action_type": "kitchen_sink_secret_api_call",
   "runtime": "python 3.13",
   "secrets": ["api_key"],
   "inputs": [],
@@ -1656,7 +1627,6 @@ else:
       "input_source": "object_field",
       "hint_field_name": "target",
       "hint_related_object_field_name": null,
-      "script_alias": "echoed_auth_header",
       "conflict_resolution": "overwrite",
       "create_field_options": false
     }

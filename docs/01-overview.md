@@ -55,7 +55,7 @@ plugin publicly in the Marketplace; `published: false` publishes it unlisted
 ## Execution architecture: workers and the host bridge
 
 Plugin JavaScript never runs on the page's main thread and never touches the DOM. The engine
-(`@kizenapps/engine`, currently 1.10.0 — note the manifest `engine` field is a fixed `"1.0.0"`,
+(`@kizenapps/engine`; note the manifest `engine` field is a fixed `"1.0.0"`,
 see [03-manifest-reference.md](03-manifest-reference.md)) runs every script in a dedicated
 **web worker**:
 
