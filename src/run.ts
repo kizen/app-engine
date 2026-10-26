@@ -155,17 +155,8 @@ export const runScript = async ({
   });
 };
 
-// Covers module-worker fetch/startup as well as evaluation; hosts may start many expression
-// workers concurrently at bootstrap, so this is deliberately generous.
 export const EXPRESSION_TIMEOUT_MS = 20000;
 
-/*
- * Always settles exactly once and always terminates the worker. Failures (expression errors,
- * worker errors, malformed responses, timeouts) resolve `null` rather than reject, since callers
- * await without catching and `null` matches the worker's missing-arg semantics. Warnings include
- * the expression but never the arg values or raw exception messages, which may contain record
- * data (the worker's `error` is a fixed category unless debug logging is on).
- */
 const runUnknownExpression = (
   expression: string,
   values: Record<string, unknown>,
@@ -225,10 +216,6 @@ const runUnknownExpression = (
       };
 
       worker.onerror = (e: ErrorEvent) => {
-        // The worker cancels uncaught errors at its own global (and posts a sanitized failure), so
-        // this fires only for errors it couldn't handle, e.g. the worker script failing to load or
-        // evaluate. e.message could still quote record values, so it is never forwarded, and the
-        // event is cancelled so it isn't re-reported to the parent page's console/error handlers.
         e.preventDefault();
         settle(null, 'uncaught error in expression worker');
       };

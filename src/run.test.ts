@@ -28,7 +28,6 @@ class FakeWorker {
   }
 }
 
-/** Runs the real worker logic on whatever the host posts, then replies like the real worker. */
 class EvaluatingWorker extends FakeWorker {
   override postMessage = vi.fn<(message: unknown) => void>((message) => {
     this.respond(buildExpressionResponse(message as string));
@@ -47,7 +46,6 @@ const latestWorker = (): FakeWorker => {
   return worker;
 };
 
-/** Resolves to the settled value, or the sentinel if the promise is still pending. */
 const PENDING = Symbol('pending');
 
 const peek = async <T>(promise: Promise<T>): Promise<T | typeof PENDING> =>
@@ -125,7 +123,6 @@ describe('runUnknownExpression (via runExpression)', () => {
 
       const message = String(warn.mock.calls[0]?.[0]);
 
-      // Proves the fixture really leaks through the raw message, so the non-debug test is meaningful.
       expect(message).toMatch(/evaluation failed \(\w+\): ./);
       expect(message).toContain(SECRET);
     });

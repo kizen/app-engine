@@ -38,7 +38,6 @@ describe('buildExpressionResponse', () => {
   });
 
   it('reports a fixed category when the expression throws', () => {
-    // Missing arg interpolates to null, so reading a property off it throws a TypeError.
     expect(respond('{{missing}}.value', {})).toEqual({
       result: null,
       error: 'evaluation failed (TypeError)',
