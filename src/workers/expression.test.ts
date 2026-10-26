@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UnknownJSON } from '../types/common.js';
-import { buildExpressionResponse, interpolateValues } from './expression.js';
+import {
+  buildExpressionResponse,
+  handleUncaughtError,
+  handleUnhandledRejection,
+  interpolateValues,
+} from './expression.js';
 
 const payload = (expression: string, args: Record<string, UnknownJSON> = {}): string =>
   JSON.stringify({ expression, args });
@@ -51,6 +56,20 @@ describe('buildExpressionResponse', () => {
       result: null,
       error: 'evaluation failed (Error)',
     });
+  });
+
+  it('reads a stateful error name only once', () => {
+    const expression = `(() => {
+      let reads = 0;
+      const e = new Error('x');
+      Object.defineProperty(e, 'name', { get: () => (reads++ === 0 ? 'TypeError' : {{rec}}) });
+      throw e;
+    })()`;
+
+    const response = respond(expression, { rec: { value: SECRET } });
+
+    expect(response).toEqual({ result: null, error: 'evaluation failed (TypeError)' });
+    expect(JSON.stringify(response)).not.toContain(SECRET);
   });
 
   it('reports a fixed category when a non-Error value is thrown', () => {
@@ -127,5 +146,33 @@ describe('buildExpressionResponse', () => {
 
       expect(response.error).toMatch(/^result not serializable \(TypeError\): ./);
     });
+  });
+});
+
+describe('worker global handlers', () => {
+  it('cancels an uncaught error and posts a sanitized failure', () => {
+    const event = new ErrorEvent('error', {
+      message: `Uncaught TypeError: "${SECRET}".foo is not a function`,
+      cancelable: true,
+    });
+    const post = vi.fn<(message: string) => void>();
+
+    handleUncaughtError(event, post);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(post.mock.calls[0]?.[0] ?? '')).toEqual({
+      result: null,
+      error: 'uncaught error in expression worker',
+    });
+    expect(post.mock.calls[0]?.[0]).not.toContain(SECRET);
+  });
+
+  it('cancels an unhandled rejection', () => {
+    const event = new Event('unhandledrejection', { cancelable: true });
+
+    handleUnhandledRejection(event);
+
+    expect(event.defaultPrevented).toBe(true);
   });
 });

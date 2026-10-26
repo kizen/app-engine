@@ -19,8 +19,12 @@ class FakeWorker {
     this.onmessage?.({ data } as MessageEvent);
   }
 
-  fail(message: string): void {
-    this.onerror?.({ message } as ErrorEvent);
+  fail(message: string): ErrorEvent {
+    const event = new ErrorEvent('error', { message, cancelable: true });
+
+    this.onerror?.(event);
+
+    return event;
   }
 }
 
@@ -159,11 +163,13 @@ describe('runUnknownExpression (via runExpression)', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves null, terminates, and warns on worker onerror', async () => {
+  it('resolves null, terminates, cancels the event, and warns on worker onerror', async () => {
     const promise = runExpression('x', {});
     const worker = latestWorker();
 
-    worker.fail(`Uncaught TypeError: "${SECRET}".foo is not a function`);
+    const event = worker.fail(`Uncaught TypeError: "${SECRET}".foo is not a function`);
+
+    expect(event.defaultPrevented).toBe(true);
 
     await expect(promise).resolves.toBeNull();
     expect(worker.terminate).toHaveBeenCalledTimes(1);

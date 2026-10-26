@@ -224,8 +224,12 @@ const runUnknownExpression = (
         settle(data.result);
       };
 
-      worker.onerror = () => {
-        // e.message can quote interpolated record values, so it is never forwarded.
+      worker.onerror = (e: ErrorEvent) => {
+        // The worker cancels uncaught errors at its own global (and posts a sanitized failure), so
+        // this fires only for errors it couldn't handle, e.g. the worker script failing to load or
+        // evaluate. e.message could still quote record values, so it is never forwarded, and the
+        // event is cancelled so it isn't re-reported to the parent page's console/error handlers.
+        e.preventDefault();
         settle(null, 'uncaught error in expression worker');
       };
 

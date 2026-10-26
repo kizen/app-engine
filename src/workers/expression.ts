@@ -73,7 +73,11 @@ const describeFailure = (stage: string, ex: unknown, isDebug: boolean): string =
 
   try {
     if (ex instanceof Error) {
-      name = STANDARD_ERROR_NAMES.has(ex.name) ? ex.name : 'Error';
+      // Read once: a stateful getter could pass the allowlist and then return something else.
+      const errorName: unknown = ex.name;
+
+      name =
+        typeof errorName === 'string' && STANDARD_ERROR_NAMES.has(errorName) ? errorName : 'Error';
     }
 
     if (isDebug) {
@@ -124,4 +128,26 @@ export const buildExpressionResponse = (rawPayload: string): string => {
   } catch (ex) {
     return failure(describeFailure('result not serializable', ex, isDebug));
   }
+};
+
+/*
+ * Global handlers for errors that escape buildExpressionResponse: plugin-authored expressions can
+ * schedule async work (`setTimeout(() => {{rec}}.foo())`, `Promise.reject({{rec}})`) whose
+ * exception or rejection quotes interpolated record values. Cancelling stops the browser from
+ * logging the raw value from the worker context.
+ */
+
+/**
+ * Cancelling an `error` event at the worker global also stops it being forwarded to the parent's
+ * Worker object (HTML "report an exception": the event is re-fired at the Worker only when not
+ * cancelled), so post a sanitized failure instead. The host ignores it if it already settled.
+ */
+export const handleUncaughtError = (e: Event, post: (message: string) => void): void => {
+  e.preventDefault();
+  post(failure('uncaught error in expression worker'));
+};
+
+/** Rejections are never forwarded to the parent; cancelling only suppresses console reporting. */
+export const handleUnhandledRejection = (e: Event): void => {
+  e.preventDefault();
 };
