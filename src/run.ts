@@ -155,24 +155,90 @@ export const runScript = async ({
   });
 };
 
+// Covers module-worker fetch/startup as well as evaluation; hosts may start many expression
+// workers concurrently at bootstrap, so this is deliberately generous.
+export const EXPRESSION_TIMEOUT_MS = 20000;
+
+/*
+ * Always settles exactly once and always terminates the worker. Failures (expression errors,
+ * worker errors, malformed responses, timeouts) resolve `null` rather than reject, since callers
+ * await without catching and `null` matches the worker's missing-arg semantics. Warnings include
+ * the expression but never the arg values or raw exception messages, which may contain record
+ * data (the worker's `error` is a fixed category unless debug logging is on).
+ */
 const runUnknownExpression = (
   expression: string,
   values: Record<string, unknown>,
 ): Promise<unknown> => {
-  const worker = new Worker(new URL('./workers/expression.worker.js', import.meta.url), {
-    type: 'module',
-  });
-
   return new Promise((resolve) => {
-    worker.onmessage = (e) => {
-      const data = JSON.parse(e.data as string) as UnknownJSON;
-      worker.terminate();
-      resolve(data.result);
+    let worker: Worker | undefined;
+    let settled = false;
+
+    const settle = (result: unknown, warning?: string): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeoutId);
+      worker?.terminate();
+
+      if (warning) {
+        console.warn(`Plugin expression failed: ${warning}\nExpression: ${expression}`);
+      }
+
+      resolve(result);
     };
 
-    const isDebug = isFlagEnabled('script-runner-logging');
+    const timeoutId = setTimeout(() => {
+      settle(null, `timed out after ${String(EXPRESSION_TIMEOUT_MS)}ms`);
+    }, EXPRESSION_TIMEOUT_MS);
 
-    worker.postMessage(JSON.stringify({ expression, args: values, isDebug }));
+    try {
+      worker = new Worker(new URL('./workers/expression.worker.js', import.meta.url), {
+        type: 'module',
+      });
+
+      worker.onmessage = (e: MessageEvent) => {
+        let parsed: unknown;
+
+        try {
+          parsed = JSON.parse(e.data as string);
+        } catch {
+          settle(null, 'malformed response from expression worker');
+          return;
+        }
+
+        if (parsed === null || typeof parsed !== 'object') {
+          settle(null, 'malformed response from expression worker');
+          return;
+        }
+
+        const data = parsed as UnknownJSON;
+
+        if (typeof data.error === 'string') {
+          settle(null, data.error);
+          return;
+        }
+
+        settle(data.result);
+      };
+
+      worker.onerror = () => {
+        // e.message can quote interpolated record values, so it is never forwarded.
+        settle(null, 'uncaught error in expression worker');
+      };
+
+      worker.onmessageerror = () => {
+        settle(null, 'worker message could not be deserialized');
+      };
+
+      const isDebug = isFlagEnabled('script-runner-logging');
+
+      worker.postMessage(JSON.stringify({ expression, args: values, isDebug }));
+    } catch {
+      settle(null, 'could not start expression worker');
+    }
   });
 };
 
