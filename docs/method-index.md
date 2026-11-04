@@ -206,6 +206,7 @@
 | `__kizen_setup_assistant_values` | reserved config key | [13](13-setup-assistants.md#91-save-mechanics-both-scopes) · [05](05-platform-api.md#patch-apiexternal-integrationsbusiness-plugin-appsidentifier) |
 | `__kizen_user_config` | reserved config key | [04](04-worker-runtime-api.md#thisargs) · [13](13-setup-assistants.md#131-browser-surfaces-js) |
 | `label` (step parameter / settings item) | artifact config field | [07](07-automation-steps.md#label) · [12](12-routes-calendars-adornments-settings.md#label) |
+| `this.launchCodingAssistant(profile, initialPrompt)` | `this.*` method | [04](04-worker-runtime-api.md#thislaunchcodingassistantprofile-initialprompt) |
 | `link` (assistant field type) | assistant field type | [13](13-setup-assistants.md#512-link) |
 | `this.location` | `this.*` data member | [04](04-worker-runtime-api.md#thislocation) |
 | `manifest/reserved-api-name` | validation rule | [03](03-manifest-reference.md#10-validation-rules) |

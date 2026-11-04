@@ -3,6 +3,7 @@ import type { ExecuteGenericScript, GenericPluginConfig } from '../../types/arti
 import type { WorkerContextArgs } from '../../types/contexts.js';
 import { runScript } from '../../run.js';
 import { useTerminators } from '../context/terminators.js';
+import { useCodingAssistant } from '../context/codingAssistant.js';
 import { useSessionData } from '../context/session.js';
 import { useAppState } from '../context/appState.js';
 import { useModals } from '../context/modals.js';
@@ -32,6 +33,7 @@ export const useGenericAppCustomScript = ({
   { pending: boolean; indicator: INDICATOR_TYPE },
 ] => {
   const { terminators } = useTerminators();
+  const { launchCodingAssistant } = useCodingAssistant();
   const { sessionData, setSessionData } = useSessionData();
   const {
     installedPluginAPINamesToIds,
@@ -122,6 +124,7 @@ export const useGenericAppCustomScript = ({
         pushHistory: history.push,
         onShowToast: showToast,
         onClearToasts: clearToasts,
+        onLaunchCodingAssistant: launchCodingAssistant,
         terminators,
         plugin,
         executionPlugin,
@@ -170,6 +173,7 @@ export const useGenericAppCustomScript = ({
       history,
       showToast,
       clearToasts,
+      launchCodingAssistant,
       terminators,
       plugin,
       sessionData,

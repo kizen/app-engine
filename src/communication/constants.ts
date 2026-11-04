@@ -1,3 +1,5 @@
+import type { CodingAssistantProfile } from '../types/contexts.js';
+
 export const ACTIONS = {
   QUERY_REQUEST: 'query:request',
   UI_OUTPUT: 'outputui',
@@ -35,6 +37,7 @@ export const ACTIONS = {
   CONSOLE_LOG: 'consolelog',
   RUN_EVENT_SCRIPT: 'runeventscript',
   COMPLETE_SETUP_REQUEST: 'completesetup:request',
+  LAUNCH_CODING_ASSISTANT_REQUEST: 'launchcodingassistant:request',
 };
 
 export const RESPONSES = {
@@ -49,7 +52,20 @@ export const RESPONSES = {
   CREATE_RECORD_RESPONSE: 'createrecord:response',
   CREATE_RELATED_RECORD_RESPONSE: 'createrelatedrecord:response',
   COMPLETE_SETUP_RESPONSE: 'completesetup:response',
+  LAUNCH_CODING_ASSISTANT_RESPONSE: 'launchcodingassistant:response',
 };
+
+/*
+ * Profiles a plugin can open the coding assistant (KiCode) with via
+ * `this.launchCodingAssistant`. The host decides whether it supports a profile.
+ */
+export const CODING_ASSISTANT_PROFILES: readonly CodingAssistantProfile[] = ['business-app'];
+
+/*
+ * Maximum length (String.length, i.e. UTF-16 code units) of the initial prompt
+ * passed to `this.launchCodingAssistant`. Longer prompts resolve `false`.
+ */
+export const CODING_ASSISTANT_PROMPT_MAX_LENGTH = 10000;
 
 export const COMMUNICATIONS = {
   RUN_FRAME_SCRIPT: 'runframescript',

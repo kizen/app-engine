@@ -8,6 +8,7 @@ import { MonitoringWrapper, type MonitoringWrapperProps } from './monitoring.js'
 import { SessionDataWrapper } from './session.js';
 import { TerminatorsWrapper } from './terminators.js';
 import { ToastWrapper, type ToastWrapperProps } from './toast.js';
+import { CodingAssistantWrapper, type CodingAssistantWrapperProps } from './codingAssistant.js';
 import { NetworkWrapper, type NetworkWrapperProps } from './network.js';
 import { useLocationChange } from '../hooks/useLocationChange.js';
 import { FloatingFrameWrapper } from './floatingFrame.js';
@@ -30,6 +31,7 @@ export interface AppEngineProviderProps
     Omit<HistoryWrapperProps, 'children'>,
     Omit<MonitoringWrapperProps, 'children'>,
     Omit<ToastWrapperProps, 'children'>,
+    Omit<CodingAssistantWrapperProps, 'children'>,
     Omit<NetworkWrapperProps, 'children'> {
   modal: Omit<ModalWrapperContextArgs, 'children'>;
   children: (props: ExposedModals & AdditionalContextProps) => ReactNode;
@@ -63,6 +65,7 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
     monitoringExceptionHelper,
     showToast,
     clearToasts,
+    launchCodingAssistant,
     performRequest,
     appPath,
     hideFramesOnModal = true,
@@ -104,29 +107,33 @@ export const AppEngineProvider: FC<AppEngineProviderProps> = (props) => {
                               <SessionDataWrapper>
                                 <TerminatorsWrapper>
                                   <ToastWrapper showToast={showToast} clearToasts={clearToasts}>
-                                    <FloatingFrameWrapper>
-                                      {(hiddenByModal) => {
-                                        return (
-                                          <NetworkWrapper
-                                            performRequest={performRequest}
-                                            createFileId={createFileId}
-                                            performFileUpload={performFileUpload}
-                                            invalidateCache={invalidateCache}
-                                            getPendingCacheCount={getPendingCacheCount}
-                                          >
-                                            {children({
-                                              ...modals,
-                                              showLoadingIndicator,
-                                              hasFinishedBootstrapping,
-                                              waitingOnRouteScript,
-                                              hiddenByModal: hideFramesOnModal
-                                                ? hiddenByModal
-                                                : false,
-                                            })}
-                                          </NetworkWrapper>
-                                        );
-                                      }}
-                                    </FloatingFrameWrapper>
+                                    <CodingAssistantWrapper
+                                      launchCodingAssistant={launchCodingAssistant}
+                                    >
+                                      <FloatingFrameWrapper>
+                                        {(hiddenByModal) => {
+                                          return (
+                                            <NetworkWrapper
+                                              performRequest={performRequest}
+                                              createFileId={createFileId}
+                                              performFileUpload={performFileUpload}
+                                              invalidateCache={invalidateCache}
+                                              getPendingCacheCount={getPendingCacheCount}
+                                            >
+                                              {children({
+                                                ...modals,
+                                                showLoadingIndicator,
+                                                hasFinishedBootstrapping,
+                                                waitingOnRouteScript,
+                                                hiddenByModal: hideFramesOnModal
+                                                  ? hiddenByModal
+                                                  : false,
+                                              })}
+                                            </NetworkWrapper>
+                                          );
+                                        }}
+                                      </FloatingFrameWrapper>
+                                    </CodingAssistantWrapper>
                                   </ToastWrapper>
                                 </TerminatorsWrapper>
                               </SessionDataWrapper>

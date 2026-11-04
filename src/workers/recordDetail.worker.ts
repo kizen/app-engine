@@ -9,6 +9,7 @@ import {
   handleCommonResponse,
   installThirdPartyScriptHandler,
   kizenRequestHandler,
+  launchCodingAssistantHandler,
   openCreateRecordHandler,
   openCreateRelatedRecordHandler,
   postFormDataHandler,
@@ -67,6 +68,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       showViewInModal: showViewInModalHandler(self, promises),
       closeModal: closeModalHandler(self),
       completeSetup: completeSetupHandler(self, promises),
+      launchCodingAssistant: launchCodingAssistantHandler(self, promises),
       pluginApiName,
       location,
     });

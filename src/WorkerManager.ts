@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import type {
+  CodingAssistantProfile,
   CompleteSetupOptions,
   InternalSessionData,
   SetInternalSessionDataFn,
@@ -24,9 +25,11 @@ import type {
   InstallThirdPartyScriptRequestEvent,
   InvalidateCacheFn,
   KizenFile,
+  LaunchCodingAssistantRequestEvent,
   MessageEventData,
   OnClearToastsFn,
   OnConsoleLogFn,
+  OnLaunchCodingAssistantFn,
   OnNetworkRequestFn,
   OnShowToastFn,
   OpenCreateRecordModalRequestEvent,
@@ -74,6 +77,7 @@ import {
 } from './communication/ThirdPartyScript.js';
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
 import { deserializeConsoleArg } from './util/console.js';
+import { isValidCodingAssistantRequest } from './util/codingAssistant.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
@@ -112,6 +116,7 @@ export class WorkerManager {
   private frameId?: string;
   private onShowToast?: OnShowToastFn | undefined;
   private onClearToasts?: OnClearToastsFn | undefined;
+  private onLaunchCodingAssistant?: OnLaunchCodingAssistantFn | undefined;
   private sessionData: InternalSessionData = {};
   private setSessionData: (state: InternalSessionData) => void;
   private pluginComponentId: string;
@@ -145,6 +150,7 @@ export class WorkerManager {
     executionPlugin?: CommonExecutionPlugin | undefined;
     onShowToast?: OnShowToastFn | undefined;
     onClearToasts?: OnClearToastsFn | undefined;
+    onLaunchCodingAssistant?: OnLaunchCodingAssistantFn | undefined;
     sessionData: InternalSessionData;
     setSessionData?: SetInternalSessionDataFn | undefined;
     pluginComponentId: string;
@@ -176,6 +182,7 @@ export class WorkerManager {
     this.executionPlugin = args.executionPlugin;
     this.onShowToast = args.onShowToast;
     this.onClearToasts = args.onClearToasts;
+    this.onLaunchCodingAssistant = args.onLaunchCodingAssistant;
     this.pluginComponentId = args.pluginComponentId;
     this.onShowModal = args.onShowModal;
     this.onCloseModal = args.onCloseModal;
@@ -411,6 +418,17 @@ export class WorkerManager {
       }
       case ACTIONS.CLEAR_TOASTS: {
         this.clearToasts();
+
+        return;
+      }
+      case ACTIONS.LAUNCH_CODING_ASSISTANT_REQUEST: {
+        const consideredEvent = event as LaunchCodingAssistantRequestEvent;
+
+        await this.handleLaunchCodingAssistantRequest(
+          consideredEvent.id,
+          consideredEvent.profile,
+          consideredEvent.initialPrompt,
+        );
 
         return;
       }
@@ -754,6 +772,30 @@ export class WorkerManager {
 
   private clearToasts = (): void => {
     this.onClearToasts?.();
+  };
+
+  // Always answers the worker with a boolean: a missing handler, invalid arguments,
+  // or a handler that throws or rejects all resolve the plugin's call to `false`.
+  // The arguments are re-validated here because the worker runs plugin code and
+  // could post this request directly.
+  private handleLaunchCodingAssistantRequest = async (
+    id: string,
+    profile: CodingAssistantProfile,
+    initialPrompt: string,
+  ): Promise<void> => {
+    let opened = false;
+
+    if (this.onLaunchCodingAssistant && isValidCodingAssistantRequest(profile, initialPrompt)) {
+      try {
+        // The host handler is external code, so only a literal `true` counts as opened.
+        const result: unknown = await this.onLaunchCodingAssistant({ profile, initialPrompt });
+        opened = result === true;
+      } catch {
+        opened = false;
+      }
+    }
+
+    this.postMessage(RESPONSES.LAUNCH_CODING_ASSISTANT_RESPONSE, { id, data: opened });
   };
 
   private copyToClipboard = async (text: string): Promise<void> => {

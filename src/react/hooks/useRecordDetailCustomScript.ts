@@ -10,6 +10,7 @@ import { useRunnerState } from '../context/runnerState.js';
 import { useAppState } from '../context/appState.js';
 import { useSessionData } from '../context/session.js';
 import { useTerminators } from '../context/terminators.js';
+import { useCodingAssistant } from '../context/codingAssistant.js';
 import { generateExecutionKey } from '../../util/run.js';
 import { runScript } from '../../index.js';
 import type { ExecuteGenericScript } from '../../types/artifacts/generic.js';
@@ -32,6 +33,7 @@ export const useRecordDetailCustomScript = ({
   onReleaseBlockingScript,
 }: UseRecordDetailCustomScriptProps): [ExecuteGenericScript, { pending: boolean }] => {
   const { terminators } = useTerminators();
+  const { launchCodingAssistant } = useCodingAssistant();
   const { sessionData, setSessionData } = useSessionData();
   const {
     installedPluginAPINamesToIds,
@@ -128,6 +130,7 @@ export const useRecordDetailCustomScript = ({
         pushHistory: history.push,
         onShowToast: showToast,
         onClearToasts: clearToasts,
+        onLaunchCodingAssistant: launchCodingAssistant,
         terminators,
         executionPlugin,
         sessionData,
@@ -160,6 +163,7 @@ export const useRecordDetailCustomScript = ({
       history,
       showToast,
       clearToasts,
+      launchCodingAssistant,
       terminators,
       sessionData,
       setSessionData,

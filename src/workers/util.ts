@@ -30,6 +30,7 @@ import type { PromiseResolve } from '../types/promise.js';
 import type {
   CurriedCompleteSetupFn,
   CurriedInstallThirdPartyScriptFn,
+  CurriedLaunchCodingAssistantFn,
   CurriedOpenCreateRecordFn,
   CurriedOpenCreateRelatedRecordFn,
   CurriedPostFormDataFn,
@@ -42,6 +43,7 @@ import type {
   CreateRecordResponsePayload,
   CreateRelatedRecordResponsePayload,
   InstallThirdPartyScriptResponsePayload,
+  LaunchCodingAssistantResponsePayload,
   PostFormDataResponsePayload,
   PromptResponsePayload,
   QueryResponsePayload,
@@ -374,6 +376,21 @@ export const completeSetupHandler: CurriedCompleteSetupFn =
     });
   };
 
+export const launchCodingAssistantHandler: CurriedLaunchCodingAssistantFn =
+  (instance, promises) => (profile, initialPrompt) => {
+    return new Promise((resolve, reject) => {
+      const id = promises.register(resolve as PromiseResolve, reject);
+      instance.postMessage(
+        JSON.stringify({
+          action: ACTIONS.LAUNCH_CODING_ASSISTANT_REQUEST,
+          id,
+          profile,
+          initialPrompt,
+        }),
+      );
+    });
+  };
+
 export const installThirdPartyScriptHandler: CurriedInstallThirdPartyScriptFn =
   (instance, promises) => (url, args) => {
     return new Promise((resolve, reject) => {
@@ -487,6 +504,13 @@ export const handleCommonResponse = (
       } else {
         promises.reject(id, new Error(error ?? 'Setup configuration could not be saved'));
       }
+
+      break;
+    }
+
+    case RESPONSES.LAUNCH_CODING_ASSISTANT_RESPONSE: {
+      const { id, data } = JSON.parse(e.data) as LaunchCodingAssistantResponsePayload;
+      promises.resolve(id, data);
 
       break;
     }
