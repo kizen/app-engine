@@ -140,7 +140,7 @@ namespaced runtime name.
       "service_name": "tenant_api",
       "display_name": "Tenant API",
       "auth_type": "no_auth",
-      "auth_level": "global",
+      "auth_level": "business",
       "base_service_url": "https://{{secret.tenant_host}}.example.com/api/v1/"
     }
   ]
@@ -152,6 +152,10 @@ Rules:
   catches this first when the whole value of `auth_credentials.token`, `.password` or
   `.client_secret` is the reference (`security/undeclared-secret-reference`); publish rejects every
   other undeclared reference.
+- `{{secret.KEY}}` references require `auth_level: "business"`. A `global` service that uses one in
+  `auth_credentials`, `base_service_url` or `custom_headers` fails the build
+  (`security/global-secret-reference`) and is rejected at publish. A global service supplies its
+  credential as an [encrypted envelope](#the-envelope-format).
 - At request time, an **unresolved** secret (declared but never filled in by an admin) makes the
   proxy return **HTTP 400**. That is the signature of "installed but not configured".
 
@@ -387,7 +391,7 @@ static credentials.
   "service_name": "partner_auth",
   "display_name": "Partner API Auth",
   "auth_type": "password_token_exchange",
-  "auth_level": "global",
+  "auth_level": "business",
   "required_entitlement": null,
   "base_service_url": "https://api.partner.example.com/v2/",
   "auth_credentials": {
@@ -419,10 +423,10 @@ therefore not cached — failures retry immediately instead of sticking for a mi
 
 Two properties of that cache are worth knowing before you pick this auth type:
 
-- **The cache is scoped per plugin and service, not per business.** This auth type is meant for a
-  service whose credentials are genuinely global — one vendor account behind the whole plugin — and
-  is the wrong choice for anything per-tenant. If each business must present its own credentials,
-  use `oauth` with `auth_level: "business"`, or `private_key_jwt`, both of which cache per business.
+- **The cache scope follows `auth_level`.** With `auth_level: "business"` the key includes the
+  business id, so each business exchanges and caches its own token. With `auth_level: "global"` the
+  cache is shared by every business on the plugin, which suits one vendor account behind the whole
+  plugin.
 - **The 60-second TTL is fixed** and ignores any `expires_in` the provider returns. A token with a
   one-hour lifetime is still re-exchanged every minute.
 
@@ -473,10 +477,11 @@ than a default — `payload` is the only one read defensively.
 
 Only `pvt_key`, `iss`, `token_endpoint` and `alg` are required at publish.
 
-**Token caching differs sharply between the two**, and it matters for multi-tenant plugins.
-`private_key_jwt` caches per business — the key includes the business id, and the TTL tracks the
-provider's own `expires_in` (minus a 60-second safety margin, floored at 30 seconds). The
-`basic_auth_token_exchange` family does not: see the note on the shared 60-second cache under
+**Token caching differs between the two.** `private_key_jwt` caches per business — the key
+includes the business id, and the TTL tracks the provider's own `expires_in` (minus a 60-second
+safety margin, floored at 30 seconds). The `basic_auth_token_exchange` family caches for a fixed 60
+seconds, scoped per business when `auth_level` is `"business"` and shared across the plugin when it
+is `"global"`: see the cache notes under
 [`password_token_exchange`](#auth_type-password_token_exchange) above, which inherits the same
 implementation.
 
@@ -1227,6 +1232,7 @@ Validation checks.
 |---|---|---|---|
 | `security/plaintext-credential` | error | On every `services[]` entry, `auth_credentials.token`, `.password` and `.client_secret`: the value is a non-empty string that is not a `{{secret.KEY}}` reference, an object without `encrypted: true`, or any other JSON type (number, boolean, array, `null`). | Replace it with an [encrypted envelope](#the-envelope-format), a declared `{{secret.KEY}}`, or `auth_credentials.integration_secret_api_name` — then rotate the exposed value at the provider. |
 | `security/undeclared-secret-reference` | error | A value in one of those three fields that is exactly `{{secret.KEY}}` (the whole string) whose `KEY` is absent from `base_config.secrets`, so nothing supplies it at install time. An embedded reference such as `"Bearer {{secret.X}}"` in `token` is reported as `security/plaintext-credential` instead. | Declare it: `"base_config": { "secrets": ["KEY"] }`. |
+| `security/global-secret-reference` | error | On a `services[]` entry with `auth_level: "global"`: any `{{secret.KEY}}` reference, whole or embedded, anywhere in `auth_credentials`, `base_service_url` or `custom_headers`. | Set `auth_level: "business"`, or supply the credential as an encrypted envelope. |
 | `security/malformed-envelope` | error | An `{ "encrypted": true, … }` object in one of those three fields whose `value` is missing, is not a string, or does not deserialize as an envelope. | Re-run `npx --yes @kizenapps/cli encrypt` and replace the whole `{ "encrypted": true, "value": "..." }` object. |
 | `security/dynamic-code` | error | In any scanned script: `eval(...)`, `Function(...)`, `new Function(...)`, or `setTimeout` / `setInterval` whose first argument is a string literal or a template literal. | Remove it — `JSON.parse` for data, a declared function for behavior. |
 | `security/script-parse` | **warning** | A scanned script the parser rejects, or one that throws part-way through the walk, so the dynamic-code scan did not run (or did not finish) on that file. | Fix the syntax error, or move the file outside the entry directory if it is not plugin code. |
