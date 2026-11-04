@@ -77,6 +77,11 @@ export interface CompleteSetupResponsePayload {
   error?: string;
 }
 
+export interface LaunchCodingAssistantResponsePayload {
+  id: string;
+  data: boolean;
+}
+
 export interface PromptResponsePayload {
   id: string;
   data: unknown;

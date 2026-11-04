@@ -15,6 +15,7 @@ import type {
 import type {
   Args,
   BaseAPI,
+  CodingAssistantProfile,
   CompleteSetupFn,
   CompleteSetupOptions,
   DataCache,
@@ -22,6 +23,7 @@ import type {
   InstallThirdPartyScriptFn,
   Instance,
   InternalSessionData,
+  LaunchCodingAssistantFn,
   OpenCreateRecordFn,
   OpenCreateRelatedRecordFn,
   PostFormDataFn,
@@ -50,6 +52,7 @@ import type {
   RequestWithErrorsResponse,
 } from '../types/request.js';
 import { serializeConsoleArg } from '../util/console.js';
+import { isValidCodingAssistantRequest } from '../util/codingAssistant.js';
 import { cleanConfig } from '../workers/util.js';
 import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from '../util/frames.js';
 
@@ -125,6 +128,7 @@ export class BaseWorkerContext {
   private openCreateRecordHandler: OpenCreateRecordFn;
   private openCreateRelatedRecordHandler: OpenCreateRelatedRecordFn;
   private completeSetupHandler: CompleteSetupFn;
+  private launchCodingAssistantHandler: LaunchCodingAssistantFn;
   protected runnerType: 'base' | 'floatingFrame' | 'recordDetail';
   public pluginApiName: string;
   public tempPromptState: PromptState = {};
@@ -155,6 +159,7 @@ export class BaseWorkerContext {
     showViewInModal,
     closeModal,
     completeSetup,
+    launchCodingAssistant,
     location,
   }: WorkerContextArgs) {
     this.user = user;
@@ -190,6 +195,7 @@ export class BaseWorkerContext {
     this.showViewInModalHandler = showViewInModal;
     this.closeModalHandler = closeModal;
     this.completeSetupHandler = completeSetup;
+    this.launchCodingAssistantHandler = launchCodingAssistant;
 
     try {
       this.args = JSON.parse(args ?? '{}') as Args;
@@ -694,6 +700,28 @@ export class BaseWorkerContext {
         toastOptions,
       }),
     );
+  }
+
+  /*
+   * Opens the coding assistant (KiCode) in the host with the given profile, and the host
+   * sends `initialPrompt` as the first message. Resolves `true` when the host opened the
+   * panel and `false` otherwise: invalid arguments (unknown profile, empty prompt, or a
+   * prompt over CODING_ASSISTANT_PROMPT_MAX_LENGTH characters), no host handler, or the
+   * host declined or failed. It never rejects.
+   */
+  public async launchCodingAssistant(
+    profile: CodingAssistantProfile,
+    initialPrompt: string,
+  ): Promise<boolean> {
+    if (!isValidCodingAssistantRequest(profile, initialPrompt)) {
+      return false;
+    }
+
+    try {
+      return await this.launchCodingAssistantHandler(profile, initialPrompt);
+    } catch {
+      return false;
+    }
   }
 
   public clearToasts(): void {

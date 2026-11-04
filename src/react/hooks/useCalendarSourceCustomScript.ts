@@ -9,6 +9,7 @@ import type { WorkerContextArgs } from '../../types/contexts.js';
 import { runScript } from '../../run.js';
 import { generateExecutionKey } from '../../util/run.js';
 import { useTerminators } from '../context/terminators.js';
+import { useCodingAssistant } from '../context/codingAssistant.js';
 import { useSessionData } from '../context/session.js';
 import { useAppState } from '../context/appState.js';
 import { useRunnerState } from '../context/runnerState.js';
@@ -72,6 +73,7 @@ export const useCalendarSourceCustomScript = ({
   const [executionKey, setExeutionKey] = useState<string | undefined>(undefined);
 
   const { terminators } = useTerminators();
+  const { launchCodingAssistant } = useCodingAssistant();
   const { sessionData, setSessionData } = useSessionData();
   const {
     installedPluginAPINamesToIds,
@@ -154,6 +156,7 @@ export const useCalendarSourceCustomScript = ({
         pushHistory: history.push,
         onShowToast: showToast,
         onClearToasts: clearToasts,
+        onLaunchCodingAssistant: launchCodingAssistant,
         terminators,
         plugin,
         sessionData,
@@ -200,6 +203,7 @@ export const useCalendarSourceCustomScript = ({
       history,
       showToast,
       clearToasts,
+      launchCodingAssistant,
       terminators,
       sessionData,
       setSessionData,

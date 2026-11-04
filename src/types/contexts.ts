@@ -106,6 +106,19 @@ export type CurriedCompleteSetupFn = (
   promises: WorkerPromise,
 ) => CompleteSetupFn;
 
+// Profiles `this.launchCodingAssistant` accepts. Only 'business-app' exists today.
+export type CodingAssistantProfile = 'business-app';
+
+export type LaunchCodingAssistantFn = (
+  profile: CodingAssistantProfile,
+  initialPrompt: string,
+) => Promise<boolean>;
+
+export type CurriedLaunchCodingAssistantFn = (
+  instance: Instance,
+  promises: WorkerPromise,
+) => LaunchCodingAssistantFn;
+
 export type PromptFn = (config: ModalConfig) => Promise<unknown>;
 
 export type CurriedPromptFn = (instance: Instance, promises: WorkerPromise) => PromptFn;
@@ -165,6 +178,7 @@ export interface WorkerContextArgs {
   showViewInModal: ShowViewInModalFn;
   closeModal: CloseModalFn;
   completeSetup: CompleteSetupFn;
+  launchCodingAssistant: LaunchCodingAssistantFn;
 }
 
 export type KizenConfig = Record<string, unknown>;

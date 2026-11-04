@@ -1,4 +1,5 @@
 import type {
+  CodingAssistantProfile,
   CompleteSetupOptions,
   InternalSessionData,
   SetInternalSessionDataFn,
@@ -42,6 +43,20 @@ export type OnShowToastFn = (options: { message: string } & ShowToastOptions) =>
 
 export type OnClearToastsFn = () => void;
 
+export interface LaunchCodingAssistantArgs {
+  profile: CodingAssistantProfile;
+  initialPrompt: string;
+}
+
+/*
+ * Host handler that opens the coding assistant (KiCode). Return (or resolve) `true`
+ * only when the panel was opened. Returning `false`, throwing, or rejecting all
+ * resolve the plugin's `this.launchCodingAssistant` call to `false`.
+ */
+export type OnLaunchCodingAssistantFn = (
+  args: LaunchCodingAssistantArgs,
+) => boolean | Promise<boolean>;
+
 type TerminatorFn = () => void;
 
 export type TerminatorContent = Record<string, TerminatorFn[] | undefined>;
@@ -58,6 +73,7 @@ export interface RunScriptOptions {
   executionPlugin?: CommonExecutionPlugin | undefined;
   onShowToast?: OnShowToastFn;
   onClearToasts?: OnClearToastsFn;
+  onLaunchCodingAssistant?: OnLaunchCodingAssistantFn | undefined;
   terminators: Terminators;
   sessionData: InternalSessionData;
   setSessionData: SetInternalSessionDataFn;
@@ -209,6 +225,12 @@ export interface ShowToastEvent extends BaseEvent {
   toastOptions?: ShowToastOptions;
 }
 
+export interface LaunchCodingAssistantRequestEvent extends BaseEvent {
+  id: string;
+  profile: CodingAssistantProfile;
+  initialPrompt: string;
+}
+
 export interface RefreshTimelineEvent extends BaseEvent {
   entityId: string;
 }
@@ -301,6 +323,7 @@ export type MessageEventData =
   | OpenCreateRecordModalRequestEvent
   | OpenCreateRelatedRecordModalRequestEvent
   | ShowToastEvent
+  | LaunchCodingAssistantRequestEvent
   | RefreshTimelineEvent
   | RefreshEntityEvent
   | UpdateSessionDataEvent

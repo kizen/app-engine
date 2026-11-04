@@ -6,6 +6,7 @@ import {
   dynamicPromptHandler,
   handleCommonResponse,
   kizenRequestHandler,
+  launchCodingAssistantHandler,
   postFormDataHandler,
   promptHandler,
 } from './util.js';
@@ -67,6 +68,7 @@ self.onmessage = async (e: MessageEvent<string>) => {
       showViewInModal: notAllowed('showViewInModal'),
       closeModal: notAllowedVoid('closeModal'),
       completeSetup: notAllowed('completeSetup'),
+      launchCodingAssistant: launchCodingAssistantHandler(self, promises),
       pluginApiName,
       location,
     });

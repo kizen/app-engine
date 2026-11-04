@@ -5,6 +5,7 @@ import type {
 } from '../../types/artifacts/floatingFrame.js';
 import type { WorkerContextArgs } from '../../types/contexts.js';
 import { useTerminators } from '../context/terminators.js';
+import { useCodingAssistant } from '../context/codingAssistant.js';
 import { useSessionData } from '../context/session.js';
 import { useAppState } from '../context/appState.js';
 import { useModals } from '../context/modals.js';
@@ -40,6 +41,7 @@ export const useFloatingFrameCustomScript = ({
   },
 ] => {
   const { terminators } = useTerminators();
+  const { launchCodingAssistant } = useCodingAssistant();
   const { sessionData, setSessionData } = useSessionData();
   const {
     installedPluginAPINamesToIds,
@@ -143,6 +145,7 @@ export const useFloatingFrameCustomScript = ({
         plugin,
         onShowToast: showToast,
         onClearToasts: clearToasts,
+        onLaunchCodingAssistant: launchCodingAssistant,
         terminators,
         sessionData,
         setSessionData,
@@ -185,6 +188,7 @@ export const useFloatingFrameCustomScript = ({
       onChangeMinimized,
       showToast,
       clearToasts,
+      launchCodingAssistant,
       terminators,
       sessionData,
       setSessionData,
