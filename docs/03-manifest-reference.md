@@ -1378,6 +1378,7 @@ These parse every `.js` file under `entry`. The message carries the file and 1-b
 | `runtime/unavailable-global` | error | A free reference to a browser-page or Node.js global that does not exist in the Web Worker runtime — `window`, `document`, `localStorage`, `alert`, `requestIdleCallback`, `MutationObserver`, `importScripts`, `require`, `process`, `Buffer`, … `typeof window` feature checks are exempt; a locally declared binding of the same name is not a reference. |
 | `security/plaintext-credential` | error | `services[].auth_credentials.{token,password,client_secret}` holds a plaintext value instead of an encrypted envelope or a `{{secret.KEY}}` reference. |
 | `security/undeclared-secret-reference` | error | The whole value of `services[].auth_credentials.{token,password,client_secret}` is exactly `{{secret.KEY}}` and `KEY` is not in `base_config.secrets`. |
+| `security/global-secret-reference` | error | A `services[]` entry with `auth_level: "global"` has a `{{secret.KEY}}` reference in `auth_credentials`, `base_service_url` or `custom_headers`. |
 | `security/malformed-envelope` | error | An `{"encrypted": true, "value": …}` envelope that cannot be deserialized. |
 | `security/dynamic-code` | error | `eval(...)`, `Function(...)`, `new Function(...)`, or `setTimeout`/`setInterval` with a string argument. |
 | `security/dangerously-skip-proxy` | **warning** | A script uses `__dangerouslySkipProxy`, so its requests leave the browser directly. |
