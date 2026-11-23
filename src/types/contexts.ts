@@ -111,7 +111,7 @@ export type CodingAssistantProfile = 'business-app';
 
 export type LaunchCodingAssistantFn = (
   profile: CodingAssistantProfile,
-  initialPrompt: string,
+  initialPrompt?: string,
 ) => Promise<boolean>;
 
 export type CurriedLaunchCodingAssistantFn = (

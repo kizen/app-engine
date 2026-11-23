@@ -1,6 +1,5 @@
 import type { RefObject } from 'react';
 import type {
-  CodingAssistantProfile,
   CompleteSetupOptions,
   InternalSessionData,
   SetInternalSessionDataFn,
@@ -77,7 +76,7 @@ import {
 } from './communication/ThirdPartyScript.js';
 import { generateUUIDV4, getPartialLocation } from './util/run.js';
 import { deserializeConsoleArg } from './util/console.js';
-import { isValidCodingAssistantRequest } from './util/codingAssistant.js';
+import { parseCodingAssistantRequest } from './util/codingAssistant.js';
 import { KizenRequestError } from './util/errors.js';
 import type { WorkerSetup } from './types/workers.js';
 import { getPluginSafeHTML } from './util/values.js';
@@ -776,19 +775,21 @@ export class WorkerManager {
 
   // Always answers the worker with a boolean: a missing handler, invalid arguments,
   // or a handler that throws or rejects all resolve the plugin's call to `false`.
-  // The arguments are re-validated here because the worker runs plugin code and
-  // could post this request directly.
+  // The arguments are re-validated and the prompt normalized here (a blank prompt is
+  // omitted from the handler's args) because the worker runs plugin code and could
+  // post this request directly.
   private handleLaunchCodingAssistantRequest = async (
     id: string,
-    profile: CodingAssistantProfile,
-    initialPrompt: string,
+    profile: unknown,
+    initialPrompt: unknown,
   ): Promise<void> => {
     let opened = false;
+    const args = parseCodingAssistantRequest(profile, initialPrompt);
 
-    if (this.onLaunchCodingAssistant && isValidCodingAssistantRequest(profile, initialPrompt)) {
+    if (this.onLaunchCodingAssistant && args) {
       try {
         // The host handler is external code, so only a literal `true` counts as opened.
-        const result: unknown = await this.onLaunchCodingAssistant({ profile, initialPrompt });
+        const result: unknown = await this.onLaunchCodingAssistant(args);
         opened = result === true;
       } catch {
         opened = false;
