@@ -1112,24 +1112,25 @@ this.clearToasts();
 this.showToast("Record created.", { variant: "success" });
 ```
 
-### `this.launchCodingAssistant(profile, initialPrompt)`
+### `this.launchCodingAssistant(profile, initialPrompt?)`
 
 ```ts
 type CodingAssistantProfile = 'business-app';   // the only profile today
 
-launchCodingAssistant(profile: CodingAssistantProfile, initialPrompt: string): Promise<boolean>
+launchCodingAssistant(profile: CodingAssistantProfile, initialPrompt?: string): Promise<boolean>
 ```
 
-Opens the host's coding assistant panel (KiCode) with the named profile, and the host sends
-`initialPrompt` as the first message on the user's behalf. The engine adds no confirmation step;
-what the host does before sending is up to the host.
+Opens the host's coding assistant panel (KiCode) with the named profile. When `initialPrompt`
+has text, the host sends it as the first message on the user's behalf. When it is omitted, empty,
+or whitespace-only, the host opens the panel with no initial message. The engine adds no
+confirmation step; what the host does before sending is up to the host.
 
 Resolves `true` when the host opened the panel. Resolves `false`, and **never rejects**, when:
 
 | Condition | Result |
 |---|---|
 | `profile` is not a known profile | `false`, nothing sent to the host |
-| `initialPrompt` is not a string, is empty or whitespace-only, or is longer than 10,000 characters (`String.length`) | `false`, nothing sent to the host |
+| `initialPrompt` is present but not a string, or is longer than 10,000 characters (`String.length`) | `false`, nothing sent to the host |
 | the host passed no `launchCodingAssistant` handler | `false` |
 | the host declined: no access, the feature is off, or the profile isn't supported there | `false` |
 | the host handler threw or rejected | `false` |
@@ -1145,6 +1146,14 @@ const opened = await this.launchCodingAssistant(
 if (!opened) {
   this.showToast("The coding assistant isn't available here.", { variant: "alert" });
 }
+```
+
+To open the panel without a message, leave the prompt out or pass an empty string. When the
+prompt comes from a form field, pass the field's string value (form values arrive in an array,
+so read the first item); a blank field then opens the panel with no message:
+
+```js
+await this.launchCodingAssistant("business-app");
 ```
 
 ### `this.setIndicator(indicator?)`

@@ -43,9 +43,13 @@ export type OnShowToastFn = (options: { message: string } & ShowToastOptions) =>
 
 export type OnClearToastsFn = () => void;
 
+/*
+ * `initialPrompt` is omitted when the plugin passed no prompt, or an empty or
+ * whitespace-only one; the host then opens the coding assistant with no initial message.
+ */
 export interface LaunchCodingAssistantArgs {
   profile: CodingAssistantProfile;
-  initialPrompt: string;
+  initialPrompt?: string;
 }
 
 /*
@@ -227,8 +231,10 @@ export interface ShowToastEvent extends BaseEvent {
 
 export interface LaunchCodingAssistantRequestEvent extends BaseEvent {
   id: string;
-  profile: CodingAssistantProfile;
-  initialPrompt: string;
+  // `profile` and `initialPrompt` are posted by the worker, which runs plugin code, so
+  // the WorkerManager re-validates both.
+  profile: unknown;
+  initialPrompt?: unknown;
 }
 
 export interface RefreshTimelineEvent extends BaseEvent {

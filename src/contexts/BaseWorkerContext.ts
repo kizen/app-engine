@@ -52,7 +52,7 @@ import type {
   RequestWithErrorsResponse,
 } from '../types/request.js';
 import { serializeConsoleArg } from '../util/console.js';
-import { isValidCodingAssistantRequest } from '../util/codingAssistant.js';
+import { parseCodingAssistantRequest } from '../util/codingAssistant.js';
 import { cleanConfig } from '../workers/util.js';
 import { buildIframeURLWithProxy, type BuildIframeURLWithProxyOptions } from '../util/frames.js';
 
@@ -703,22 +703,26 @@ export class BaseWorkerContext {
   }
 
   /*
-   * Opens the coding assistant (KiCode) in the host with the given profile, and the host
-   * sends `initialPrompt` as the first message. Resolves `true` when the host opened the
-   * panel and `false` otherwise: invalid arguments (unknown profile, empty prompt, or a
-   * prompt over CODING_ASSISTANT_PROMPT_MAX_LENGTH characters), no host handler, or the
-   * host declined or failed. It never rejects.
+   * Opens the coding assistant (KiCode) in the host with the given profile. When
+   * `initialPrompt` has non-whitespace text the host sends it as the first message;
+   * when it is omitted, empty, or whitespace-only the host opens with no message.
+   * Resolves `true` when the host opened the panel and `false` otherwise: invalid
+   * arguments (unknown profile, a non-string prompt, or a prompt over
+   * CODING_ASSISTANT_PROMPT_MAX_LENGTH characters), no host handler, or the host
+   * declined or failed. It never rejects.
    */
   public async launchCodingAssistant(
     profile: CodingAssistantProfile,
-    initialPrompt: string,
+    initialPrompt?: string,
   ): Promise<boolean> {
-    if (!isValidCodingAssistantRequest(profile, initialPrompt)) {
+    const args = parseCodingAssistantRequest(profile, initialPrompt);
+
+    if (!args) {
       return false;
     }
 
     try {
-      return await this.launchCodingAssistantHandler(profile, initialPrompt);
+      return await this.launchCodingAssistantHandler(args.profile, args.initialPrompt);
     } catch {
       return false;
     }
